@@ -1,0 +1,42 @@
+# ====================================
+# Makefile
+#
+# Hamid R. Bazoobandi
+# Fri 13.7.2012
+# ====================================
+ROOT = ..
+
+include $(ROOT)/rules.mak
+
+LINK_LD = kernel.ld
+
+CFLAGS  += -I include/ -I $(ROOT)/include/
+ASFLAGS += -I include/ -I $(ROOT)/include/
+LDFLAGS += -n -T $(LINK_LD)
+
+MYDIR += kernel/
+
+#SRC = start_off.S main.c console.c printk.c resource.c string.c panic.c trap.S trap_handler.c \
+#			memory.c brk.c asmfunc.S pmap.c pid.c proc.c fork.c clone.c exit.c read.c schedule.c waitpid.c \
+#			clock.c isr.S segment.c interrupt.c queue.c device.c mp.c cpu.c mtrr.c\
+#			dev/i8253.c dev/i8259.c dev/keyboard.c dev/pic.c dev/ioapic.c dev/lapic.c
+SRC = start_off.S main.c console.c printk.c string.c panic.c trap.S trap_handler.c \
+			memory.c asmfunc.S pmap.c \
+			clock.c isr.S segment.c interrupt.c mp.c cpu.c \
+			dev/i8253.c dev/i8259.c dev/keyboard.c dev/pic.c dev/ioapic.c dev/lapic.c
+
+OBJ = $(subst .S,.o,$(filter %.S,$(SRC))) $(subst .c,.o,$(filter %.c,$(SRC)))
+
+$(KERNEL): $(OBJ)
+	$(call silent_command, $(LD) $(LDFLAGS) -o $@ $(OBJ), "    LINK  $(MYDIR)$@")
+
+-include $(subst .c,.d,$(filter %.c,$(SRC)))
+
+
+.PHONY: clean
+.PHONY: distclean
+clean:
+	$(call silent_command, rm -f dev/*.o dev/*.d *.o *.d $(KERNEL), "    CLEAN $(MYDIR)")
+distclean:
+	$(call silent_command, rm -f dev/*.o dev/*.d *.o *.d $(KERNEL), "    CLEAN ALL $(MYDIR)")
+	$(call silent_command, rm -f include/asm_frame_const.h include/asm_procregs_const.h include/asm_kernel_args_const.h, "    CLEAN ALL $(MYDIR)")
