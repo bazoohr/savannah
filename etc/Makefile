@@ -14,14 +14,11 @@ silent_command = $(if $(2), @echo $2 && $1, @$(1))
 MYDIR += etc
 
 .PHONY: all clean distclean
-all: gen_asm_frame_const_h gen_asm_proc_const_h gen_asm_kernel_args_const_h
+all: gen_asm_frame_const_h gen_asm_kernel_args_const_h
 
 gen_asm_frame_const_h: gen_asm_frame_const_h.c $(ROOT)/kernel/include/frame.h
 	$(CC) $(CFLAGS) -o $@ $@.c
 	$(call silent_command, ./$@ > $(ROOT)/kernel/include/asm_frame_const.h, "    GEN    $(CURDIR)/kernel/include/asm_frame_const.h")
-gen_asm_proc_const_h: gen_asm_proc_const_h.c $(ROOT)/kernel/include/proc.h
-	$(CC) $(CFLAGS) -o $@ $@.c
-	$(call silent_command, ./$@ > $(ROOT)/kernel/include/asm_proc_const.h, "    GEN    $(CURDIR)/kernel/include/asm_proc_const.h")
 gen_asm_kernel_args_const_h: gen_asm_kernel_args_const_h.c $(ROOT)/include/kernel_args.h
 	$(CC) $(CFLAGS) -o $@ $@.c
 	$(call silent_command, ./$@ > $(ROOT)/kernel/include/asm_kernel_args_const.h, "    GEN    $(CURDIR)/kernel/include/asm_kernel_args_const.h")
