@@ -6,7 +6,7 @@
 uint32_t
 lapic_read(uint32_t off)
 {   
-  return *(volatile uint32_t *) (0xFEE00000 + off);
+  return *(volatile uint32_t *) ((uint8_t*)0xFEE00000 + off);
 }
 
 void
@@ -18,7 +18,7 @@ lapic_eoi(void)
 void
 lapic_write(uint32_t off, uint32_t val)
 {   
-  *(volatile uint32_t *) (0xFEE00000 + off) = val; /* FEE00000 should be fixed */
+  *(volatile uint32_t *) ((uint8_t*)0xFEE00000 + off) = val; /* FEE00000 should be fixed */
   lapic_read(LAPIC_ID);        // Wait for the write to finish, by reading
 }
 
