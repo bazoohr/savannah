@@ -2,6 +2,5 @@
 #define __CLOCK_H__
 
 void clock_init (void);
-void clock_stop (void);
 
 #endif  /* __CLOCK_H__ */

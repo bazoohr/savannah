@@ -4,19 +4,16 @@
 #include <kernel_args.h>
 #include <printk.h>
 #include <console.h>
-#include <proc.h>
 #include <const.h>
 #include <interrupt.h>
 #include <asmfunc.h>
 #include <clock.h>
 #include <memory.h>
-#include <queue.h>
-#include <resource.h>
 #include <dev/keyboard.h>
 #include <mp.h>
 #include <dev/ioapic.h>
 #include <dev/lapic.h>
-#include <mtrr.h>
+#include <cpu.h>
 /* ========================================== */
 static void
 print_logo(void)

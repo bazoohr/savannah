@@ -2,8 +2,7 @@
 #include <page.h>
 #include <printk.h>
 #include <memory.h>
-#include <lock.h>
-#include <mmap.h>
+#include <pmap.h>
 
 #define ALIGN(addr, bound) (((addr)+((bound)-1))&(~((bound)-1)))
 
@@ -106,9 +105,6 @@ alloc_mem_pages (size_t n)
 {
   struct block_node *current_node;
   phys_addr_t found_block = 0;
-  int lock;
-
-  lock_region (&lock);
 
   current_node = blist;
 
@@ -141,8 +137,6 @@ alloc_mem_pages (size_t n)
     }
   } /* While */
 
-  unlock_region (&lock);
-
   return found_block;
 }
 
@@ -164,9 +158,6 @@ void
 free_mem_pages (phys_addr_t addr)
 {
   struct block_node *current_node;
-  int lock;
-
-  lock_region (&lock);
 
   current_node = blist;
 
@@ -208,7 +199,6 @@ free_mem_pages (phys_addr_t addr)
     current_node = current_node->next;
   }
 
-  unlock_region (&lock);
 }
 
 void

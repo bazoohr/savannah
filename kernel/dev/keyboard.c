@@ -1,9 +1,7 @@
 #include <asmfunc.h>
-#include <dev/pic.h>
 #include <panic.h>
 #include <printk.h>
 #include <cdef.h>
-#include <device.h>
 #include <dev/ioapic.h>
 #include <dev/lapic.h>
 #include <isr.h>

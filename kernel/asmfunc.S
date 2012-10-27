@@ -6,11 +6,9 @@
  * ======================================== */
 .code64
 .section .text
-#include <proc.h>
 #include <const.h>
 #include <dev/pic.h>
 #include <asmlink.h>
-#include <lock.h>
 /* ============================ */
 /* void cpuid (register_t *rax, register_t *rbx
           register_T *rcx, register_t *rdx);
@@ -112,11 +110,6 @@ ENTRY (load_cr3)
   retq
 END (load_cr3)
 /* ================================== */
-ENTRY (read_cr2)
-  movq %cr2, %rax
-  retq
-END (read_cr2)
-/* ======================================= */
 ENTRY (switchto)
 #if 0
   movq %rax, PR_RAX(%rdi)
@@ -296,33 +289,3 @@ ENTRY (fast_memset)
   movq %r8, %rax
   retq
 END (fast_memset)
-/* =========================================== */
-/*
- * Lock a critical region by disabling interrupts
- */
-ENTRY (lock_region)
-  pushfq
-  popq %rcx
-
-  btq $9, %rcx
-  jnc no_int
-
-  movl $REGION_LOCKED, (%rdi)
-  cli
-  jmp 1f
-/*
- * If region is already locked
- */
-no_int: 
-  movl $REGION_NOT_LOCKED, (%rdi)
-1:
-  retq
-END (lock_region)
-/* =========================================== */
-ENTRY (unlock_region)
-  cmpl $REGION_LOCKED, (%rdi)
-  jne 1f
-  sti
-1:
-  retq
-END (unlock_region)

@@ -6,7 +6,6 @@
  * ======================================== */
 #include <console.h>
 #include <types.h>
-#include <mmap.h>
 #include <printk.h>
 /* ============================= */
 static uint64_t y;

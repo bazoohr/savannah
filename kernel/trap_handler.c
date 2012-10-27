@@ -1,19 +1,7 @@
-#include <syscall.h>
 #include <trap.h>
 #include <printk.h>
 #include <types.h>
-#include <fork.h>
-#include <clone.h>
-#include <proc.h>
 #include <asmfunc.h>
-#include <mmap.h>
-#include <dev/pic.h>
-#include <schedule.h>
-#include <exit.h>
-#include <wait.h>
-#include <read.h>
-#include <brk.h>
-#include <global.h>
 
 static void syscall_handler (struct trapframe *tf)
 {
@@ -79,7 +67,7 @@ static void syscall_handler (struct trapframe *tf)
 void trap_handler (struct trapframe *tf)
 {
   if (tf->tf_trapno == IDT_PF) {
-    phys_addr_t addr = read_cr2 ();
+    phys_addr_t addr = rcr2 ();
     //printk ("page fault addr = %x process id %d\n", addr, current->p_pid);
     printk ("page fault addr = %x\n", addr);
   }
