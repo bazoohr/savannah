@@ -7,7 +7,6 @@
 #include <const.h>
 #include <interrupt.h>
 #include <asmfunc.h>
-#include <clock.h>
 #include <memory.h>
 #include <dev/keyboard.h>
 #include <mp.h>
