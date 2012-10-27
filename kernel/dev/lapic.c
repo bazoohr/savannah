@@ -57,20 +57,6 @@ lapic_init(void)
 
   //uint64_t ccr0 = lapic_read(LAPIC_CCR_TIMER);
   //cprintk("crr0 = %x\n", 0xE, ccr0);
-
-  outb(((inb(0x61)%0xFD)|1), 0x61);
-  outb(0xB2, 0x43);
-  outb(0x9B, 0x42);
-  // 1193180 / 100 Hz = 11931 = 0x2e9b
-  inb(0x60);
-  outb(0x42, 0x2E);
-
-  uint8_t tmp = inb(0x61) & 0xfe;
-  outb(tmp, 0x61);
-  outb(tmp | 1, 0x61);
-
-  while (!(inb(0x61) & 0x20));
-
   //uint64_t cpubusfreq = ((0xFFFFFFFF - lapic_read(LAPIC_CCR_TIMER)) + 1) * 16 * 100;
   //cprintk("Cpu Bus Freq: %d\n", 0x5, cpubusfreq);
 
