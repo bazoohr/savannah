@@ -7,6 +7,8 @@ tags
 
 config.mak
 boot/loader.bin
+boot/boot_aps
+boot/boot_aps.out
 etc/gen_asm_frame_const_h
 etc/gen_asm_kernel_args_const_h
 etc/gen_asm_proc_const_h

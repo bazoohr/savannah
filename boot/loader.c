@@ -82,6 +82,7 @@ boot_loader (unsigned long magic, unsigned long addr)
   multiboot_info_t *mbi = (multiboot_info_t *)addr;
   phys_addr_t kernel_elf_addr       = 0;
   phys_addr_t init_elf_addr         = 0;
+  phys_addr_t boot_aps_bin_addr     = 0;
   phys_addr_t kernel_end_addr       = 0;
   size_t memory_size                = 0;
   void (*kernel)(struct kernel_args *);
@@ -120,7 +121,7 @@ boot_loader (unsigned long magic, unsigned long addr)
   /* Kernel should be loaded as a multi-boot module */
   if (CHECK_FLAG (mbi->flags, 3)) {
     multiboot_module_t *mod;
-    if (mbi->mods_count < 2) {
+    if (mbi->mods_count != 3) {
       printf ("ERROR: Kernel or init is not loaded by GRUB!\n");
       halt ();
     }
@@ -134,11 +135,29 @@ boot_loader (unsigned long magic, unsigned long addr)
     }
 
     mod++;
+    boot_aps_bin_addr = (phys_addr_t)mod->mod_start;
+    if (mod->mod_end > 0x200000) {
+      printf ("ERROR: loaded module overlaps with kernel start address\n");
+      halt ();
+    }
+
+    /*
+     * The important thing to consider here is that
+     * the boot_aps program, must not be bigger than
+     * 512 bytes.
+     *
+     * TODO:
+     *     Define 0x9FC00 as a macro to some good place.
+     */
+    memcpy ((void*)0x9FC00, (void*)boot_aps_bin_addr, 512);
+
+    mod++;
     kernel_elf_addr = (phys_addr_t)mod->mod_start;
     if (mod->mod_end > 0x200000) {
       printf ("ERROR: loaded module overlaps with kernel start address\n");
       halt ();
     }
+
   } else {
     printf ("ERROR: Kernel is not loaded in memory!\n");
     halt ();

@@ -12,6 +12,17 @@ CFLAGS  := -m64 -fno-stack-protector -fno-builtin -nostdinc -mno-red-zone -Wall 
 ASFLAGS := -m64 -Wall -D__ASSEMBLY__
 LDFLAGS :=
 
+# Since clang integrated as does not support .code16 YET ;)
+# and we have no clue when they plan to support it, then we
+# have to FORCE it not to use its integrated AS.
+#
+# BUT
+# GCC does not understand this option. So we have to check to see
+# which compiler are we using.
+ifeq ($(CC),clang)
+ASFLAGS += -no-integrated-as
+endif
+
 MYDIR =
 
 silent_command = $(if $(2), @echo $2 && $1, @$(1))

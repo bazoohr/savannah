@@ -1,5 +1,18 @@
 #include <types.h>
 
+void *
+memcpy (void *dst, const void *src, size_t count)
+{
+  char *tmp = dst;
+  const char *s = src;
+
+  while (count--) {
+    *tmp++ = *s++;
+  }
+
+  return dst;
+}
+
 void bcopy (const void *src, void *dst, size_t count)
 {
   register int i;

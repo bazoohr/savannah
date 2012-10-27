@@ -50,7 +50,9 @@ lapic_init(void)
 #endif
 
 
-
+  /*
+   * initializing the local timer of BSP
+   */
   lapic_write(LAPIC_DCR_TIMER, LAPIC_DCRT_DIV1);
   lapic_write(LAPIC_ICR_TIMER, 0x0fffffff);
   lapic_write(LAPIC_LVTT, LAPIC_LVT_PERIODIC | /*LAPIC_LVT_MASKED | */(IRQ_OFFSET + IRQ_TIMER));
