@@ -14,5 +14,6 @@ vuos.iso
 init/init
 kernel/include/asm_frame_const.h
 kernel/include/asm_kernel_args_const.h
+kernel/include/asm_proc_const.h
 kernel/kernel.bin
 lib/libos.a
