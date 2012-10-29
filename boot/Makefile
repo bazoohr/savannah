@@ -27,7 +27,7 @@ $(LOADER): $(subst .S,.o,$(filter %.S,$(SRC))) $(subst .c,.o,$(filter %.c,$(SRC)
 # Clear this make file. Its a terrible mess at the moment.
 #
 $(BOOT_APS): boot_aps.o
-	$(call silent_command, $(LD) $(LDFLAGS) -N -e _start -Ttext 0xFC00 -o boot_aps.out $<, "    LINK   $(BOOT_APS)")
+	$(call silent_command, $(LD) $(LDFLAGS) -N -e _start -Ttext 0x0000 -o boot_aps.out $<, "    LINK   $(BOOT_APS)")
 	$(call silent_command, objcopy -S -O binary boot_aps.out $@)
 
 -include $(subst .c,.d,$(filter %.c,$(SRC)))

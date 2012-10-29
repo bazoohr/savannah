@@ -65,6 +65,13 @@ rcr4(void)
 	__asm __volatile__ ("movq %%cr4,%0" : "=r" (cr4));
 	return cr4;
 }
+
+void
+nop_pause(void)
+{
+    __asm __volatile("pause" : : );
+}
+
 void
 cache_flush (void)
 {

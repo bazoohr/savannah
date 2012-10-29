@@ -3,16 +3,15 @@
  */
  /* =============================================== */
 /* This is fixed address, below the BSP's kernel stack */
-#define BASE_ADDR 0x9EC00 
+#define BASE_ADDR 0x9F000
  /* =============================================== */
 .code16
-.org 0xFC00 /* This is done for realmode booting */
 .align 0x10
 .section .text
 .globl _start
 _start:
     cli              /* Make sure interrupts are disabled */
-    xorw $0x9000, %ax
+    xorw $(BASE_ADDR >> 4), %ax
     movw %ax, %ds
     movw %ax, %es
     movw %ax, %gs
@@ -81,7 +80,7 @@ start_64:
   movq %rax, %es
   movq %rax, %fs
   movq %rax, %gs
-  movb $'+', 0xB8000
+  movb $'A', 0xB8000
   movb $0x4, 0xB8001
   cli;
   hlt
@@ -116,9 +115,8 @@ LDT:
 GDTEND:
 realmode_gdt_descr:
 	.word GDTEND - GDT
-	.long GDT
+	.long BASE_ADDR + GDT
 protmode_gdt_desc:
 longmode_gdt_desc:
 	.word GDTEND - GDT
-	.long GDT
-.org 0xFE00 /* This program must not go beyond this address */
+	.long BASE_ADDR + GDT

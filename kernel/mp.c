@@ -4,7 +4,9 @@
 #include <panic.h>
 #include <debug.h>
 #include <dev/ioapic.h>
+#include <dev/lapic.h>
 #include <mp.h>
+#include <printk.h>
 
 #define IOAPICPA   0xFEC00000	// Default physical address of IO APIC
 
@@ -89,7 +91,19 @@ struct mp_fptr *mp_search(phys_addr_t pa, int len)
 	return 0;
 }
 
-void mp_init(void)
+void
+mp_bootothers (void)
+{
+  cpuid_t i;
+
+  for (i = 1; i < ncpus; i++) {
+    cprintk ("booting cpu %d...", 0xF, i);
+    lapic_startaps (i);
+    cprintk ("OK!\n", 0xA);
+  }
+}
+void
+mp_init(void)
 {
 	struct mp_fptr *mp;
 

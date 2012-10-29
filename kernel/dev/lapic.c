@@ -2,6 +2,11 @@
 #include <asmfunc.h>
 #include <isr.h>
 #include <printk.h>
+#include <dev/apicreg.h>
+#include <timer.h>
+#include <isareg.h>
+#include <nvram.h>
+#include <panic.h>
 
 uint32_t
 lapic_read(uint32_t off)
@@ -21,7 +26,69 @@ lapic_write(uint32_t off, uint32_t val)
   *(volatile uint32_t *) ((uint8_t*)0xFEE00000 + off) = val; /* FEE00000 should be fixed */
   lapic_read(LAPIC_ID);        // Wait for the write to finish, by reading
 }
+static int
+lapic_icr_wait()
+{
+  uint32_t i = 100000;
+  while ((lapic_read (LAPIC_ICRLO) & LAPIC_DLSTAT_BUSY) != 0) {
+    nop_pause ();
+    i--;
+    if (i == 0) {
+      cprintk ("apic_icr_wait: wedged?\n", 0x4);
+      return -/*E_INVAL*/1;
+    }
+  }
+  return 0;
+}
 
+static int
+lapic_ipi_init(uint32_t apicid)
+{
+    // Intel MultiProcessor spec. section B.4.1
+    lapic_write (LAPIC_ICRHI, apicid << LAPIC_ID_SHIFT);
+    lapic_write (LAPIC_ICRLO, apicid | LAPIC_DLMODE_INIT | LAPIC_LVL_TRIG |
+	       LAPIC_LVL_ASSERT);
+    lapic_icr_wait ();
+    timer_delay (10);	// 10ms
+
+    lapic_write (LAPIC_ICRLO, apicid | LAPIC_DLMODE_INIT | LAPIC_LVL_TRIG |
+	       LAPIC_LVL_DEASSERT);
+    lapic_icr_wait ();
+
+    int result = (lapic_read (LAPIC_ICRLO) & LAPIC_DLSTAT_BUSY);
+    return (result) ? -1/*-E_BUSY*/ : 0;
+}
+
+void
+lapic_startaps (cpuid_t cpuid)
+{
+  // Universal Start-up Algorithm from Intel MultiProcessor spec
+  int r;
+  uint16_t *dwordptr;
+
+  // "The BSP must initialize CMOS shutdown code to 0Ah ..."
+  outb (NVRAM_RESET, IO_RTC);
+  outb (NVRAM_RESET_JUMP, IO_RTC + 1);
+
+  // "and the warm reset vector (DWORD based at 40:67) to point
+  // to the AP startup code ..."
+  dwordptr = (uint16_t*)0x467;
+  dwordptr[0] = 0;               /* IP probably */
+  dwordptr[1] = (0x9F000) >> 4;  /* CS probably*/
+
+  // ... prior to executing the following sequence:"
+  if ((r = lapic_ipi_init(cpuid)) < 0)
+    panic ("unable to send init error r");
+
+  timer_delay (10);	// 10ms
+  uint32_t i;
+  for (i = 0; i < 2; i++) {
+    lapic_icr_wait();
+    lapic_write (LAPIC_ICRHI, cpuid << LAPIC_ID_SHIFT);
+    lapic_write (LAPIC_ICRLO, LAPIC_DLMODE_STARTUP | (0x9F000 >> 12));
+    timer_delay (1);	// 1 ms
+  }
+}
 void
 lapic_init(void)
 {

@@ -40,6 +40,7 @@ kmain (struct kernel_args *kargs)
   kbd_init ();
 
   print_logo();
+  mp_bootothers ();
 
   __asm__ __volatile__ ("sti\n");
 

@@ -29,4 +29,6 @@ uint64_t rcr4 (void);
 
 void cache_flush (void);
 void tlb_flush_global(void);
+
+void nop_pause(void);
 #endif /* __KLIB_H__ */

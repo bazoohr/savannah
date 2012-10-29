@@ -146,10 +146,11 @@ boot_loader (unsigned long magic, unsigned long addr)
      * the boot_aps program, must not be bigger than
      * 512 bytes.
      *
+     * The address must be 4kb aligned!
      * TODO:
-     *     Define 0x9FC00 as a macro to some good place.
+     *     Define 0x9F000 as a macro to some good place.
      */
-    memcpy ((void*)0x9FC00, (void*)boot_aps_bin_addr, 512);
+    memcpy ((void*)0x9F000, (void*)boot_aps_bin_addr, 512);
 
     mod++;
     kernel_elf_addr = (phys_addr_t)mod->mod_start;
