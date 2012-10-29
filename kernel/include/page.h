@@ -54,6 +54,7 @@ typedef uint64_t page_table_entry_t;
 #define PAGE_RW       (1 << _PAGE_BIT_RW)
 #define PAGE_USR      (1 << _PAGE_BIT_USER)
 #define PAGE_GLOBAL   (1 << _PAGE_BIT_GLOBAL)
+#define PAGE_PCD      (1 << _PAGE_BIT_PCD)
 /*
  * Because GCC complains about shifting to last bit of uint64_t, we set NX bit
  * by using an OR operation with this constant, which is exactly the same.

@@ -66,7 +66,7 @@ map_iomem (void)
 
       pdpe[pdpe_idx] = (phys_addr_t)pde  | (PAGE_PRESENT | PAGE_RW);
     }
-    pde[pde_idx] = paddr | (PAGE_PRESENT | PAGE_RW | PAGE_PSE);
+    pde[pde_idx] = paddr | (PAGE_PRESENT | PAGE_RW | PAGE_PSE | PAGE_PCD); /* Page is not cachable */
     page++;
     paddr += KNL_PAGE_SIZE;
     vaddr += KNL_PAGE_SIZE;

@@ -31,8 +31,6 @@ kmain (struct kernel_args *kargs)
   con_init ();
   mm_init (kargs->ka_kernel_end_addr, kargs->ka_kernel_cr3, kargs->ka_memsz);
   mp_init ();
-  // Disable caching
-  lcr0((rcr0() | CR0_CD) & ~CR0_NW);
 
   interrupt_init (); /*idt*/
 
