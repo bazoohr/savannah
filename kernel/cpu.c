@@ -92,3 +92,9 @@ tlb_flush_global(void)
 		lcr3(rcr3());
 }
 
+void
+halt(void)
+{
+	asm volatile ("cli;hlt\n");
+}
+

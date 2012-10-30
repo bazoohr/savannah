@@ -83,7 +83,7 @@ void trap_handler (struct trapframe *tf)
     printk ("rip %x\n", tf->tf_rip);
     printk ("trap_no %x\n", tf->tf_trapno);
     printk ("error %x\n", tf->tf_err);
-    __asm__ __volatile__ ("cli; hlt\n\t");
+    halt ();
   }
 }
 

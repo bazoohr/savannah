@@ -3,6 +3,7 @@
 #include <printk.h>
 #include <memory.h>
 #include <pmap.h>
+#include <panic.h>
 
 #define ALIGN(addr, bound) (((addr)+((bound)-1))&(~((bound)-1)))
 
@@ -87,8 +88,7 @@ init_block_list (void)
   size_t all_pages = available_free_memory / USR_PAGE_SIZE;
   blist = alloc_block_node ();
   if (blist == NULL) {
-    cprintk ("Failed to initialize memory!\n", 0x4);
-    __asm__ __volatile__ ("cli;hlt;\n\t");
+    panic ("Failed to initialize memory!");
   }
 
   blist->b_start_addr = first_free_addr;

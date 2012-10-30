@@ -31,4 +31,6 @@ void cache_flush (void);
 void tlb_flush_global(void);
 
 void nop_pause(void);
+
+void halt(void);
 #endif /* __KLIB_H__ */
