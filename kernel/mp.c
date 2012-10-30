@@ -7,6 +7,7 @@
 #include <dev/lapic.h>
 #include <mp.h>
 #include <printk.h>
+#include <cpu.h>
 
 #define IOAPICPA   0xFEC00000	// Default physical address of IO APIC
 
@@ -15,6 +16,8 @@
 #define MP_IOAPIC  0x02         // One per I/O APIC
 #define MP_IOINTR  0x03         // One per bus interrupt source
 #define MP_LINTR   0x04         // One per system interrupt source
+
+struct cpu cpus[MAX_CPUS];
 
 uint64_t ncpus = 0;
 
@@ -67,7 +70,8 @@ struct mp_bus {
     char busstr[6];		// string which identifies the type of this bus
 };
 
-uint8_t sum(uint8_t *a, uint32_t length)
+uint8_t
+sum (uint8_t *a, uint32_t length)
 {
 	uint8_t s = 0;
 	uint32_t i;
@@ -77,7 +81,8 @@ uint8_t sum(uint8_t *a, uint32_t length)
 	return s;
 }
 
-struct mp_fptr *mp_search(phys_addr_t pa, int len)
+struct mp_fptr *
+mp_search (phys_addr_t pa, int len)
 {
 	uint8_t *start = (uint8_t *)(pa);
 	uint8_t *p;
@@ -97,8 +102,8 @@ mp_bootothers (void)
   cpuid_t i;
 
   for (i = 1; i < ncpus; i++) {
-    cprintk ("booting cpu %d...", 0xF, i);
-    lapic_startaps (i);
+    cprintk ("booting cpu %d...", 0xF, cpus[i].cpuid);
+    lapic_startaps (cpus[i].lapic_id);
     cprintk ("OK!\n", 0xA);
   }
 }
@@ -106,6 +111,14 @@ void
 mp_init(void)
 {
 	struct mp_fptr *mp;
+	register_t rax;
+	register_t rdx;
+	register_t rcx;
+
+	rax = 1;
+	cpuid (&rax, NULL, &rcx, &rdx);
+	if (! ((rdx & (1 << 9)) && (rdmsr (0x1B) & (1<<11))))
+		panic("APIC is NOT supported!");
 
 	mp = mp_search(0xF0000, 0x10000);
 	if (!mp) {
@@ -133,12 +146,16 @@ mp_init(void)
   struct mp_ioapic *ioapic_conf = NULL;
 	uint8_t *start = (uint8_t *)(conf + 1);
 	uint8_t *p;
+  struct mp_proc *proc = NULL;
 
 	for (p = start ; p < ((uint8_t *) conf + conf->length) ; ) {
 		switch(*p) {
 			case MP_PROC:
+        proc = (struct mp_proc *)p;
+        cpus[ncpus].cpuid = ncpus;
+        cpus[ncpus].lapic_id = proc->apicid;
 				ncpus++;
-				p += 20;
+				p += sizeof (struct mp_proc);
 				continue;
 			case MP_IOAPIC:
 				/*
@@ -165,7 +182,7 @@ mp_init(void)
 		}
 	}
 
-	if (ncpus < MIN_NUM_CPUS)
+	if (ncpus < MIN_CPUS)
 		panic ("Too little number of CPUs");
 
 	cprintk("Number of CPUs: %d\n", 0xE, ncpus);
@@ -176,14 +193,6 @@ mp_init(void)
 	} else {
 		ioapicpa = IOAPICPA;
 	}
-
-	register_t rax;
-	register_t rdx;
-	register_t rcx;
-	rax = 1;
-	cpuid (&rax, NULL, &rcx, &rdx);
-	if (! ((rdx & (1 << 9)) && (rdmsr (0x1B) & (1<<11))))
-		panic("APIC is NOT supported!");
 
 	ioapicva = (uint8_t*)ioapicpa;
 }

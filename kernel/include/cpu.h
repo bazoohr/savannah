@@ -32,6 +32,12 @@ struct regs {
 	register_t cr3;
 }__packed;
 
+struct cpu {
+  uint8_t lapic_id; // Local APIC ID
+  uint8_t cpuid;  // Kernel CPU ID
+  volatile uint8_t booted;  // Has the CPU completed booting?
+};
+
 // Control Register flags
 #define CR0_PE		0x00000001	// Protection Enable
 #define CR0_MP		0x00000002	// Monitor coProcessor

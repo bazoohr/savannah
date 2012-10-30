@@ -7,7 +7,6 @@
 # ===================================
 loader=./boot/loader.bin    # Our loader that loads kernel into memory
 kernel=./kernel/kernel.bin  # Our actual kernel
-init=./init/init            # Out init process
 grub_stage_loc=./etc        # Location of Grub stage files! 
 iso_tmp_dir=/tmp/iso        # temp location for iso directory
 # ===================================
@@ -92,7 +91,6 @@ title $kernel_title
    # It should be a loader
    kernel --type=multiboot /boot/grub/`basename $loader`
    # We load 64-bit kernel as a module
-   module /boot/grub/`basename $init`
    module /boot/grub/`basename $kernel`
 EOF
 echo "Creating grub menu... OK!"
@@ -110,7 +108,7 @@ fi
 echo "Copying grub stages into image... OK!"
 echo "========================================"
 
-echo "Copying loader, kernel, and init into image..."
+echo "Copying loader, and kernel into image..."
 if ! cp $menu_file $iso_tmp_dir/boot/grub; then
   die "failed to copy $menu_file into image"
 fi
@@ -122,11 +120,8 @@ fi
 if ! cp $kernel $iso_tmp_dir/boot/grub; then
   die "Failed to copy kernel into image!"
 fi
-if ! cp $init $iso_tmp_dir/boot/grub; then
-  die "Failed to copy kernel into image!"
-fi
 rm -f $menu_file
-echo "Copying loader, kernel, and init into image... OK!"
+echo "Copying loader, and kernel into image... OK!"
 
 echo "========================================"
 echo "Creating iso image..."

@@ -25,7 +25,6 @@ build-all:
 	$(call silent_command, $(MAKE) -s --no-print-directory -C kernel)
 	$(call silent_command, $(MAKE) -s --no-print-directory -C boot  )
 	$(call silent_command, $(MAKE) -s --no-print-directory -C lib   )
-	$(call silent_command, $(MAKE) -s --no-print-directory -C init  )
 	@echo "    Built Successfully!"
 
 #
@@ -40,7 +39,6 @@ install: build-all
 		timeout = 0\n\
 		title \"My Kernel\"\n\
 		kernel --type=multiboot /boot/grub/$(LOADER)\n\
-		module /boot/grub/$(INIT)\n\
 		module /boot/grub/boot_aps\n\
 		module /boot/grub/$(KERNEL)\n" > /tmp/menu.lst
 	@rm -rf /tmp/iso
@@ -52,7 +50,6 @@ install: build-all
 	@cp boot/$(LOADER) /tmp/iso/boot/grub
 	@cp boot/boot_aps /tmp/iso/boot/grub
 	@cp kernel/$(KERNEL) /tmp/iso/boot/grub
-	@cp init/$(INIT) /tmp/iso/boot/grub
 	@genisoimage -quiet -input-charset ascii -R -b boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4 \
              -boot-info-table -o $(IMAGE) /tmp/iso
 	@echo "    Installing... OK"
@@ -63,7 +60,6 @@ clean:
 	$(call silent_command, $(MAKE) clean --no-print-directory -C boot  )
 	$(call silent_command, $(MAKE) clean --no-print-directory -C kernel)
 	$(call silent_command, $(MAKE) clean --no-print-directory -C lib   )
-	$(call silent_command, $(MAKE) clean --no-print-directory -C init  )
 distclean:
 	$(call silent_command, rm -f *.o $(CONFIG-MAK) *.d *.bin, "    CLEAN ALL")
 	$(call silent_command, rm -f $(IMAGE))
@@ -71,4 +67,3 @@ distclean:
 	$(call silent_command, $(MAKE) distclean --no-print-directory -C boot    )
 	$(call silent_command, $(MAKE) distclean --no-print-directory -C kernel  )
 	$(call silent_command, $(MAKE) distclean --no-print-directory -C lib     )
-	$(call silent_command, $(MAKE) distclean --no-print-directory -C init    )
