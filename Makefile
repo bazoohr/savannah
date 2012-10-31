@@ -56,6 +56,8 @@ install: build-all
 	@genisoimage -quiet -input-charset ascii -R -b boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4 \
              -boot-info-table -o $(IMAGE) /tmp/iso
 	@echo "    Installing... OK"
+run:
+	@qemu-system-x86_64 -smp 8 -cdrom vuos.iso
 clean:
 	$(call silent_command, rm -f *.o *.d *.bin, "    CLEAN")
 	$(call silent_command, rm -f $(IMAGE))
