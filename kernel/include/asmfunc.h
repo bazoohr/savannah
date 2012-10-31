@@ -15,9 +15,6 @@ void outb (uint8_t data, uint16_t port);
 void reload_gdt (struct descriptor_register *addr, int kcode_sel, int kdata_sel);
 void lidt (struct descriptor_register *addr);
 void load_cr3 (phys_addr_t addr);
-void * __inline fast_memcpy (void *dest, void *src, size_t size);
-void * __inline fast_memset (void *ptr, int c, size_t size);
-
 
 void lcr0 (uint64_t val);
 uint64_t rcr0 (void);
