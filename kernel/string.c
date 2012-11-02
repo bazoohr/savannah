@@ -1,20 +1,28 @@
 #include <string.h>
-#include <asmfunc.h>
 
 void * 
-memcpy (void *dst, void *src, size_t count)
+memcpy (void *dst, const void *src, size_t count)
 {
-  return fast_memcpy (dst, src, count);
+	char *tmp = dst;
+	const char *s = src;
+
+	while (count--)
+		*tmp++ = *s++;
+
+	return dst;
 }
 
 void *
 memset (void *ptr, int c, size_t count)
 {
-  return fast_memset (ptr, c, count);
+	char *xs = ptr;
+
+	while (count--)
+		*xs++ = c;
+
+	return ptr;
 }
-/*
- * This code is shamelessly stolen from Linux
- */
+
 int
 memcmp(const void *cs, const void *ct, size_t count)
 {

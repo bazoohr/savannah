@@ -270,22 +270,3 @@ ENTRY (idle)
   retq 
 #endif
 END (idle)
-/* =========================================== */
-ENTRY (fast_memcpy)
-  movq %rdi, %r8
-  movq %rdx, %rcx
-  rep movsb
-  movq %r8, %rax
-  retq
-END (fast_memcpy)
-/* =========================================== */
-ENTRY (fast_memset)
-  /* Should we clear the direction flag here?*/
-  cld
-  movq %rdi, %r8
-  movq %rdx, %rcx
-  movq %rsi, %rax
-  rep stosb
-  movq %r8, %rax
-  retq
-END (fast_memset)

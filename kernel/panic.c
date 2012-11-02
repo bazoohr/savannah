@@ -1,5 +1,5 @@
 #include <printk.h>
-#include <printk.h>
+#include <asmfunc.h>
 
 /*
  * TODO
@@ -9,5 +9,5 @@ void
 panic (const char *msg)
 {
   cprintk ("PANIC %s\n", 0x4, msg);
-  __asm__ __volatile__ ("cli;hlt\n\t");
+  halt ();
 }

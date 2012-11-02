@@ -92,8 +92,8 @@ start_64:
   /* Switch to kernel's new GDT */
 
   cli
-  movb $'!', 0xb8000
-  movb $5,   0xb8001
+  movb $'!', 0xb8001
+  movb $5,   0xb8002
   movq $0, %rax
   hlt
 /* ========================================= */

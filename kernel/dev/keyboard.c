@@ -162,7 +162,7 @@ kbd_proc_data (void)
   }
 
   if (alt_pressed && ctrl_pressed && scan_code == 0x53) {  /* ALT + CTRL + DEL */
-    __asm__ __volatile__ ("cli;hlt\n\t");
+    halt ();
   }
 
   if (scan_code & 0x80)

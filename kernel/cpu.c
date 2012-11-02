@@ -110,3 +110,9 @@ cpuid (uint32_t function, uint32_t *eaxp, uint32_t *ebxp,
 		*edxp = edx;
 }
 
+void
+halt(void)
+{
+	__asm__ __volatile__ ("cli;hlt\n");
+}
+

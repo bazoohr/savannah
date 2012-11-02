@@ -4,7 +4,7 @@
 # Hamid R. Bazoobandi
 # Sat. 14 July 2012 Amsterdam
 # ==================================
-OPTLVL = -O3
+OPTLVL = -O2
 AS = $(CC)
 LD = ld
 

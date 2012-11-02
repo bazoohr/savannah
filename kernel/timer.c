@@ -3,6 +3,7 @@
 #include <frame.h>
 #include <printk.h>
 #include <const.h>
+#include <asmfunc.h>
 #include <dev/lapic.h>
 size_t ticks = 0;
 /* ====================================== */

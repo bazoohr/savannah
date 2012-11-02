@@ -28,44 +28,11 @@ print_logo(void)
 void 
 kmain (struct kernel_args *kargs)
 {
-  uint32_t rax;
-  uint32_t rbx;
-  uint32_t rcx;
-  uint32_t rdx;
-
   con_init ();
   mm_init (kargs->ka_kernel_end_addr, kargs->ka_kernel_cr3, kargs->ka_memsz);
   mp_init ();
 
-  cpuid (1, &rax, &rbx, &rcx, &rdx);
-  cprintk ("rax = %x\n", 0xE, rax);
-  cprintk ("rbx = %x\n", 0xE, rbx);
-  cprintk ("rcx = %x\n", 0xE, rcx);
-  cprintk ("rcx = %x\n", 0xE, rdx);
-  if (rcx & 0x1) {
-    cprintk ("SSE, SSE1 supported!\n", 0xE);
-  } else {
-    cprintk ("SSE, SSE1 NOT supported!\n", 0x4);
-  }
-  if (rcx & (1<<3)) {
-    cprintk ("MWAIT supported!\n", 0xE);
-  } else {
-    cprintk ("MWAIT NOT supported!\n", 0x4);
-  }
-
-  if (rcx & (1<<9)) {
-    cprintk ("SSSE3 is supported!\n", 0xE);
-  } else {
-    cprintk ("SSSE3 NOT supported!\n", 0x4);
-  }
-
-  cpuid (5, &rax, &rbx, &rcx, &rdx);
-  cprintk ("rax = %x\n", 0xE, rax);
-  cprintk ("rbx = %x\n", 0xE, rbx);
-  cprintk ("rcx = %x\n", 0xE, rcx);
-  cprintk ("rcx = %x\n", 0xE, rdx);
-  interrupt_init (); /*idt*/
-  __asm__ __volatile__ ("cli;hlt\n\t");
+  interrupt_init ();
 
   pic_init ();
   ioapic_init ();

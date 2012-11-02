@@ -13,6 +13,7 @@ loader="loader.bin"
 kernel="kernel.bin"
 init="init"
 usrlib="libos.a"
+bootaps="boot_aps"
 image_name="vuos.iso"
 # =========================================
 # Check options
@@ -56,6 +57,13 @@ for opt do
     fi
     usrlib="$optarg";
   ;;
+  --bootaps-name=*)
+    if test "$optarg" = ""; then
+      echo "bootaps name can not be empty string!";
+      exit 1;
+    fi
+    bootaps="$optarg";
+  ;;
 
   *) echo "ERROR: Unknown option $opt"; show_help="yes"
   ;;
@@ -72,6 +80,7 @@ if test "$show_help" = "yes"; then
   echo "--init-name         Change default init name. Default init name is \"init\"."
   echo "--image-name        Change default image name. Default init name is \"vuos.iso\"."
   echo "--usrlib-name       Change default user lib name. Default user lib name is \"libos.a\"."
+  echo "--bootaps-name      Change default application processors boot program name. Default user lib name is \"boot_aps\"."
   exit 1;
 fi
 # =========================================
@@ -143,6 +152,7 @@ echo "export USRLIB     = $usrlib"     >> $output
 echo "export INIT       = $init"       >> $output
 echo "export CC         = $compiler"   >> $output
 echo "export CONFIG-MAK = $output"     >> $output
+echo "export BOOT_APS   = $bootaps"    >> $output
 echo "OK!"
 
 echo "Configuration completed successfully!"
