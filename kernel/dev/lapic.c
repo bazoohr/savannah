@@ -7,6 +7,10 @@
 #include <isareg.h>
 #include <nvram.h>
 #include <panic.h>
+#include <cpu.h>
+#include <mp.h>
+
+extern struct cpu cpus[MAX_CPUS];
 
 uint32_t
 lapic_read(uint32_t off)
@@ -58,13 +62,29 @@ lapic_ipi_init(uint32_t apicid)
     int result = (lapic_read (LAPIC_ICRLO) & LAPIC_DLSTAT_BUSY);
     return (result) ? -1/*-E_BUSY*/ : 0;
 }
-
+void
+aps_boot_tail (cpuid_t id)
+{
+ // cprintk ("%d Booted!\n", 0xE, id);
+  cpus[id].booted = 1;
+  halt ();
+}
 void
 lapic_startaps (cpuid_t cpuid)
 {
   // Universal Start-up Algorithm from Intel MultiProcessor spec
   int r;
   uint16_t *dwordptr;
+  uint32_t i;
+  struct cpu **aps_info;
+  void (**aps_enterance)(cpuid_t id);
+ 
+  if (cpus[cpuid].booted) {
+    panic ("Why do you try to boot a booted processor?!");
+  }
+
+  aps_info = (struct cpu **)((uint8_t *)0x9F000 + 512);
+  aps_enterance = (void (**)(cpuid_t))((uint8_t *)0x9F000 + 520);
 
   // "The BSP must initialize CMOS shutdown code to 0Ah ..."
   outb (NVRAM_RESET, IO_RTC);
@@ -73,15 +93,22 @@ lapic_startaps (cpuid_t cpuid)
   // "and the warm reset vector (DWORD based at 40:67) to point
   // to the AP startup code ..."
   dwordptr = (uint16_t*)0x467;
-  dwordptr[0] = 0;               /* IP probably */
-  dwordptr[1] = (0x9F000) >> 4;  /* CS probably*/
+  dwordptr[0] = 0;             /* code offset  */
+  dwordptr[1] = 0x9F000 >> 4;  /* code segment */
+  /*
+   * Let the application processor know its info
+   */
+  *aps_info      = &cpus[cpuid];
+  *aps_enterance = &aps_boot_tail;
+
+  cprintk ("aps_info = %x aps_enterance = %x\n", 0x6, *aps_info, *aps_enterance);
 
   // ... prior to executing the following sequence:"
   if ((r = lapic_ipi_init(cpuid)) < 0)
     panic ("unable to send init error r");
 
   timer_delay (10);	// 10ms
-  uint32_t i;
+
   for (i = 0; i < 2; i++) {
     lapic_icr_wait();
     lapic_write (LAPIC_ICRHI, cpuid << LAPIC_ID_SHIFT);

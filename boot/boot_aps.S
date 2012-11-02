@@ -1,6 +1,17 @@
 /*
- * we MUST load this code, in a known address
+ * we MUST load this code in a known address
  */
+ /* =============================================== */
+ /*
+  * TODO:
+  *     Probably we will need to move this program to kernel
+  *     directory. Because it needs to access asm_cpu_const.h
+  *     which is available only in kernel.
+  *     Currently I just write this *UGLY* include, to get the job
+  *     done, but this must change later.
+  */
+#include <../kernel/include/asm_cpu_const.h>
+#include <../kernel/include/const.h>
  /* =============================================== */
 /* This is fixed address, below the BSP's kernel stack */
 #define BASE_ADDR 0x9F000
@@ -33,9 +44,7 @@ jmp_32:
 .align 0x10
 protmode:
   movl $bootdata-GDT, %eax
-  movl %eax, %ds
-  movl %eax, %es
-  movl %eax, %ss
+  movl %eax, %ds   /* We only need data segment here */
   /* 
    * BSP has already made kernel page tables,
    * so we just load the page table base address
@@ -81,14 +90,17 @@ start_64:
   movq %rax, %es
   movq %rax, %fs
   movq %rax, %gs
-  movb $'A', 0xB8000
-  movb $0x4, 0xB8001
-  cli;
-  hlt
-  /* Setup kernel stack */
   movq %rax, %ss
-  movq $0xA0000, %rsp
+  /* Setup kernel stack */
+  movq (512 + BASE_ADDR), %rax
+  addq $CPU_STACK + KNL_STACK_SIZE, %rax
+  movq %rax, %rsp
   movq %rsp, %rbp
+  /* Now, APs are ready to jump to kernel */
+  movq (512 + BASE_ADDR), %rdi
+  movq CPU_CPUID(%rdi), %rdi
+  movq (520 + BASE_ADDR), %rax
+  jmp *%rax
   /* Switch to kernel's new GDT */
 
   cli
@@ -122,3 +134,12 @@ longmode_gdt_desc:
 	.word GDTEND - GDT
 	.long BASE_ADDR + GDT
 .org 512
+/*
+ * BSP, will inform APs about their information, and address of 
+ * code they have to execute next.
+ */
+my_info:
+  .quad 0   /* Pointer to cpu information */
+.org 520
+kernel_enterance:
+  .quad 0   /* Address of Kernel C code APs must execute */

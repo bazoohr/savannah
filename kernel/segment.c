@@ -3,6 +3,10 @@
 #include <const.h>
 #include <asmfunc.h>
 #include <cdef.h>
+#include <cpu.h>
+#include <mp.h>
+extern struct cpu cpus[MAX_CPUS];
+#if 0
 /* =========================================== */
 struct system_descriptor gdt[NGDT] __aligned (16);
 /* =========================================== */
@@ -67,10 +71,13 @@ create_ldt (struct ldt *ldt, int dpl)
   ldt->code = code64;
   ldt->data = data64;
 }
+#endif
 void
-create_new_gdt (void)
+create_new_gdt (cpuid_t cpuid)
 {
   struct descriptor_register gdtr;
+  struct system_descriptor *gdt;
+
   struct code64_descriptor code64 = {
     .cd_three  = 3,
     .cd_dpl    = 0,
@@ -84,12 +91,14 @@ create_new_gdt (void)
     .dd_p   = 1,
   };
 
-  memset (gdt, 0, sizeof gdt);
+  gdt = cpus[cpuid].gdt;
 
-  *(struct code64_descriptor *)&gdt[GDT_KCODE] = code64;
-  *(struct data64_descriptor *)&gdt[GDT_KDATA] = data64;
+  memset (gdt, 0, NGDT * sizeof (struct system_descriptor));
 
-  gdtr.dr_limit = sizeof gdt - 1;
+  memcpy (&gdt[GDT_KCODE], &code64, sizeof code64);
+  memcpy (&gdt[GDT_KDATA], &data64, sizeof data64);
+
+  gdtr.dr_limit = NGDT * sizeof (struct system_descriptor) - 1;
   gdtr.dr_base  = (phys_addr_t)gdt;
 
   reload_gdt (&gdtr, KNL_CSEL, KNL_DSEL);

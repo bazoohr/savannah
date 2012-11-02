@@ -6,6 +6,8 @@
  * ========================================= */
 #include <page.h>
 #include <asm_kernel_args_const.h>
+#include <asm_cpu_const.h>
+#include <const.h>
 .code32
 .section .text
 .align 0x10
@@ -83,19 +85,24 @@ cont:
 .align 0x10
 .code64
 start_64:
+  /*
+   * XXX:
+   *     RDI contains kernel arguments. Don't change its contents.
+   */
   movq $(bootdata - GDT), %rax     /* 0x18 is data selector, look at GDT */
   movq %rax, %ds       /* Load data selector into ds, es, fs, gs*/
   movq %rax, %es
   movq %rax, %fs
   movq %rax, %gs
-  /* Setup kernel stack */
   movq %rax, %ss
-  movq $0xA0000, %rsp
+  /* Setup BSP's kernel stack (BSP's cpuid = 0) */
+  movq $cpus + CPU_STACK + KNL_STACK_SIZE, %rsp
   movq %rsp, %rbp
   /* Switch to kernel's new GDT */
-  pushq %rdi
+  pushq %rdi      /* Save rdi (kernel Arguments) */
+  movq $0, %rdi   /* BSP cpuid */
   callq create_new_gdt
-  popq %rdi
+  popq %rdi       /* Reload rdi (kernel Arguments) */
   /* Now we call main () of kernel */
   movq $0, %rax
   movl %edi, %eax

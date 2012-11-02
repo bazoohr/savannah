@@ -3,6 +3,8 @@
 
 #include <types.h>
 #include <cdef.h>
+#include <const.h>
+#include <segment.h>
 
 struct regs {
 	register_t rax;
@@ -36,6 +38,8 @@ struct cpu {
   uint8_t lapic_id; // Local APIC ID
   uint8_t cpuid;  // Kernel CPU ID
   volatile uint8_t booted;  // Has the CPU completed booting?
+  uint8_t stack[KNL_STACK_SIZE] __aligned (16);
+  struct system_descriptor gdt[NGDT] __aligned (16);
 };
 
 // Control Register flags

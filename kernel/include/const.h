@@ -14,6 +14,7 @@
                     * value according to kernel needs. My Guess is that 5 should be OK
                     * 1. Empty, 2. code, 3. data, 4. TSS, 5. ldt
                     */
+#define KNL_STACK_SIZE  1024   /* Size of kernel stack for all processors */
 #define NIDT 256    /* Number of entries in IDT */
 
 #define GDT_KCODE      1     /* Code descriptor index in GDT */

@@ -102,9 +102,8 @@ mp_bootothers (void)
   cpuid_t i;
 
   for (i = 1; i < ncpus; i++) {
-    cprintk ("booting cpu %d...", 0xF, cpus[i].cpuid);
     lapic_startaps (cpus[i].lapic_id);
-    cprintk ("OK!\n", 0xA);
+    while (!cpus[i].booted);
   }
 }
 void
