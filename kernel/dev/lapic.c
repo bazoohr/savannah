@@ -62,11 +62,17 @@ lapic_ipi_init(uint32_t apicid)
     int result = (lapic_read (LAPIC_ICRLO) & LAPIC_DLSTAT_BUSY);
     return (result) ? -1/*-E_BUSY*/ : 0;
 }
-void
-aps_boot_tail (cpuid_t id)
+/*
+ * TODO:
+ *     I think this file is not the best place for this
+ *     function. Move it to a better place.
+ */
+static void
+boot_aps_tail (cpuid_t id)
 {
- // cprintk ("%d Booted!\n", 0xE, id);
+  create_new_gdt (id);
   cpus[id].booted = 1;
+  cprintk ("%d Booted!\n", 0xE, id);
   halt ();
 }
 void
@@ -96,12 +102,10 @@ lapic_startaps (cpuid_t cpuid)
   dwordptr[0] = 0;             /* code offset  */
   dwordptr[1] = 0x9F000 >> 4;  /* code segment */
   /*
-   * Let the application processor know its info
+   * Let the application processor know its info, & kernel enterance
    */
   *aps_info      = &cpus[cpuid];
-  *aps_enterance = &aps_boot_tail;
-
-  cprintk ("aps_info = %x aps_enterance = %x\n", 0x6, *aps_info, *aps_enterance);
+  *aps_enterance = &boot_aps_tail;
 
   // ... prior to executing the following sequence:"
   if ((r = lapic_ipi_init(cpuid)) < 0)

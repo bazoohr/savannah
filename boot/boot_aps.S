@@ -91,6 +91,28 @@ start_64:
   movq %rax, %fs
   movq %rax, %gs
   movq %rax, %ss
+  /* =====================================
+   * Notmally, before enabling x87 & media instructions, we have to
+   * check to see if the processor supports these instructions.
+   * But since BSP, has already done this check, we simply enable them
+   * for all other APs.
+   * This must work all the time, if the system is symetric.
+   * ===================================== */
+  /* let the processor know that we are going to use
+   * media instructions, by setting cr4.osfxsr(bit number 9)*/
+  movq %cr4, %rax
+  btsq $9, %rax
+  movq %rax, %cr4
+  /* No processor emulate coprocessor 
+   * by clearing cr0.em (bit number 2) */
+  movq %cr0, %rax
+  btrq $2, %rax
+  movq %rax, %cr0
+  /* enable monitor coprocessor by enabling
+   * cr0.mp (bit number 1) */
+  movq %cr0, %rax
+  btsq $1, %rax
+  movq %rax, %cr0
   /* Setup kernel stack */
   movq (512 + BASE_ADDR), %rax
   addq $CPU_STACK + KNL_STACK_SIZE, %rax
