@@ -111,13 +111,13 @@ void
 mp_init(void)
 {
 	struct mp_fptr *mp;
-	register_t rax;
-	register_t rdx;
-	register_t rcx;
+	uint32_t eax;
+	uint32_t ebx;
+	uint32_t edx;
+	uint32_t ecx;
 
-	rax = 1;
-	cpuid (&rax, NULL, &rcx, &rdx);
-	if (! ((rdx & (1 << 9)) && (rdmsr (0x1B) & (1<<11))))
+	cpuid (0x1, &eax, &ebx, &ecx, &edx);
+	if (! ((edx & (1 << 9)) && (rdmsr (0x1B) & (1<<11))))
 		panic("APIC is NOT supported!");
 
 	mp = mp_search(0xF0000, 0x10000);
@@ -140,8 +140,10 @@ mp_init(void)
 	struct mp_conf *conf = (struct mp_conf *)((phys_addr_t)mp->physaddr);
 	if ((memcmp(conf->signature, "PCMP", 4) != 0)
 	    || (sum((uint8_t *) conf, conf->length) != 0)
-	    || (conf->version != 1 && conf->version != 4))
-		panic("Bad or unsupported configuration");
+	    || (conf->version != 1 && conf->version != 4)) {
+    cprintk ("Bad Configuration Table %d %d %d\n", 0x4, memcmp(conf->signature, "PCMP", 4) != 0, sum((uint8_t *) conf, conf->length) != 0, conf->version != 1 && conf->version != 4);
+        __asm__ __volatile__ ("cli;hlt\n\t");
+        }
 
   struct mp_ioapic *ioapic_conf = NULL;
 	uint8_t *start = (uint8_t *)(conf + 1);

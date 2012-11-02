@@ -15,6 +15,23 @@
 
 #define ALIGN(addr, bound) (((addr)+((bound)-1))&(~((bound)-1)))
 #define CHECK_FLAG(flags,bit)   ((flags) & (1 << (bit)))
+void
+cpuid(uint32_t info, uint32_t *eaxp, uint32_t *ebxp,
+      uint32_t *ecxp, uint32_t *edxp)
+{
+	uint32_t eax, ebx, ecx, edx;
+	__asm volatile("cpuid" 
+		: "=a" (eax), "=b" (ebx), "=c" (ecx), "=d" (edx)
+		: "a" (info));
+	if (eaxp)
+		*eaxp = eax;
+	if (ebxp)
+		*ebxp = ebx;
+	if (ecxp)
+		*ecxp = ecx;
+	if (edxp)
+		*edxp = edx;
+}
 
 static struct kernel_args kargs;
 /*
@@ -87,13 +104,39 @@ boot_loader (unsigned long magic, unsigned long addr)
   void (*kernel)(struct kernel_args *);
 
   clrscr ();  /* Clear the screen. */
+#if 0
+  uint32_t rax;
+  uint32_t rbx;
+  uint32_t rcx;
+  uint32_t rdx;
 
+  cpuid (1, &rax, &rbx, &rcx, &rdx);
+  printf ("rax = %x\n", rax);
+  printf ("rbx = %x\n", rbx);
+  printf ("rcx = %x\n", rcx);
+  printf ("rcx = %x\n", rdx);
+  if (rcx & 0x1) {
+    printf ("SSE, SSE1 supported!\n");
+  } else {
+    printf ("SSE, SSE1 NOT supported!\n");
+  }
+  if (rcx & (1<<3)) {
+    printf ("MWAIT supported!\n");
+  } else {
+    printf ("MWAIT NOT supported!\n");
+  }
+
+  if (rcx & (1<<26)) {
+    printf ("SSSE3 is supported!\n");
+  } else {
+    printf ("SSSE3 NOT supported!\n");
+  }
   /* Am I booted by a Multiboot-compliant boot loader? */
   if (magic != MULTIBOOT_BOOTLOADER_MAGIC) {
     printf ("ERROR: Invalid magic number: 0x%x\n", (unsigned) magic);
     halt ();
   }
-
+#endif
   /* Does CPU have longmode? */
   if (has_long_mode () == false) {
     printf ("ERROR: Your system is not supporting long mode!\n");
@@ -121,7 +164,7 @@ boot_loader (unsigned long magic, unsigned long addr)
   if (CHECK_FLAG (mbi->flags, 3)) {
     multiboot_module_t *mod;
     if (mbi->mods_count != 2) {
-      printf ("ERROR: Kernel is not loaded by GRUB!\n");
+      printf ("ERROR: Grub failed to load all needed modules. %d modules loaded, but 2 were needed!\n", mbi->mods_count);
       halt ();
     }
 
@@ -160,7 +203,7 @@ boot_loader (unsigned long magic, unsigned long addr)
     }
 
   } else {
-    printf ("ERROR: Kernel is not loaded in memory!\n");
+    printf ("ERROR: Kernel is not loaded as multiboot!\n");
     halt ();
   }
   /* 

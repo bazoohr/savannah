@@ -9,6 +9,7 @@
 #include <const.h>
 #include <dev/pic.h>
 #include <asmlink.h>
+#if 0
 /* ============================ */
 /* void cpuid (register_t *rax, register_t *rbx
           register_T *rcx, register_t *rdx);
@@ -42,7 +43,6 @@ ENTRY(cpuid)
   popq %rbx
   retq
 END(cpuid)
-#if 0
 /* ============================ */
 ENTRY(rdmsr)
   movq $0, %rax

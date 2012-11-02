@@ -6,6 +6,7 @@
 #define BASE_ADDR 0x9F000
  /* =============================================== */
 .code16
+.org 0
 .align 0x10
 .section .text
 .globl _start
@@ -120,3 +121,4 @@ protmode_gdt_desc:
 longmode_gdt_desc:
 	.word GDTEND - GDT
 	.long BASE_ADDR + GDT
+.org 512
