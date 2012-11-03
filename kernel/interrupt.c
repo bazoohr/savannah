@@ -78,5 +78,10 @@ idt_init (void)
 void
 interrupt_init (void)
 {
+  /*
+   * Never ever think of putting lapic_init() or ioapic_init()
+   * here. This function is going to be called by APs, so its not called
+   * only once, but several time.
+   */
   idt_init ();
 }

@@ -9,6 +9,7 @@
 #include <panic.h>
 #include <cpu.h>
 #include <mp.h>
+#include <interrupt.h>
 
 extern struct cpu cpus[MAX_CPUS];
 
@@ -71,6 +72,7 @@ static void
 boot_aps_tail (cpuid_t id)
 {
   create_new_gdt (id);
+  interrupt_init ();
   cpus[id].booted = 1;
   cprintk ("%d Booted!\n", 0xE, id);
   halt ();

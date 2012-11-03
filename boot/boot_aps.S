@@ -120,9 +120,9 @@ start_64:
   movq %rsp, %rbp
   /* Now, APs are ready to jump to kernel */
   movq (512 + BASE_ADDR), %rdi
-  movq CPU_CPUID(%rdi), %rdi
+  movq CPU_CPUID(%rdi), %rdi  /* Argument */
   movq (520 + BASE_ADDR), %rax
-  jmp *%rax
+  jmp *%rax    /* Jump to kernel */
   /* Switch to kernel's new GDT */
 
   cli
