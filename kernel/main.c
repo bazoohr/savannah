@@ -30,6 +30,24 @@ kmain (struct kernel_args *kargs)
 {
   con_init ();
   mm_init (kargs->ka_kernel_end_addr, kargs->ka_kernel_cr3, kargs->ka_memsz);
+#if 0
+  uint32_t eax, ebx, ecx, edx;
+  cpuid (1, &eax, NULL, &ecx, NULL);
+  if (ecx & (1 << 5)) {
+    cprintk ("VMX is supported!\n", 0xA);
+  } else {
+    cprintk ("VMX is NOT supported!\n", 0x4);
+  }
+  cpuid (1, &eax, NULL, &ecx, NULL);
+  if (ecx & (1 << 3)) {
+    cprintk ("Monitor/Mwait is supported!\n", 0xA);
+  } else {
+    cprintk ("Monitor/Mwait is NOT supported!\n", 0x4);
+  }
+	cpuid(0x80000008, &eax, &ebx, &ecx, &edx);
+	cprintk ("Physical Address Bits: %d\n", 0xE, eax & 0x000000FF);
+	cprintk ("Cores per Die: %d\n", 0xE, (ecx & 0x000000FF) + 1);
+#endif
   mp_init ();
 
   interrupt_init ();

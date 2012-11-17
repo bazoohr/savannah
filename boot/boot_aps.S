@@ -94,9 +94,9 @@ start_64:
   /* =====================================
    * Notmally, before enabling x87 & media instructions, we have to
    * check to see if the processor supports these instructions.
-   * But since BSP, has already done this check, we simply enable them
+   * But since BSP has already done this check, we simply enable them
    * for all other APs.
-   * This must work all the time, if the system is symetric.
+   * This must work all the time if the system is symetric.
    * ===================================== */
   /* let the processor know that we are going to use
    * media instructions, by setting cr4.osfxsr(bit number 9)*/

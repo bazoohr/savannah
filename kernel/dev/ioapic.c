@@ -95,7 +95,7 @@ ioapic_init(void)
   id = ioapic_read(REG_ID) >> 24;
 
   if (id != ioapicid)
-    panic("CPU id is NOT equal to APIC id. NOT a MP architecture");
+    ;//panic("CPU id is NOT equal to APIC id. NOT a MP architecture");
 
   /*
    * Disable all interrupts, and then tell IOAPIC to NOT route any interrupt to any core

@@ -98,7 +98,15 @@ create_new_gdt (cpuid_t cpuid)
   memcpy (&gdt[GDT_KCODE], &code64, sizeof code64);
   memcpy (&gdt[GDT_KDATA], &data64, sizeof data64);
 
+  /*
+   *  Size of the GDT in bytes. The limit value is added
+   *  to the base address to yield the ending byte address of the GDT. 
+   */
   gdtr.dr_limit = NGDT * sizeof (struct system_descriptor) - 1;
+  /*
+   * The base-address field holds the starting byte address of the GDT in virtual-
+   * memory space.
+   */
   gdtr.dr_base  = (phys_addr_t)gdt;
 
   reload_gdt (&gdtr, KNL_CSEL, KNL_DSEL);

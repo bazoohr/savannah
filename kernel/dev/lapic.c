@@ -71,10 +71,11 @@ lapic_ipi_init(uint32_t apicid)
 static void
 boot_aps_tail (cpuid_t id)
 {
+  cprintk ("boot_aps_tail\n", 0xA);
   create_new_gdt (id);
   interrupt_init ();
   cpus[id].booted = 1;
-  cprintk ("%d Booted!\n", 0xE, id);
+  cprintk ("CPU number %d booted!\n", 0xE, id);
   halt ();
 }
 void
@@ -121,6 +122,7 @@ lapic_startaps (cpuid_t cpuid)
     lapic_write (LAPIC_ICRLO, LAPIC_DLMODE_STARTUP | (0x9F000 >> 12));
     timer_delay (1);	// 1 ms
   }
+  cprintk ("Now wait for AP tp boot ...\n", 0xA);
 }
 void
 lapic_init(void)

@@ -103,8 +103,10 @@ mp_bootothers (void)
 
   cli ();
   for (i = 1; i < ncpus; i++) {
+    cprintk ("going to boot CPU %d\n", 0xA, i);
     lapic_startaps (cpus[i].lapic_id);
-    while (!cpus[i].booted);
+    while (!cpus[i].booted)
+      /* Wait*/;
   }
 }
 void
@@ -184,8 +186,10 @@ mp_init(void)
 		}
 	}
 
-	if (ncpus < MIN_CPUS)
+	if (ncpus < MIN_CPUS) {
+//    cprintk ("%d CPUs found! That's too little for this operating system!\n", 0x4, ncpus);
 		panic ("Too little number of CPUs");
+  }
 
 	cprintk("Number of CPUs: %d\n", 0xE, ncpus);
 
