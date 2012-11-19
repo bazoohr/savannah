@@ -103,7 +103,6 @@ mp_bootothers (void)
 
   cli ();
   for (i = 1; i < ncpus; i++) {
-    cprintk ("going to boot CPU %d\n", 0xA, i);
     lapic_startaps (cpus[i].lapic_id);
     while (!cpus[i].booted)
       /* Wait*/;
