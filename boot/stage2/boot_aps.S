@@ -10,8 +10,8 @@
   *     Currently I just write this *UGLY* include, to get the job
   *     done, but this must change later.
   */
-#include <../kernel/include/asm_cpu_const.h>
-#include <../kernel/include/const.h>
+#include <../../kernel/include/asm_cpu_const.h>
+#include <../../kernel/include/const.h>
  /* =============================================== */
 /* This is fixed address, below the BSP's kernel stack */
 #define BASE_ADDR 0x9F000

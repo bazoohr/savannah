@@ -1,0 +1,66 @@
+#include <cdef.h>
+#include <dev/pic.h>
+#include <types.h>
+#include <kernel_args.h>
+#include <printk.h>
+#include <console.h>
+#include <const.h>
+#include <interrupt.h>
+#include <asmfunc.h>
+#include <memory.h>
+#include <dev/keyboard.h>
+#include <mp.h>
+#include <dev/ioapic.h>
+#include <dev/lapic.h>
+#include <cpu.h>
+/* ========================================== */
+static void
+print_logo(void)
+{
+  cprintk("Welcome to\n", 0xB);
+  cprintk("       v       v  u    u         oo      sss\n", 0xB);
+  cprintk("        v     v   u    u        o  o    s\n", 0xB);
+  cprintk("         v   v    u    u  ===   o  o     s\n", 0xB);
+  cprintk("          v v     u    u        o  o      s\n", 0xB);
+  cprintk("           v       uuuu          oo     sss\n", 0xB);
+  cprintk("\n", 0xB);
+}
+void 
+kmain (struct kernel_args *kargs)
+{
+  con_init ();
+  mm_init (kargs->ka_kernel_end_addr, kargs->ka_kernel_cr3, kargs->ka_memsz);
+#if 0
+  uint32_t eax, ebx, ecx, edx;
+  cpuid (1, &eax, NULL, &ecx, NULL);
+  if (ecx & (1 << 5)) {
+    cprintk ("VMX is supported!\n", 0xA);
+  } else {
+    cprintk ("VMX is NOT supported!\n", 0x4);
+  }
+  cpuid (1, &eax, NULL, &ecx, NULL);
+  if (ecx & (1 << 3)) {
+    cprintk ("Monitor/Mwait is supported!\n", 0xA);
+  } else {
+    cprintk ("Monitor/Mwait is NOT supported!\n", 0x4);
+  }
+	cpuid(0x80000008, &eax, &ebx, &ecx, &edx);
+	cprintk ("Physical Address Bits: %d\n", 0xE, eax & 0x000000FF);
+	cprintk ("Cores per Die: %d\n", 0xE, (ecx & 0x000000FF) + 1);
+#endif
+  mp_init ();
+
+  interrupt_init ();
+
+  pic_init ();
+  ioapic_init ();
+  lapic_init();
+  kbd_init ();
+
+  print_logo();
+  mp_bootothers ();
+
+  __asm__ __volatile__ ("sti\n");
+
+  for (;;);
+}
