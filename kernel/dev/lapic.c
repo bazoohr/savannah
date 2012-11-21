@@ -68,6 +68,7 @@ lapic_ipi_init(uint32_t apicid)
  *     I think this file is not the best place for this
  *     function. Move it to a better place.
  */
+#if 0
 static void
 boot_aps_tail (cpuid_t id)
 {
@@ -77,6 +78,7 @@ boot_aps_tail (cpuid_t id)
   cprintk ("CPU number %d booted!\n", 0xE, id);
   halt ();
 }
+#endif
 void
 lapic_startaps (cpuid_t cpuid)
 {
@@ -107,7 +109,7 @@ lapic_startaps (cpuid_t cpuid)
    * Let the application processor know its info, & kernel enterance
    */
   *aps_info      = &cpus[cpuid];
-  *aps_enterance = &boot_aps_tail;
+  *aps_enterance = (void (*)(cpuid_t))0x400000;/*&boot_aps_tail;*/
 
   // ... prior to executing the following sequence:"
   if ((r = lapic_ipi_init(cpuid)) < 0)

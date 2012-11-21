@@ -84,7 +84,7 @@ void
 ioapic_init(void)
 {
   int i, maxintr;
-  uint32_t id;
+//  uint32_t id;
 
   if (ioapicva == NULL)
 	  panic ("ioapicva is NOT set");
@@ -92,7 +92,7 @@ ioapic_init(void)
   ioapic = (volatile struct ioapic*)ioapicva;
   maxintr = (ioapic_read(REG_VER) >> 16) & 0xFF;
 
-  id = ioapic_read(REG_ID) >> 24;
+  //id = ioapic_read(REG_ID) >> 24;
 
 /*  if (id != ioapicid)
     panic("CPU id is NOT equal to APIC id. NOT a MP architecture");

@@ -179,5 +179,5 @@ eoi:
 
 void kbd_init (void)
 {
-  ioapic_enable(IRQ_KBD, 0);
+  ioapic_enable(IRQ_KBD, 1);
 }

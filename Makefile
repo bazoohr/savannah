@@ -35,17 +35,19 @@ install: build-all
 		timeout = 0\n\
 		title \"My Kernel\"\n\
 		kernel --type=multiboot /boot/grub/$(LOADER)\n\
+		module /boot/grub/$(KERNEL)\n\
 		module /boot/grub/$(BOOT_APS)\n\
-		module /boot/grub/$(KERNEL)\n" > /tmp/menu.lst
+		module /boot/grub/stage2\n" > /tmp/menu.lst
 	@rm -rf /tmp/iso
 	@rm -f $(IMAGE)
 	@mkdir -p /tmp/iso/boot/grub
 	@cp etc/stage2_eltorito /tmp/iso/boot/grub
 	@cp /tmp/menu.lst /tmp/iso/boot/grub
 	@rm -f /tmp/menu.lst
-	@cp boot/$(LOADER) /tmp/iso/boot/grub
-	@cp boot/$(BOOT_APS) /tmp/iso/boot/grub
+	@cp boot/stage1/$(LOADER) /tmp/iso/boot/grub
 	@cp kernel/$(KERNEL) /tmp/iso/boot/grub
+	@cp boot/stage2/$(BOOT_APS) /tmp/iso/boot/grub
+	@cp boot/stage2/stage2 /tmp/iso/boot/grub
 	@genisoimage -quiet -input-charset ascii -R -b boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4 \
              -boot-info-table -o $(IMAGE) /tmp/iso
 	@echo "    Installing... OK"
@@ -59,9 +61,10 @@ clean:
 	$(call silent_command, $(MAKE) clean --no-print-directory -C kernel)
 	$(call silent_command, $(MAKE) clean --no-print-directory -C lib   )
 distclean:
-	$(call silent_command, rm -f *.o $(CONFIG-MAK) *.d *.bin, "    CLEAN ALL")
+	$(call silent_command, rm -f *.o *.d *.bin, "    CLEAN ALL")
 	$(call silent_command, rm -f $(IMAGE))
 	$(call silent_command, $(MAKE) distclean --no-print-directory -C etc     )
 	$(call silent_command, $(MAKE) distclean --no-print-directory -C boot    )
 	$(call silent_command, $(MAKE) distclean --no-print-directory -C kernel  )
 	$(call silent_command, $(MAKE) distclean --no-print-directory -C lib     )
+	$(call silent_command, rm -f $(CONFIG-MAK), "    CLEAN ALL")

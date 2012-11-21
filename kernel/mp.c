@@ -102,7 +102,7 @@ mp_bootothers (void)
   cpuid_t i;
 
   cli ();
-  for (i = 1; i < ncpus; i++) {
+  for (i = 1; i < 2; i++) {
     lapic_startaps (cpus[i].lapic_id);
     while (!cpus[i].booted)
       /* Wait*/;

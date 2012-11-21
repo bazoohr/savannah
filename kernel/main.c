@@ -14,23 +14,26 @@
 #include <dev/lapic.h>
 #include <cpu.h>
 /* ========================================== */
-static void
+void
 print_logo(void)
 {
-  cprintk("Welcome to\n", 0xB);
-  cprintk("       v       v  u    u         oo      sss\n", 0xB);
-  cprintk("        v     v   u    u        o  o    s\n", 0xB);
-  cprintk("         v   v    u    u  ===   o  o     s\n", 0xB);
-  cprintk("          v v     u    u        o  o      s\n", 0xB);
-  cprintk("           v       uuuu          oo     sss\n", 0xB);
-  cprintk("\n", 0xB);
+  cprintk("Welcome to VMM\n", 0xE);
+  cprintk("       v       v  u    u         oo      sss\n", 0xE);
+  cprintk("        v     v   u    u        o  o    s\n", 0xE);
+  cprintk("         v   v    u    u  ===   o  o     s\n", 0xE);
+  cprintk("          v v     u    u        o  o      s\n", 0xE);
+  cprintk("           v       uuuu          oo     sss\n", 0xE);
+  cprintk("\n", 0xE);
 }
+
 void 
-kmain (struct kernel_args *kargs)
+vmm_main (struct kernel_args *kargs)
 {
   con_init ();
-  mm_init (kargs->ka_kernel_end_addr, kargs->ka_kernel_cr3, kargs->ka_memsz);
+  create_new_gdt (1);
+  interrupt_init ();
 #if 0
+  mm_init (kargs->ka_kernel_end_addr, kargs->ka_kernel_cr3, kargs->ka_memsz);
   uint32_t eax, ebx, ecx, edx;
   cpuid (1, &eax, NULL, &ecx, NULL);
   if (ecx & (1 << 5)) {
@@ -47,7 +50,6 @@ kmain (struct kernel_args *kargs)
 	cpuid(0x80000008, &eax, &ebx, &ecx, &edx);
 	cprintk ("Physical Address Bits: %d\n", 0xE, eax & 0x000000FF);
 	cprintk ("Cores per Die: %d\n", 0xE, (ecx & 0x000000FF) + 1);
-#endif
   mp_init ();
 
   interrupt_init ();
@@ -57,10 +59,12 @@ kmain (struct kernel_args *kargs)
   lapic_init();
   kbd_init ();
 
+#endif
   print_logo();
+  /*
   mp_bootothers ();
 
   __asm__ __volatile__ ("sti\n");
-
-  for (;;);
+*/
+  for (;;) {halt ();}
 }

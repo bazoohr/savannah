@@ -97,6 +97,7 @@ void
 boot_loader (unsigned long magic, unsigned long addr)
 {
   multiboot_info_t *mbi = (multiboot_info_t *)addr;
+  phys_addr_t init_elf_addr          = 0;
   phys_addr_t kernel_elf_addr       = 0;
   phys_addr_t boot_aps_bin_addr     = 0;
   phys_addr_t kernel_end_addr       = 0;
@@ -163,21 +164,19 @@ boot_loader (unsigned long magic, unsigned long addr)
   /* Kernel should be loaded as a multi-boot module */
   if (CHECK_FLAG (mbi->flags, 3)) {
     multiboot_module_t *mod;
-    if (mbi->mods_count != 2) {
-      printf ("ERROR: Grub failed to load all needed modules. %d modules loaded, but 2 were needed!\n", mbi->mods_count);
+    if (mbi->mods_count != 3) {
+      printf ("ERROR: Grub failed to load all needed modules. %d modules loaded, but 3 were needed!\n", mbi->mods_count);
       halt ();
     }
 
     mod = (multiboot_module_t*)mbi->mods_addr;
-
-#if 0
+/* Init is supposed to be VMM */
     init_elf_addr = (phys_addr_t)mod->mod_start;
     if (mod->mod_end > 0x200000) {
       printf ("ERROR: loaded module overlaps with kernel start address\n");
       halt ();
     }
     mod++;
-#endif
     boot_aps_bin_addr = (phys_addr_t)mod->mod_start;
     if (mod->mod_end > 0x200000) {
       printf ("ERROR: loaded module overlaps with kernel start address\n");
@@ -214,6 +213,6 @@ boot_loader (unsigned long magic, unsigned long addr)
   /* we pass several arguments to kernel */
   kargs.ka_memsz            = memory_size;           /* First argument: size of memory */
   kargs.ka_kernel_end_addr  = kernel_end_addr;   /* Third argument: start address of page tables */
-  kargs.ka_init_addr        = 0;/*init_elf_addr;*/
+  kargs.ka_init_addr        = init_elf_addr;
   kernel (&kargs);    /* Call kernel */
 }

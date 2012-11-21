@@ -10,8 +10,8 @@
   *     Currently I just write this *UGLY* include, to get the job
   *     done, but this must change later.
   */
-#include <../../kernel/include/asm_cpu_const.h>
-#include <../../kernel/include/const.h>
+#include <asm_cpu_const.h>
+#include <const.h>
  /* =============================================== */
 /* This is fixed address, below the BSP's kernel stack */
 #define BASE_ADDR 0x9F000
@@ -50,7 +50,8 @@ protmode:
    * so we just load the page table base address
    * into cr3, of application processors (aps)
    */
-	movl $0x1000, %eax
+	#movl $0x1000, %eax
+  movl $0x51E000, %eax
   movl %eax, %cr3
 
   /* Going to enable long-mode */
@@ -114,14 +115,16 @@ start_64:
   btsq $1, %rax
   movq %rax, %cr0
   /* Setup kernel stack */
-  movq (512 + BASE_ADDR), %rax
-  addq $CPU_STACK + KNL_STACK_SIZE, %rax
-  movq %rax, %rsp
+  #movq (512 + BASE_ADDR), %rax
+  #addq $CPU_STACK + KNL_STACK_SIZE, %rax
+  #movq %rax, %rsp
+  movq $0x31E000, %rsp
   movq %rsp, %rbp
   /* Now, APs are ready to jump to kernel */
-  movq (512 + BASE_ADDR), %rdi
-  movq CPU_CPUID(%rdi), %rdi  /* Argument */
-  movq (520 + BASE_ADDR), %rax
+  #movq (512 + BASE_ADDR), %rdi
+  #movq CPU_CPUID(%rdi), %rdi  /* Argument */
+  #movq (520 + BASE_ADDR), %rax
+  movq $0x200000, %rax
   jmp *%rax    /* Jump to kernel */
   /* Switch to kernel's new GDT */
 

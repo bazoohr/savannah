@@ -4,12 +4,14 @@
 # Hamid R. Bazoobandi
 # Fri 13.7.2012
 # ====================================
-ROOT = ../../
-
-PROGNAME = stage1
+ROOT     = ../../
 
 include $(ROOT)/config.mak
 include $(ROOT)/rules.mak
+
+MYDIR    = boot/stage1/
+PROGNAME = stage1
+
 
 LINK_LD = boot.ld
 CFLAGS  += -m32 -I. -I $(ROOT)/include
@@ -17,7 +19,6 @@ ASFLAGS += -m32 -I.
 LDFLAGS += -melf_i386 -T $(LINK_LD)
 
 SRC = boot.S loader.c string.c screen.c bootio.c asm.S
-MYDIR += boot/stage1/
 
 all: $(PROGNAME)
 
