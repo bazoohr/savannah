@@ -32,6 +32,9 @@ typedef uint64_t page_table_entry_t;
 #define KNL_PAGE_SIZE  __2MB__
 #define USR_PAGE_SIZE  __4KB__
 
+#define PML4_SHIFT  39
+#define PDPE_SHIFT  30
+#define PDE_SHIFT   21
 
 #define _PAGE_BIT_PRESENT	  0	  /* is present */
 #define _PAGE_BIT_RW		    1	  /* writeable */

@@ -38,7 +38,8 @@ struct cpu {
   uint8_t lapic_id; // Local APIC ID
   uint8_t cpuid;  // Kernel CPU ID
   volatile uint8_t booted;  // Has the CPU completed booting?
-  uint8_t stack[KNL_STACK_SIZE] __aligned (16);
+  virt_addr_t stack;       // CPU stack (Will be VMM's stack)
+  phys_addr_t page_tables;  // CPU page tables (VMM page tables
   struct system_descriptor gdt[NGDT] __aligned (16);
 };
 

@@ -7,7 +7,7 @@
 ROOT= ..
 CC=gcc
 
-CFLAGS = -I $(ROOT)/kernel/include -I $(ROOT)/include
+CFLAGS = -I $(ROOT)/boot/stage2/include -I $(ROOT)/include
 
 silent_command = $(if $(2), @echo $2 && $1, @$(1))
 

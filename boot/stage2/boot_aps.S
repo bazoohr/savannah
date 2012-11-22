@@ -2,18 +2,14 @@
  * we MUST load this code in a known address
  */
  /* =============================================== */
- /*
-  * TODO:
-  *     Probably we will need to move this program to kernel
-  *     directory. Because it needs to access asm_cpu_const.h
-  *     which is available only in kernel.
-  *     Currently I just write this *UGLY* include, to get the job
-  *     done, but this must change later.
-  */
 #include <asm_cpu_const.h>
 #include <const.h>
  /* =============================================== */
-/* This is fixed address, below the BSP's kernel stack */
+/* This is fixed address,
+ * TODO:
+ * Since this address is used in other files, move it
+ * to a header file, which can be included in all files.
+ */
 #define BASE_ADDR 0x9F000
  /* =============================================== */
 .code16
@@ -46,12 +42,12 @@ protmode:
   movl $bootdata-GDT, %eax
   movl %eax, %ds   /* We only need data segment here */
   /* 
-   * BSP has already made kernel page tables,
+   * BSP has already made VMm's page tables,
    * so we just load the page table base address
    * into cr3, of application processors (aps)
    */
-	#movl $0x1000, %eax
-  movl $0x51E000, %eax
+  movl (BASE_ADDR + 512), %edi
+  movl CPU_CR3(%edi), %eax
   movl %eax, %cr3
 
   /* Going to enable long-mode */
@@ -114,25 +110,20 @@ start_64:
   movq %cr0, %rax
   btsq $1, %rax
   movq %rax, %cr0
-  /* Setup kernel stack */
-  #movq (512 + BASE_ADDR), %rax
-  #addq $CPU_STACK + KNL_STACK_SIZE, %rax
-  #movq %rax, %rsp
-  movq $0x31E000, %rsp
+  /* Setup VMM's stack */
+  movq (BASE_ADDR + 512), %rdi
+  movq CPU_STACK(%rdi), %rsp
   movq %rsp, %rbp
-  /* Now, APs are ready to jump to kernel */
-  #movq (512 + BASE_ADDR), %rdi
-  #movq CPU_CPUID(%rdi), %rdi  /* Argument */
-  #movq (520 + BASE_ADDR), %rax
-  movq $0x200000, %rax
-  jmp *%rax    /* Jump to kernel */
-  /* Switch to kernel's new GDT */
-
+  /* Now, APs are ready to jump to VMM's main */
+  movq $0x40000000, %rax
+  jmp *%rax    /* Jump to VMM */
+  /* Normaly We should nenver get to this point! */
+1:
   cli
   movb $'!', 0xb8001
   movb $5,   0xb8002
-  movq $0, %rax
   hlt
+  jmp 1b
 /* ========================================= */
 .align 0x10
 GDT:
@@ -160,11 +151,8 @@ longmode_gdt_desc:
 	.long BASE_ADDR + GDT
 .org 512
 /*
- * BSP, will inform APs about their information, and address of 
- * code they have to execute next.
+ * BSP, will inform APs about their CPU information through
+ * this
  */
 my_info:
-  .quad 0   /* Pointer to cpu information */
-.org 520
-kernel_enterance:
-  .quad 0   /* Address of Kernel C code APs must execute */
+  .quad 0   /* CPU info  */

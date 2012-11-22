@@ -17,6 +17,9 @@
 void
 print_logo(void)
 {
+  register_t rsp;
+  __asm__ __volatile__ ("movq %%rsp, %0\n\t":"=m"(rsp));
+  cprintk ("rsp = %x (0x9F000 + 512) = %x\n", 0xF, rsp, *(uint64_t*)(0x9F000 + 512));
   cprintk("Welcome to VMM\n", 0xE);
   cprintk("       v       v  u    u         oo      sss\n", 0xE);
   cprintk("        v     v   u    u        o  o    s\n", 0xE);
@@ -27,10 +30,11 @@ print_logo(void)
 }
 
 void 
-vmm_main (struct kernel_args *kargs)
+vmm_main (struct cpu *cpuinfo)
 {
   con_init ();
-  create_new_gdt (1);
+  cprintk ("My info is in addr = %x\n", 0xA, cpuinfo->cpuid);
+  create_new_gdt (cpuinfo->cpuid);
   interrupt_init ();
 #if 0
   mm_init (kargs->ka_kernel_end_addr, kargs->ka_kernel_cr3, kargs->ka_memsz);

@@ -10,6 +10,7 @@
 #include <cpu.h>
 #include <mp.h>
 #include <interrupt.h>
+#include <cpu.h>
 
 extern struct cpu cpus[MAX_CPUS];
 
@@ -86,15 +87,16 @@ lapic_startaps (cpuid_t cpuid)
   int r;
   uint16_t *dwordptr;
   uint32_t i;
-  struct cpu **aps_info;
-  void (**aps_enterance)(cpuid_t id);
+/*  struct cpu **aps_info;
+  void (**aps_enterance)(cpuid_t id);*/
+  struct cpu **cpu_info;
  
   if (cpus[cpuid].booted) {
     panic ("Why do you try to boot a booted processor?!");
   }
 
-  aps_info = (struct cpu **)((uint8_t *)0x9F000 + 512);
-  aps_enterance = (void (**)(cpuid_t))((uint8_t *)0x9F000 + 520);
+  cpu_info = (struct cpu **)((uint8_t *)0x9F000 + 512);
+  //cpu_cr3 = (phys_addr_t *)((uint8_t *)0x9F000 + 520);
 
   // "The BSP must initialize CMOS shutdown code to 0Ah ..."
   outb (NVRAM_RESET, IO_RTC);
@@ -106,11 +108,11 @@ lapic_startaps (cpuid_t cpuid)
   dwordptr[0] = 0;             /* code offset  */
   dwordptr[1] = 0x9F000 >> 4;  /* code segment */
   /*
-   * Let the application processor know its info, & kernel enterance
+   * Let the application processor know its stack, and page tables
    */
-  *aps_info      = &cpus[cpuid];
-  *aps_enterance = (void (*)(cpuid_t))0x400000;/*&boot_aps_tail;*/
-
+  *cpu_info = (struct cpu*)(&cpus[cpuid]);
+  cprintk ("cpu_info = %x\n", 0xA, (*cpu_info)->page_tables);
+  //*cpu_cr3 = cpus[cpuid].page_tables;
   // ... prior to executing the following sequence:"
   if ((r = lapic_ipi_init(cpuid)) < 0)
     panic ("unable to send init error r");

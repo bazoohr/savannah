@@ -52,7 +52,7 @@ install: build-all
              -boot-info-table -o $(IMAGE) /tmp/iso
 	@echo "    Installing... OK"
 run:
-	@qemu-system-x86_64 -smp 8 -cdrom vuos.iso
+	@bochs -q -f bochsrc.txt
 clean:
 	$(call silent_command, rm -f *.o *.d *.bin, "    CLEAN")
 	$(call silent_command, rm -f $(IMAGE))
