@@ -1,6 +1,12 @@
 #include <types.h>
 #include <cpu.h>
 #include <page.h>
+#include <mp.h>
+/* ================================================== */
+static struct cpu_info cpus[MAX_CPUS];
+/* ================================================== */
+static uint64_t ncpus = 0;
+/* ================================================== */
 uint64_t
 rdmsr (uint32_t reg)
 {
@@ -8,7 +14,7 @@ rdmsr (uint32_t reg)
 	__asm__ __volatile__ ("rdmsr; mfence" : "=d"(edx), "=a"(eax) : "c"(reg));
 	return (register_t)edx << 32 | eax;
 }
-
+/* ================================================== */
 void
 wrmsr (uint32_t reg, uint64_t val)
 {
@@ -16,12 +22,13 @@ wrmsr (uint32_t reg, uint64_t val)
 	                         "a"((uint32_t)(val & 0xFFFFFFFF)), 
 	                         "c"(reg));
 }
+/* ================================================== */
 void
 lcr0 (uint64_t val)
 {
 	__asm __volatile__ ("movq %0,%%cr0" : : "r" (val));
 }
-
+/* ================================================== */
 uint64_t
 rcr0 (void)
 {
@@ -29,7 +36,7 @@ rcr0 (void)
 	__asm __volatile__ ("movq %%cr0,%0" : "=r" (val));
 	return val;
 }
-
+/* ================================================== */
 uint64_t
 rcr2 (void)
 {
@@ -37,13 +44,13 @@ rcr2 (void)
 	__asm __volatile__ ("movq %%cr2,%0" : "=r" (val));
 	return val;
 }
-
+/* ================================================== */
 void
 lcr3 (uint64_t val)
 {
 	__asm __volatile__ ("movq %0,%%cr3" : : "r" (val));
 }
-
+/* ================================================== */
 uint64_t
 rcr3 (void)
 {
@@ -51,13 +58,13 @@ rcr3 (void)
 	__asm __volatile__ ("movq %%cr3,%0" : "=r" (val));
 	return val;
 }
-
+/* ================================================== */
 void
 lcr4 (uint64_t val)
 {
 	__asm __volatile__ ("movq %0,%%cr4" : : "r" (val));
 }
-
+/* ================================================== */
 uint64_t
 rcr4 (void)
 {
@@ -65,19 +72,19 @@ rcr4 (void)
 	__asm __volatile__ ("movq %%cr4,%0" : "=r" (cr4));
 	return cr4;
 }
-
+/* ================================================== */
 void
 nop_pause (void)
 {
     __asm __volatile__ ("pause" : : );
 }
-
+/* ================================================== */
 void
 cache_flush (void)
 {
 	__asm__ __volatile__ ("wbinvd");
 }
-
+/* ================================================== */
 /* Flushes a TLB, including global pages.  We should always have the CR4_PGE
  * flag set, but just in case, we'll check.  Toggling this bit flushes the TLB.
  */
@@ -91,6 +98,7 @@ tlb_flush_global (void)
 	} else 
 		lcr3(rcr3());
 }
+/* ================================================== */
 void
 cpuid (uint32_t function, uint32_t *eaxp, uint32_t *ebxp,
       uint32_t *ecxp, uint32_t *edxp)
@@ -109,7 +117,7 @@ cpuid (uint32_t function, uint32_t *eaxp, uint32_t *ebxp,
 	if (edxp)
 		*edxp = edx;
 }
-
+/* ================================================== */
 void __noreturn
 halt(void)
 {
@@ -117,4 +125,21 @@ halt(void)
     __asm__ __volatile__ ("cli;hlt\n");
   }
 }
-
+/* ================================================== */
+uint64_t
+get_ncpus (void)
+{
+  return ncpus;
+}
+/* ================================================== */
+struct cpu_info *
+get_cpu_info (cpuid_t cpuid)
+{
+  return cpuid < ncpus ? &cpus[cpuid]: NULL;
+}
+/* ================================================== */
+struct cpu_info *
+cpu_alloc (void)
+{
+  return ncpus < MAX_CPUS ? &cpus[ncpus++]: NULL;
+}

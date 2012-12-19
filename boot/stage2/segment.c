@@ -5,7 +5,6 @@
 #include <cdef.h>
 #include <cpu.h>
 #include <mp.h>
-extern struct cpu cpus[MAX_CPUS];
 #if 0
 /* =========================================== */
 struct system_descriptor gdt[NGDT] __aligned (16);
@@ -77,6 +76,7 @@ create_new_gdt (cpuid_t cpuid)
 {
   struct descriptor_register gdtr;
   struct system_descriptor *gdt;
+  struct cpu_info *cpu;
 
   struct code64_descriptor code64 = {
     .cd_three  = 3,
@@ -91,7 +91,9 @@ create_new_gdt (cpuid_t cpuid)
     .dd_p   = 1,
   };
 
-  gdt = cpus[cpuid].gdt;
+  cpu = get_cpu_info (cpuid);
+
+  gdt = cpu->gdt;
 
   memset (gdt, 0, NGDT * sizeof (struct system_descriptor));
 

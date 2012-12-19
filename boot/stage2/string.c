@@ -1,4 +1,5 @@
 #include <string.h>
+#include <printk.h>
 
 void * 
 memcpy (void *dst, const void *src, size_t count)
@@ -6,8 +7,9 @@ memcpy (void *dst, const void *src, size_t count)
 	char *tmp = dst;
 	const char *s = src;
 
-	while (count--)
+	while (count--) {
 		*tmp++ = *s++;
+  }
 
 	return dst;
 }

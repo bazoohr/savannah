@@ -96,7 +96,8 @@ start_64:
   movq %rax, %gs
   movq %rax, %ss
   /* Setup BSP's kernel stack (BSP's cpuid = 0) */
-  movq $cpus + CPU_STACK + KNL_STACK_SIZE, %rsp
+  #movq $cpus + CPU_STACK + KNL_STACK_SIZE, %rsp
+  movq $0xA0000, %rsp
   movq %rsp, %rbp
   /* Switch to kernel's new GDT */
   pushq %rdi      /* Save rdi (kernel Arguments) */

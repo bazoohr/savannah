@@ -2,7 +2,7 @@ ROOT = ..
 
 include $(ROOT)/rules.mak
 
-MYDIR += lib/
+MYDIR = lib/
 
 CFLAGS  += -I ./include/ -I $(ROOT)/include/
 ASFLAGS += -I ./include/ -I $(ROOT)/include/

@@ -22,7 +22,7 @@ endif
 
 build-all: 
 	$(call silent_command, $(MAKE) -s --no-print-directory -C etc   )
-	$(call silent_command, $(MAKE) -s --no-print-directory -C kernel)
+	$(call silent_command, $(MAKE) -s --no-print-directory -C vmm)
 	$(call silent_command, $(MAKE) -s --no-print-directory -C boot  )
 	$(call silent_command, $(MAKE) -s --no-print-directory -C lib   )
 	@echo "    Built Successfully!"
@@ -33,9 +33,9 @@ install: build-all
 		terminal --timeout=0 serial console\n\
 		default 0\n\
 		timeout = 0\n\
-		title \"My Kernel\"\n\
+		title \"Anarchix\"\n\
 		kernel --type=multiboot /boot/grub/$(LOADER)\n\
-		module /boot/grub/$(KERNEL)\n\
+		module /boot/grub/$(VMM)\n\
 		module /boot/grub/$(BOOT_APS)\n\
 		module /boot/grub/stage2\n" > /tmp/menu.lst
 	@rm -rf /tmp/iso
@@ -45,7 +45,7 @@ install: build-all
 	@cp /tmp/menu.lst /tmp/iso/boot/grub
 	@rm -f /tmp/menu.lst
 	@cp boot/stage1/$(LOADER) /tmp/iso/boot/grub
-	@cp kernel/$(KERNEL) /tmp/iso/boot/grub
+	@cp vmm/$(VMM) /tmp/iso/boot/grub
 	@cp boot/stage2/$(BOOT_APS) /tmp/iso/boot/grub
 	@cp boot/stage2/stage2 /tmp/iso/boot/grub
 	@genisoimage -quiet -input-charset ascii -R -b boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4 \
@@ -58,13 +58,13 @@ clean:
 	$(call silent_command, rm -f $(IMAGE))
 	$(call silent_command, $(MAKE) clean --no-print-directory -C etc   )
 	$(call silent_command, $(MAKE) clean --no-print-directory -C boot  )
-	$(call silent_command, $(MAKE) clean --no-print-directory -C kernel)
+	$(call silent_command, $(MAKE) clean --no-print-directory -C vmm)
 	$(call silent_command, $(MAKE) clean --no-print-directory -C lib   )
 distclean:
 	$(call silent_command, rm -f *.o *.d *.bin, "    CLEAN ALL")
 	$(call silent_command, rm -f $(IMAGE))
 	$(call silent_command, $(MAKE) distclean --no-print-directory -C etc     )
 	$(call silent_command, $(MAKE) distclean --no-print-directory -C boot    )
-	$(call silent_command, $(MAKE) distclean --no-print-directory -C kernel  )
+	$(call silent_command, $(MAKE) distclean --no-print-directory -C vmm  )
 	$(call silent_command, $(MAKE) distclean --no-print-directory -C lib     )
 	$(call silent_command, rm -f $(CONFIG-MAK), "    CLEAN ALL")

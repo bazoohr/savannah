@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+#set -e
 
 DEFAULT_OPTLVL=$(grep OPTLVL rules.mak | head -n1)
 

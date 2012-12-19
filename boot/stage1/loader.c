@@ -173,13 +173,13 @@ boot_loader (unsigned long magic, unsigned long addr)
 /* Init is supposed to be VMM */
     init_elf_addr = (phys_addr_t)mod->mod_start;
     if (mod->mod_end > 0x200000) {
-      printf ("ERROR: loaded module overlaps with kernel start address\n");
+      printf ("ERROR: loaded module overlaps with VMM start address\n");
       halt ();
     }
     mod++;
     boot_aps_bin_addr = (phys_addr_t)mod->mod_start;
     if (mod->mod_end > 0x200000) {
-      printf ("ERROR: loaded module overlaps with kernel start address\n");
+      printf ("ERROR: loaded module overlaps with VMM start address\n");
       halt ();
     }
 

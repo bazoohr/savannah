@@ -17,10 +17,6 @@
 #define MP_IOINTR  0x03         // One per bus interrupt source
 #define MP_LINTR   0x04         // One per system interrupt source
 
-struct cpu cpus[MAX_CPUS];
-
-uint64_t ncpus = 0;
-
 struct mp_fptr {
 	uint8_t signature[4];       // "_MP_"
 	uint32_t physaddr;          // phys addr of MP config table
@@ -100,13 +96,18 @@ void
 mp_bootothers (void)
 {
   cpuid_t i;
-
+  struct cpu_info *cpu;
   cli ();
-  for (i = 1; i < 2 ; i++) {
-    lapic_startaps (cpus[i].lapic_id);
-    while (!cpus[i].booted)
+  for (i = 1; i < get_ncpus () ; i++) {
+    cpu = get_cpu_info (i);
+    if (!cpu) {
+      panic ("Failed to get cpu information! (mp.c; mp_bootothers())");
+    }
+    lapic_startaps (cpu->lapic_id);
+    while (cpu->booted)
       /* Wait*/;
   }
+  cprintk("Booted", 0xB);
 }
 void
 mp_init(void)
@@ -150,14 +151,19 @@ mp_init(void)
 	uint8_t *start = (uint8_t *)(conf + 1);
 	uint8_t *p;
   struct mp_proc *proc = NULL;
+  uint64_t curr_cpu= 0;
+  struct cpu_info *curr_cpu_info;
+
 
 	for (p = start ; p < ((uint8_t *) conf + conf->length) ; ) {
 		switch(*p) {
 			case MP_PROC:
         proc = (struct mp_proc *)p;
-        cpus[ncpus].cpuid = ncpus;
-        cpus[ncpus].lapic_id = proc->apicid;
-				ncpus++;
+        curr_cpu_info = cpu_alloc ();
+ 
+        curr_cpu_info->cpuid = curr_cpu;
+        curr_cpu_info->lapic_id = proc->apicid;
+				curr_cpu++;
 				p += sizeof (struct mp_proc);
 				continue;
 			case MP_IOAPIC:
@@ -185,12 +191,15 @@ mp_init(void)
 		}
 	}
 
-	if (ncpus < MIN_CPUS) {
+  if (curr_cpu != get_ncpus ()) {
+    panic ("mp failed to properly detect all cpus!");
+  }
+	if (curr_cpu < MIN_CPUS) {
 //    cprintk ("%d CPUs found! That's too little for this operating system!\n", 0x4, ncpus);
 		panic ("Too little number of CPUs");
   }
 
-	cprintk("Number of CPUs: %d\n", 0xE, ncpus);
+	cprintk("Number of CPUs: %d\n", 0xE, get_ncpus ());
 
 	phys_addr_t ioapicpa;
 	if (ioapic_conf) {

@@ -34,12 +34,16 @@ struct regs {
 	register_t cr3;
 }__packed;
 
-struct cpu {
+struct cpu_info {
   uint8_t lapic_id; // Local APIC ID
   uint8_t cpuid;  // Kernel CPU ID
   volatile uint8_t booted;  // Has the CPU completed booting?
-  virt_addr_t stack;       // CPU stack (Will be VMM's stack)
-  phys_addr_t page_tables;  // CPU page tables (VMM page tables
+  virt_addr_t vmm_vstack;       // CPU stack (Will be VMM's stack)
+  phys_addr_t vmm_page_tables;  // CPU page tables (VMM page tables
+  phys_addr_t vmm_start_paddr; // VMM's physical start address
+  phys_addr_t vmm_end_paddr;   // VMM's physical end address
+  virt_addr_t vmm_start_vaddr; // VMM's virtual start address
+  virt_addr_t vmm_end_vaddr;   // VMM's virtual end address
   struct system_descriptor gdt[NGDT] __aligned (16);
 };
 
@@ -93,5 +97,8 @@ struct cpu {
 #define MTRR_PHYSBASE7			0x20e
 #define MTRR_PHYSMASK7			0x20f
 
+struct cpu_info * cpu_alloc (void);
+struct cpu_info * get_cpu_info (cpuid_t cpuid);
+uint64_t get_ncpus (void);
 #endif
 

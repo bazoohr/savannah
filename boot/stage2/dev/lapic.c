@@ -12,8 +12,6 @@
 #include <interrupt.h>
 #include <cpu.h>
 
-extern struct cpu cpus[MAX_CPUS];
-
 uint32_t
 lapic_read(uint32_t off)
 {   
@@ -89,13 +87,19 @@ lapic_startaps (cpuid_t cpuid)
   uint32_t i;
 /*  struct cpu **aps_info;
   void (**aps_enterance)(cpuid_t id);*/
-  struct cpu **cpu_info;
- 
-  if (cpus[cpuid].booted) {
+  struct cpu_info **cpu_info;
+  struct cpu_info *cpu;
+
+  cpu = get_cpu_info (cpuid);
+  if (!cpu) {
+    panic ("Failed to get cpu information. boot/stage2/lapic.c");
+  }
+   
+  if (cpu->booted) {
     panic ("Why do you try to boot a booted processor?!");
   }
 
-  cpu_info = (struct cpu **)((uint8_t *)0x9F000 + 512);
+  cpu_info = (struct cpu_info **)((uint8_t *)0x9F000 + 512);
   //cpu_cr3 = (phys_addr_t *)((uint8_t *)0x9F000 + 520);
 
   // "The BSP must initialize CMOS shutdown code to 0Ah ..."
@@ -110,8 +114,9 @@ lapic_startaps (cpuid_t cpuid)
   /*
    * Let the application processor know its stack, and page tables
    */
-  *cpu_info = (struct cpu*)(&cpus[cpuid]);
-  cprintk ("cpu_info = %x\n", 0xA, (*cpu_info)->page_tables);
+  *cpu_info = cpu;
+  //cprintk ("cr3 = %x\n", 0xA, (*cpu_info)->page_tables);
+  //cprintk ("stack = %x\n", 0xA, (*cpu_info)->vstack);
   //*cpu_cr3 = cpus[cpuid].page_tables;
   // ... prior to executing the following sequence:"
   if ((r = lapic_ipi_init(cpuid)) < 0)
