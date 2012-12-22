@@ -95,8 +95,16 @@ start_64:
   movq %rax, %fs
   movq %rax, %gs
   movq %rax, %ss
+  /* =====================================
+   * FUCK Commented Line Below! Took me one week to
+   * find the bug caused by it.
+   *
+   * With kind regards,
+   * Hamid
+   *
+   * movq $cpus + CPU_STACK + KNL_STACK_SIZE, %rsp
+   */
   /* Setup BSP's kernel stack (BSP's cpuid = 0) */
-  #movq $cpus + CPU_STACK + KNL_STACK_SIZE, %rsp
   movq $0xA0000, %rsp
   movq %rsp, %rbp
   /* Switch to kernel's new GDT */

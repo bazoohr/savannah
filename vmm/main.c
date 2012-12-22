@@ -68,5 +68,5 @@ vmm_main (struct cpu *cpuinfo)
 
   __asm__ __volatile__ ("sti\n");
 */
-  for (;;) {halt ();}
+  for (;;) {__asm__ __volatile__ ("cli;hlt\n\t");}
 }

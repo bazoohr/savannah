@@ -17,53 +17,101 @@
 #include <panic.h>
 #include <page.h>
 /* ========================================== */
+#define VMM_PAGE_UNCACHABLE (PAGE_PRESENT | PAGE_RW | PAGE_PSE | PAGE_PCD) /* Page is not cachable */
+#define VMM_PAGE_NORMAL (PAGE_PRESENT | PAGE_RW | PAGE_PSE)
+/* ========================================== */
 #define ALIGN(addr, bound) (((addr)+((bound)-1))&(~((bound)-1)))
 /* ========================================== */
-#define _2MB_ 0x200000
-#define _4MB_ (2 * _2MB_)
-#define _6MB_ (3 * _2MB_)
+#define _4KB_ 0x1000
+#define _2MB_ (512 * _4KB_)
+#define _1GB_ (512 * _2MB_)
+/* ========================================== */
+#define VMM_MAX_SIZE _2MB_
+/* ========================================== */
+#define MAP_NEW    0x0   /* Create New Page Tables */
+#define MAP_UPDATE 0x1   /* Update existing Page Tables */
 /* ========================================== */
 void
-map_memory (phys_addr_t pml4_paddr,
+map_memory (phys_addr_t *pml4_paddr,
+            virt_addr_t memory_region_start_vaddr,
+            virt_addr_t memory_region_end_vaddr,
             phys_addr_t memory_region_start_paddr,
-            phys_addr_t memory_region_end_paddr,
-            phys_addr_t *last_allocated_paddr)
+            phys_addr_t *last_allocated_paddr,
+            uint32_t page_size,
+            uint16_t protection,
+            int  flags)
 {
   phys_addr_t paddr;
   virt_addr_t vaddr;
-  page_table_entry_t *pml4;
-  page_table_entry_t *pdpe;
-  page_table_entry_t *pde;
+  page_table_entry_t *pml4 = NULL;
+  page_table_entry_t *pdpe = NULL;
+  page_table_entry_t *pde  = NULL;
+  page_table_entry_t *pte  = NULL;
   int pml4_idx;
   int pdpe_idx;
   int pde_idx;
+  int pte_idx;
   int page;
   int last_pages;
   size_t pages;
   size_t memory_region_size;
 
-
   *last_allocated_paddr = ALIGN ((*last_allocated_paddr), PAGE_TABLE_SIZE); 
 
-  if (memory_region_start_paddr > memory_region_end_paddr) {
+  if (memory_region_start_vaddr > memory_region_end_vaddr) {
     panic ("mep_memory: memory start region can not be greater than end address");
   }
 
-  if (memory_region_start_paddr == memory_region_end_paddr)
-    return;
+  if (memory_region_start_vaddr == memory_region_end_vaddr) {
+    panic ("Can't map a memory region of zero size!");
+  }
 
-  memory_region_size =  memory_region_end_paddr - memory_region_start_paddr;
+  if (flags == MAP_NEW) {
+    pml4 = (page_table_entry_t *)(*last_allocated_paddr);
+    
+    *pml4_paddr = (phys_addr_t)pml4;
 
-  pages = memory_region_size / KNL_PAGE_SIZE + (memory_region_size % KNL_PAGE_SIZE ? 1 : 0);
+    *last_allocated_paddr += PAGE_TABLE_SIZE;
 
-  pml4 = (page_table_entry_t *)pml4_paddr;
+    memset (pml4, 0, PAGE_TABLE_SIZE);
+  } else if (flags == MAP_UPDATE) {
+    pml4 = (page_table_entry_t *)*pml4_paddr;
+
+    if ((pml4[0] & (PAGE_PRESENT | PAGE_RW)) == 0) {
+      cprintk ("Warning:\nSecond Boot Stage: Invalid PML4 used to map VMM Pages!", 0x4);
+    }
+    if (pml4[0] == 0) {
+      panic ("Second Boot Stage: Trying to update null page tables!");
+    }
+  } else {
+    panic ("Second Boot Stage: Undefined memory map flag!");
+  }
+
+  if (protection != VMM_PAGE_UNCACHABLE && protection != VMM_PAGE_NORMAL) {
+    panic ("Second Boot Stage: Undefined VMM page protection!");
+  }
+
+  switch (page_size) {
+    case _4KB_:
+      break;
+    case _2MB_:
+    case _1GB_:
+      protection |= PAGE_PSE;
+      break;
+    default:
+      panic ("Second Boot Stage: Bad page size!");
+  }
+
+  memory_region_size =  memory_region_end_vaddr - memory_region_start_vaddr;
+
+  pages = memory_region_size / page_size + (memory_region_size % page_size ? 1 : 0);
 
   paddr = memory_region_start_paddr;
   /*
    * In the whole kernel, virtual addresses are equal to
    * physical addresses
    */
-  vaddr = paddr;
+  vaddr = memory_region_start_vaddr;
   /* TODO:
    *  1. Replace all constants here with some meaningfull macros.
    */ 
@@ -77,26 +125,54 @@ map_memory (phys_addr_t pml4_paddr,
     pml4_idx = (vaddr >> 39) & 0x1FF;
     pdpe_idx = (vaddr >> 30) & 0x1FF;
     pde_idx  = (vaddr >> 21) & 0x1FF;
+    pte_idx  = (vaddr >> 12) & 0x1FF;
 
-    pdpe = (page_table_entry_t *)((phys_addr_t)pml4[pml4_idx] & ~0xFFF);
-    pde = (page_table_entry_t *)((phys_addr_t)pdpe[pdpe_idx] & ~0xFFF);
 
     if (pml4[pml4_idx] == 0) {
-      panic ("Trying to map addresses into empty page tables!");
+      pdpe = (page_table_entry_t *)(*last_allocated_paddr);
+
+      *last_allocated_paddr += PAGE_TABLE_SIZE;
+
+      memset (pdpe, 0, PAGE_TABLE_SIZE);
+
+      pml4[pml4_idx] = (phys_addr_t)pdpe | (PAGE_PRESENT | PAGE_RW);
     }
-    if (pdpe[pdpe_idx] == 0) {
+
+    pdpe = (page_table_entry_t *)((phys_addr_t)pml4[pml4_idx] & ~0xFFF);
+    if (pdpe[pdpe_idx] == 0 && page_size < _1GB_) {
       pde = (page_table_entry_t *)(*last_allocated_paddr);
 
       *last_allocated_paddr += PAGE_TABLE_SIZE;
 
       memset (pde, 0, PAGE_TABLE_SIZE);
 
-      pdpe[pdpe_idx] = (phys_addr_t)pde  | (PAGE_PRESENT | PAGE_RW);
+      pdpe[pdpe_idx] = (phys_addr_t)pde | (PAGE_PRESENT | PAGE_RW);
     }
-    pde[pde_idx] = paddr | (PAGE_PRESENT | PAGE_RW | PAGE_PSE | PAGE_PCD); /* Page is not cachable */
+    if (page_size < _1GB_) {
+      pde = (page_table_entry_t *)((phys_addr_t)pdpe[pdpe_idx] & ~0xFFF);
+
+      if (pde[pde_idx] == 0 && page_size < _2MB_) {
+        pte = (page_table_entry_t *)(*last_allocated_paddr);
+
+        *last_allocated_paddr += PAGE_TABLE_SIZE;
+
+        memset (pte, 0, PAGE_TABLE_SIZE);
+
+        pde[pde_idx] = (phys_addr_t)pte | (PAGE_PRESENT | PAGE_RW);
+      }
+    }
+    if (page_size == _4KB_) {
+      pte = (page_table_entry_t *)((phys_addr_t)pde[pde_idx] & ~0xFFF);
+      pte[pte_idx] = (phys_addr_t)paddr | protection;
+    } else if (page_size == _2MB_) {
+      pde[pde_idx] = (phys_addr_t)paddr | protection;
+    } else {  /* 1GB Pages */
+      pdpe[pdpe_idx] = (phys_addr_t)paddr | protection;
+    }
+
     page++;
-    paddr += KNL_PAGE_SIZE;
-    vaddr += KNL_PAGE_SIZE;
+    paddr += page_size;
+    vaddr += page_size;
   }
 }
 
@@ -110,7 +186,7 @@ map_memory (phys_addr_t pml4_paddr,
     )
 /* ========================================== */
 static void
-load_all_vmms (phys_addr_t first_free_addr, phys_addr_t vmm_elf_addr)
+load_all_vmms (phys_addr_t *first_free_addr, phys_addr_t vmm_elf_addr)
 {
   Elf64_Ehdr *elf_hdr;  /* Start address of executable */
   Elf64_Phdr *s;
@@ -138,7 +214,7 @@ load_all_vmms (phys_addr_t first_free_addr, phys_addr_t vmm_elf_addr)
    *    To minimize the threat, I'm going to define VIRT2PHYS Macro
    *    after assignment of curr_vmm_phys_addr. Don't move or reorder them!
    */
-  curr_vmm_phys_addr = ALIGN (first_free_addr, _2MB_);
+  curr_vmm_phys_addr = ALIGN (*first_free_addr, _2MB_);
   for (curr_cpu = 0; curr_cpu < get_ncpus(); curr_cpu++) {
     //cprintk ("firest_free_addr = %x\n", 0x2, first_free_addr);
     curr_cpu_info = get_cpu_info (curr_cpu);
@@ -196,86 +272,42 @@ load_all_vmms (phys_addr_t first_free_addr, phys_addr_t vmm_elf_addr)
 
     vmm_size = curr_cpu_info->vmm_vstack - curr_cpu_info->vmm_start_vaddr;
 
-    if (vmm_size > _2MB_) {
-      panic ("vmm is bigger than expected!");
+    curr_cpu_info->vmm_end_vaddr = curr_cpu_info->vmm_start_vaddr + vmm_size;
+
+    if (vmm_size > VMM_MAX_SIZE) {
+      panic ("Second Boot Stage: vmm is too large!");
     }
 
     curr_cpu_info->vmm_end_paddr = curr_cpu_info->vmm_start_paddr + vmm_size;
 
-    cprintk ("stack %x ", 0xE, curr_cpu_info->vmm_vstack);
-    cprintk ("vmm_start %x\n", 0xE, curr_cpu_info->vmm_start_paddr);
+  //  cprintk ("curr_phys_addr = %x vmm_stack = %x vmm_end_addr %x\n", 0xE, curr_vmm_phys_addr, curr_cpu_info->vmm_vstack, curr_cpu_info->vmm_end_vaddr);
     /*
        cpus[i].vmm_start_paddr = ALIGN (cpus[i - 1].vmm_end_paddr, _2MB_);
        memset ((void *)cpus[0].vmm_start_paddr, 0, vmm_size*200);
        cprintk ("Done!\n", 0xA);
        halt ();*/
-    curr_vmm_phys_addr += _2MB_;
+    curr_vmm_phys_addr += VMM_MAX_SIZE;
   } /* For */
-  for (i = 0; i < get_ncpus (); i++) {
-    //cprintk ("cpus[%d].vmm_start_Addr = %x\n", 0x3, i, cpus[i].vmm_start_paddr);
+  
+  *first_free_addr = curr_vmm_phys_addr;
+
+  for (curr_cpu = 0; curr_cpu < get_ncpus (); curr_cpu++) {
+    curr_cpu_info = get_cpu_info (curr_cpu);
+
+    map_memory (&curr_cpu_info->vmm_page_tables,
+                 0, *first_free_addr,
+                 0, 
+                 first_free_addr,
+                 _4KB_,
+                 VMM_PAGE_NORMAL, MAP_NEW);
+
+    map_memory (&curr_cpu_info->vmm_page_tables,
+                 curr_cpu_info->vmm_start_vaddr, curr_cpu_info->vmm_end_vaddr,
+                 curr_cpu_info->vmm_start_paddr, 
+                 first_free_addr,
+                 _4KB_,
+                 VMM_PAGE_NORMAL, MAP_UPDATE);
   }
-#if 0
-  /*
-   * Create page tables
-   */
-  page_table_entry_t *pml4;
-  page_table_entry_t *pdpe;
-  page_table_entry_t *pde1;
-  page_table_entry_t *pde2;
-  int pml4_idx;
-  int pdpe_idx;
-  int pde_idx;
-  curr_vmm_vstack = 0; /*XXX*/
-  curr_vmm_virt_addr = 0; /* XXX */
-  pml4 = (page_table_entry_t *)ALIGN (VIRT2PHYS (curr_vmm_vstack), PAGE_TABLE_SIZE);
-  pdpe = (page_table_entry_t *)((phys_addr_t)pml4 + PAGE_TABLE_SIZE);
-  /* pde1 is used to map VMM's virtual address */
-  pde1  = (page_table_entry_t *)((phys_addr_t)pdpe + PAGE_TABLE_SIZE);
-  /* pde2 is used to map first 4MB of memory for VMM */
-  pde2  = (page_table_entry_t *)((phys_addr_t)pde1 + PAGE_TABLE_SIZE);
-  //cprintk ("vmm start = %x\nvmm_end = %x\npml4 = %x\npdpe = %x\npde = %x\n", 0x5, curr_vmm_phys_addr, *vmm_end_paddr, pml4, pdpe, pde1);
-  //cprintk("Stack virtual address = %x\n", 0x4, curr_vmm_vstack);
-  pml4_idx = (curr_vmm_virt_addr >> PML4_SHIFT) & 0x1FF;  /* idx in pml4 */
-  pdpe_idx = (curr_vmm_virt_addr >> PDPE_SHIFT) & 0x1FF;  /* idx in pdpe */
-  pde_idx  = (curr_vmm_virt_addr >> PDE_SHIFT) & 0x1FF;  /* pde idx in pde1 */
-  //cprintk ("pml4_idx = %x\npdpe_idx = %x\npde_idx = %x\n", 0x5, pml4_idx, pdpe_idx, pde_idx);
-
-  pml4[pml4_idx] = ((phys_addr_t)pdpe) | PAGE_PRESENT;
-  pdpe[pdpe_idx] = ((phys_addr_t)pde1) | PAGE_PRESENT;
-  pde1[pde_idx]   = ((phys_addr_t)curr_vmm_phys_addr) | (PAGE_PRESENT | PAGE_RW | PAGE_PSE);
-  /* Map first 4MB of memory for all VMMs */
-  pdpe[0] = ((phys_addr_t)pde2) | PAGE_PRESENT;
-  pde2[0] = 0 | (PAGE_PRESENT | PAGE_RW | PAGE_PSE);
-  pde2[1] = 0x200000 | (PAGE_PRESENT | PAGE_RW | PAGE_PSE);
-  //cprintk ("pml4 -> %x\n pdpe -> %x pde %x\n", 0x6, pml4[pml4_idx], pdpe[pdpe_idx], pde1[pde_idx]);
-
-  //cprintk ("size of vmm image = %x\n", 0xA, ((uint64_t)pde2 + 0x1000) - VIRT2PHYS (0x40000000));
-
-  cpus[0].vmm_vstack = curr_vmm_vstack;
-  cpus[0].vmm_page_tables   = (phys_addr_t)pml4;
-  cpus[0].vmm_start_paddr = 0x400000;
-
-  /*
-   * Here we have some VERY beautiful lines of code. So become prepared :)
-   * So far in this function, we parsed the ELF header, and put its each section
-   * in the right memory address, and created the stack for the first VMM and also
-   * the page tables.
-   *
-   * Now at this point, to avoid duplication, instead of parsing ELF header again, we
-   * are going to copy the same loaded VMM "ncpus" times, in adjacent memory locations.
-   * 
-   * Of course here, we need to adapt all the page tables for each core.
-   */
-  if (vmm_size >= 0x200000) {
-    panic ("Too big VMM");
-  }
-  // phys_addr_t cpu_addr[] = {0x400000, 0x600000, 0x800000, 0xA00000, 0xC00000, 0xE00000, 0x1100000, 0x1300000};
-  uint64_t j;
-  for (j = 0; j < 15; j++) {
-    cpus[i].vmm_start_paddr = 0x600000 + 0x200000 * j;
-    cprintk ("i = %d cpus = %x, cpus[%d].vmm_start_paddr = %x\n", 0xA, j, cpus, j, &cpus[j].vmm_start_paddr);
-  }
-#endif
 #undef VIRT2PHYS
 }
 #if 0
@@ -291,20 +323,20 @@ print_logo(void)
   cprintk("\n", 0xB);
 }
 #endif
-  void 
+void 
 kmain (struct kernel_args *stage1_info)
 {
-  phys_addr_t stage2_end_addr;
+  phys_addr_t first_free_addr;
   phys_addr_t stage2_pml4;
   phys_addr_t vmm_elf_addr;
 
-  stage2_end_addr = stage1_info->ka_kernel_end_addr;
+  first_free_addr = stage1_info->ka_kernel_end_addr;
   stage2_pml4     = stage1_info->ka_kernel_cr3;
   vmm_elf_addr    = stage1_info->ka_init_addr;
 
   con_init ();
 
-  cprintk ("stage2_end_addr = %x\n", 0x6, stage2_end_addr);
+  cprintk ("stage2_end_addr = %x\n", 0x6, first_free_addr);
   /*
    * XXX:
    *    map_iomem will change the end address of stage2 program.
@@ -312,9 +344,10 @@ kmain (struct kernel_args *stage1_info)
    *    This is important because later in load_all_vmm, we need
    *    to know the correct end address of stage2 program.
    */
-  map_memory (stage2_pml4, 0xFEC00000, 0x100000000, &stage2_end_addr);
+  cprintk ("stage2_end_addr = %x\n", 0x6, first_free_addr);
+  map_memory (&stage2_pml4, 0xFEC00000, 0x100000000, 0xFEC00000, &first_free_addr, _2MB_, VMM_PAGE_UNCACHABLE, MAP_UPDATE);
   //map_iomem (stage2_pml4, &stage2_end_addr);
-  cprintk ("stage2_end_addr = %x\n", 0x6, stage2_end_addr);
+  cprintk ("stage2_end_addr = %x\n", 0x6, first_free_addr);
 
   mp_init ();
 
@@ -324,8 +357,7 @@ kmain (struct kernel_args *stage1_info)
   ioapic_init ();
   lapic_init();
   kbd_init ();
-
-  load_all_vmms (stage2_end_addr, vmm_elf_addr);
+  load_all_vmms (&first_free_addr, vmm_elf_addr);
 #if 0
   int i;
   for (i = 0; i < get_ncpus(); i++) {
@@ -333,7 +365,6 @@ kmain (struct kernel_args *stage1_info)
     cprintk ("--vmm_start %x\n", 0xE, cpus[i].vmm_start_vaddr);
   }
 #endif
-  halt ();
   mp_bootothers ();
   __asm__ __volatile__ ("sti\n");
 

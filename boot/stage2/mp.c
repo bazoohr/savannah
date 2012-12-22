@@ -104,7 +104,7 @@ mp_bootothers (void)
       panic ("Failed to get cpu information! (mp.c; mp_bootothers())");
     }
     lapic_startaps (cpu->lapic_id);
-    while (cpu->booted)
+    while (!cpu->booted)
       /* Wait*/;
   }
   cprintk("Booted", 0xB);

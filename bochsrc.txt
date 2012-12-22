@@ -1,5 +1,5 @@
 ata0-master: type=cdrom, path=/home/hamid/Desktop/projects/anarchix/hamid/anarchix.iso, status=inserted
 megs: 1024
 boot: cdrom
-cpu: count=8:4, ips=10000000
+cpu: count=8:2, ips=10000000
 cpuid: apic=xapic, sse=sse4_2, mmx=1
