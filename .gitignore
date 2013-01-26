@@ -2,6 +2,7 @@
 *~
 *.swp
 *.d
+*.s
 
 tags
 
@@ -12,10 +13,23 @@ boot/boot_aps.out
 etc/gen_asm_frame_const_h
 etc/gen_asm_kernel_args_const_h
 etc/gen_asm_proc_const_h
+etc/gen_asm_cpu_const_h
 vuos.iso
+anarchix.iso
 init/init
 kernel/include/asm_frame_const.h
 kernel/include/asm_kernel_args_const.h
 kernel/include/asm_proc_const.h
 kernel/kernel.bin
 lib/libos.a
+
+bochsrc.txt
+boot/stage1/stage1
+boot/stage2/boot_aps.out
+boot/stage2/boot_aps
+boot/stage2/include/asm_frame_const.h
+boot/stage2/include/asm_kernel_args_const.h
+boot/stage2/include/asm_cpu_const.h
+vmm/vmm
+vmm/include/asm_frame_const.h
+boot/stage2/stage2
