@@ -16,6 +16,7 @@ void reload_gdt (struct descriptor_register *addr, int kcode_sel, int kdata_sel)
 void lidt (struct descriptor_register *addr);
 void load_cr3 (phys_addr_t addr);
 
+uint64_t store_tr(void);
 void lcr0 (uint64_t val);
 uint64_t rcr0 (void);
 uint64_t rcr2 (void);
@@ -27,6 +28,9 @@ uint64_t rcr4 (void);
 void cache_flush (void);
 void tlb_flush_global (void);
 
+void sgdt(struct descriptor_register *dtr);
+void sidt(struct descriptor_register *dtr);
+uint64_t rflags(void);
 void nop_pause (void);
 void cpuid (uint32_t function, uint32_t *eaxp, uint32_t *ebxp, uint32_t *ecxp, uint32_t *edxp);
 void halt (void);

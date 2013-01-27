@@ -4,7 +4,7 @@
 # Hamid R. Bazoobandi
 # Sat. 14 July 2012 Amsterdam
 # ==================================
-OPTLVL = -O2
+OPTLVL = -O0
 AS = $(CC)
 LD = ld
 
@@ -44,6 +44,7 @@ endef
 %.o: %.c
 	$(call silent_command, $(call make_depend,$<,$@,$(subst .o,.d,$@)))
 	$(call silent_command, $(CC) $(CFLAGS) -c -o $@ $<, "    CC    $(MYDIR)$<")
+	#$(call silent_command, $(CC) $(CFLAGS) -S $<, "    SS    $(MYDIR)$<")
 %.o: %.S
 	$(call silent_command, $(call make_depend,$<,$@,$(subst .o,.d,$@)))
 	$(call silent_command, $(AS) $(ASFLAGS) -c -o $@ $<, "    AS    $(MYDIR)$<")

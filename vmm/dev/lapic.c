@@ -11,7 +11,7 @@
 #include <mp.h>
 #include <interrupt.h>
 
-extern struct cpu cpus[MAX_CPUS];
+extern struct cpu_info cpus[MAX_CPUS];
 
 uint32_t
 lapic_read(uint32_t off)
@@ -86,14 +86,14 @@ lapic_startaps (cpuid_t cpuid)
   int r;
   uint16_t *dwordptr;
   uint32_t i;
-  struct cpu **aps_info;
+  struct cpu_info **aps_info;
   void (**aps_enterance)(cpuid_t id);
  
   if (cpus[cpuid].booted) {
     panic ("Why do you try to boot a booted processor?!");
   }
 
-  aps_info = (struct cpu **)((uint8_t *)0x9F000 + 512);
+  aps_info = (struct cpu_info **)((uint8_t *)0x9F000 + 512);
   aps_enterance = (void (**)(cpuid_t))((uint8_t *)0x9F000 + 520);
 
   // "The BSP must initialize CMOS shutdown code to 0Ah ..."

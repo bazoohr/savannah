@@ -1,4 +1,5 @@
 #include <types.h>
+#include <printk.h>
 #include <cpu.h>
 #include <page.h>
 #include <mp.h>
@@ -8,11 +9,11 @@ static struct cpu_info cpus[MAX_CPUS];
 static uint64_t ncpus = 0;
 /* ================================================== */
 uint64_t
-rdmsr (uint32_t reg)
+rdmsr (uint32_t ecx)
 {
 	register_t edx, eax;
-	__asm__ __volatile__ ("rdmsr; mfence" : "=d"(edx), "=a"(eax) : "c"(reg));
-	return (register_t)edx << 32 | eax;
+	__asm__ __volatile__ ("rdmsr; mfence" : "=d"(edx), "=a"(eax) : "c"(ecx));
+	return (uint64_t)((edx << 32) | eax);
 }
 /* ================================================== */
 void

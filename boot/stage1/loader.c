@@ -8,6 +8,7 @@
 #include <elf.h>
 #include <string.h>
 #include <kernel_args.h>
+#include <cpu.h>
 #include "screen.h"
 #include "bootio.h"
 #include "multiboot.h"
@@ -98,6 +99,7 @@ boot_loader (unsigned long magic, unsigned long addr)
 {
   multiboot_info_t *mbi = (multiboot_info_t *)addr;
   phys_addr_t init_elf_addr          = 0;
+  phys_addr_t vm_elf_addr          = 0;
   phys_addr_t kernel_elf_addr       = 0;
   phys_addr_t boot_aps_bin_addr     = 0;
   phys_addr_t kernel_end_addr       = 0;
@@ -164,7 +166,7 @@ boot_loader (unsigned long magic, unsigned long addr)
   /* Kernel should be loaded as a multi-boot module */
   if (CHECK_FLAG (mbi->flags, 3)) {
     multiboot_module_t *mod;
-    if (mbi->mods_count != 3) {
+    if (mbi->mods_count != 4) {
       printf ("ERROR: Grub failed to load all needed modules. %d modules loaded, but 3 were needed!\n", mbi->mods_count);
       halt ();
     }
@@ -177,22 +179,21 @@ boot_loader (unsigned long magic, unsigned long addr)
       halt ();
     }
     mod++;
+/* VM is loaded here */
+    vm_elf_addr = (phys_addr_t)mod->mod_start;
+    if (mod->mod_end > 0x200000) {
+      printf ("ERROR: loaded module overlaps with VMM start address\n");
+      halt ();
+    }
+    mod++;
+    /* ================================ */
     boot_aps_bin_addr = (phys_addr_t)mod->mod_start;
     if (mod->mod_end > 0x200000) {
       printf ("ERROR: loaded module overlaps with VMM start address\n");
       halt ();
     }
 
-    /*
-     * The important thing to consider here is that
-     * the boot_aps program, must not be bigger than
-     * 512 bytes.
-     *
-     * The address must be 4kb aligned!
-     * TODO:
-     *     Define 0x9F000 as a macro to some good place.
-     */
-    memcpy ((void*)0x9F000, (void*)boot_aps_bin_addr, 512);
+    memcpy ((void*)BOOT_APS_BASE_ADDR, (void*)boot_aps_bin_addr, BOOT_APS_LENGTH);
 
     mod++;
     kernel_elf_addr = (phys_addr_t)mod->mod_start;
@@ -214,5 +215,6 @@ boot_loader (unsigned long magic, unsigned long addr)
   kargs.ka_memsz            = memory_size;           /* First argument: size of memory */
   kargs.ka_kernel_end_addr  = kernel_end_addr;   /* Third argument: start address of page tables */
   kargs.ka_init_addr        = init_elf_addr;
+  kargs.ka_vm_addr          = vm_elf_addr;
   kernel (&kargs);    /* Call kernel */
 }

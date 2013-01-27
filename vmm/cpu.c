@@ -1,12 +1,13 @@
 #include <types.h>
+#include <printk.h>
 #include <cpu.h>
 #include <page.h>
 uint64_t
-rdmsr (uint32_t reg)
+rdmsr (uint32_t ecx)
 {
 	register_t edx, eax;
-	__asm__ __volatile__ ("rdmsr; mfence" : "=d"(edx), "=a"(eax) : "c"(reg));
-	return (register_t)edx << 32 | eax;
+	__asm__ __volatile__ ("rdmsr; mfence" : "=d"(edx), "=a"(eax) : "c"(ecx));
+	return (uint64_t)((edx << 32) | eax);
 }
 
 void
@@ -16,6 +17,15 @@ wrmsr (uint32_t reg, uint64_t val)
 	                         "a"((uint32_t)(val & 0xFFFFFFFF)), 
 	                         "c"(reg));
 }
+uint64_t store_tr(void)
+{
+	uint64_t tr;
+	
+  __asm__ __volatile__ ("str %0":"=r" (tr));
+	
+  return tr;
+}
+
 void
 lcr0 (uint64_t val)
 {
@@ -28,6 +38,25 @@ rcr0 (void)
 	uint64_t val;
 	__asm __volatile__ ("movq %%cr0,%0" : "=r" (val));
 	return val;
+}
+void
+sgdt(struct descriptor_register *dtr)
+{
+	        asm volatile("sgdt %0":"=m" (*dtr));
+}
+
+void
+sidt(struct descriptor_register *dtr)
+{
+	        asm volatile("sidt %0":"=m" (*dtr));
+}
+
+uint64_t
+rflags(void)
+{
+	uint64_t flags;
+	__asm __volatile__ ("pushfq ; popq %0" : "=r" (flags));
+	return flags;
 }
 
 uint64_t

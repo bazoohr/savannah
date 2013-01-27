@@ -32,4 +32,5 @@ boot/stage2/include/asm_kernel_args_const.h
 boot/stage2/include/asm_cpu_const.h
 vmm/vmm
 vmm/include/asm_frame_const.h
+vm/include/asm_frame_const.h
 boot/stage2/stage2

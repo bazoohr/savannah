@@ -4,13 +4,7 @@
  /* =============================================== */
 #include <asm_cpu_const.h>
 #include <const.h>
- /* =============================================== */
-/* This is fixed address,
- * TODO:
- * Since this address is used in other files, move it
- * to a header file, which can be included in all files.
- */
-#define BASE_ADDR 0x9F000
+#include <cpu.h>
  /* =============================================== */
 .code16
 .org 0
@@ -19,7 +13,7 @@
 .globl _start
 _start:
     cli              /* Make sure interrupts are disabled */
-    xorw $(BASE_ADDR >> 4), %ax
+    xorw $(BOOT_APS_BASE_ADDR >> 4), %ax
     movw %ax, %ds
     movw %ax, %es
     movw %ax, %gs
@@ -31,7 +25,7 @@ _start:
 jmp_32:
   .byte 0x66
   .byte 0xEA
-  .long BASE_ADDR + protmode
+  .long BOOT_APS_BASE_ADDR + protmode
   .word bootcode - GDT
 /* ==================================================== */
 /*                     32 bit code                      */
@@ -46,7 +40,7 @@ protmode:
    * so we just load the page table base address
    * into cr3, of application processors (aps)
    */
-  movl (BASE_ADDR + 512), %edi
+  movl (CPU_INFO_PTR_ADDR), %edi
   movl CPU_CR3(%edi), %eax
   movl %eax, %cr3
 
@@ -74,7 +68,7 @@ protmode:
 	movl %eax, %cr0
   /* A long jump, to flush pipeline */
 	.byte 0xEA
-	.long BASE_ADDR + start_64        /* Starting address of 64-bit code */
+	.long BOOT_APS_BASE_ADDR + start_64        /* Starting address of 64-bit code */
 	.word code64 - GDT    /* 64-bit code selector */
 /* ==================================================== */
 /*                     64 bit code                      */
@@ -111,7 +105,7 @@ start_64:
   btsq $1, %rax
   movq %rax, %cr0
   /* Setup VMM's stack */
-  movq (BASE_ADDR + 512), %rdi
+  movq (CPU_INFO_PTR_ADDR), %rdi
   movq CPU_STACK(%rdi), %rsp
   movq %rsp, %rbp
   /* Now, APs are ready to jump to VMM's main */
@@ -144,12 +138,13 @@ LDT:
 GDTEND:
 realmode_gdt_descr:
 	.word GDTEND - GDT
-	.long BASE_ADDR + GDT
+	.long BOOT_APS_BASE_ADDR + GDT
 protmode_gdt_desc:
 longmode_gdt_desc:
 	.word GDTEND - GDT
-	.long BASE_ADDR + GDT
-.org 512
+	.long BOOT_APS_BASE_ADDR + GDT
+/* ========================================= */
+.org BOOT_APS_LENGTH
 /*
  * BSP, will inform APs about their CPU information through
  * this

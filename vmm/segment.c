@@ -5,7 +5,7 @@
 #include <cdef.h>
 #include <cpu.h>
 #include <mp.h>
-extern struct cpu cpus[MAX_CPUS];
+extern struct cpu_info cpus[MAX_CPUS];
 #if 0
 /* =========================================== */
 struct system_descriptor gdt[NGDT] __aligned (16);

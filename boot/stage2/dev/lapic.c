@@ -99,7 +99,7 @@ lapic_startaps (cpuid_t cpuid)
     panic ("Why do you try to boot a booted processor?!");
   }
 
-  cpu_info = (struct cpu_info **)((uint8_t *)0x9F000 + 512);
+  cpu_info = (struct cpu_info **)((uint8_t *)CPU_INFO_PTR_ADDR);
   //cpu_cr3 = (phys_addr_t *)((uint8_t *)0x9F000 + 520);
 
   // "The BSP must initialize CMOS shutdown code to 0Ah ..."
@@ -110,7 +110,7 @@ lapic_startaps (cpuid_t cpuid)
   // to the AP startup code ..."
   dwordptr = (uint16_t*)0x467;
   dwordptr[0] = 0;             /* code offset  */
-  dwordptr[1] = 0x9F000 >> 4;  /* code segment */
+  dwordptr[1] = BOOT_APS_BASE_ADDR >> 4;  /* code segment */
   /*
    * Let the application processor know its stack, and page tables
    */
@@ -119,6 +119,7 @@ lapic_startaps (cpuid_t cpuid)
   //cprintk ("stack = %x\n", 0xA, (*cpu_info)->vstack);
   //*cpu_cr3 = cpus[cpuid].page_tables;
   // ... prior to executing the following sequence:"
+  cprintk ("cpu_info->lapic_id = %x\n", 0x5, (*cpu_info)->lapic_id);
   if ((r = lapic_ipi_init(cpuid)) < 0)
     panic ("unable to send init error r");
 
@@ -127,7 +128,7 @@ lapic_startaps (cpuid_t cpuid)
   for (i = 0; i < 2; i++) {
     lapic_icr_wait();
     lapic_write (LAPIC_ICRHI, cpuid << LAPIC_ID_SHIFT);
-    lapic_write (LAPIC_ICRLO, LAPIC_DLMODE_STARTUP | (0x9F000 >> 12));
+    lapic_write (LAPIC_ICRLO, LAPIC_DLMODE_STARTUP | (BOOT_APS_BASE_ADDR>> 12));
     timer_delay (1);	// 1 ms
   }
 }

@@ -98,7 +98,7 @@ mp_bootothers (void)
   cpuid_t i;
   struct cpu_info *cpu;
   cli ();
-  for (i = 1; i < get_ncpus () ; i++) {
+  for (i = 1; i < get_ncpus (); i++) {
     cpu = get_cpu_info (i);
     if (!cpu) {
       panic ("Failed to get cpu information! (mp.c; mp_bootothers())");

@@ -17,7 +17,7 @@
 #define MP_IOINTR  0x03         // One per bus interrupt source
 #define MP_LINTR   0x04         // One per system interrupt source
 
-struct cpu cpus[MAX_CPUS];
+struct cpu_info cpus[MAX_CPUS];
 
 uint64_t ncpus = 0;
 

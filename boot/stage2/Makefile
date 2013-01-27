@@ -43,4 +43,4 @@ clean:
 	$(call silent_command, rm -f dev/*.o dev/*.d *.o *.d $(BOOT_APS) $(PROGNAME), "    CLEAN $(MYDIR)")
 distclean:
 	$(call silent_command, rm -f dev/*.o dev/*.d *.o *.d $(BOOT_APS) $(PROGNAME), "    CLEAN ALL $(MYDIR)")
-	$(call silent_command, rm -f include/asm_frame_const.h include/asm_procregs_const.h include/asm_kernel_args_const.h, "    CLEAN ALL $(MYDIR)")
+	$(call silent_command, rm -f include/asm_frame_const.h include/asm_procregs_const.h include/asm_kernel_args_const.h)

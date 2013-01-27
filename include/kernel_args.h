@@ -10,6 +10,7 @@ struct kernel_args {
   uint64_t  ka_kernel_cr3;
   uint64_t  ka_kernel_end_addr;
   uint64_t  ka_init_addr;
+  uint64_t  ka_vm_addr;
 };
 
 #else 

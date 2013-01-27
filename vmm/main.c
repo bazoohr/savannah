@@ -13,6 +13,7 @@
 #include <dev/ioapic.h>
 #include <dev/lapic.h>
 #include <cpu.h>
+#include <vmx.h>
 /* ========================================== */
 void
 print_logo(void)
@@ -27,10 +28,10 @@ print_logo(void)
 }
 
 void 
-vmm_main (struct cpu *cpuinfo)
+vmm_main (struct cpu_info *cpuinfo)
 {
   con_init ();
-  cprintk ("My cpuid is = %d\n", 0xA, cpuinfo->cpuid);
+//  cprintk ("My cpuid is = %d\n", 0xA, cpuinfo->cpuid);
   create_new_gdt (cpuinfo->cpuid);
   interrupt_init ();
 #if 0
@@ -61,6 +62,7 @@ vmm_main (struct cpu *cpuinfo)
   kbd_init ();
 
 #endif
+  vmx_init (cpuinfo);
   print_logo();
   cpuinfo->booted = 1;
   /*
