@@ -9,7 +9,7 @@ ROOT = ../../
 include $(ROOT)/config.mak
 include $(ROOT)/rules.mak
 
-LINK_LD  = kernel.ld
+LINK_LD  = stage2.ld
 PROGNAME = stage2
 MYDIR    = boot/stage2/
 

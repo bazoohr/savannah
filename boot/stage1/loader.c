@@ -52,7 +52,7 @@ load_stage2 (phys_addr_t stage2_elf_addr,
   int ph_num = elf_hdr->e_phnum;    /* Number of program headers in ELF executable */
   int i;
   /*
-   * stage2 ELF header contains 4 sections. (look at stage2/link64.ld).
+   * stage2 ELF header contains 4 sections. (look at stage2/stage2.ld).
    * These sections are respectively
    *   1. text
    *   2. data

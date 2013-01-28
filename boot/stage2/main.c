@@ -29,7 +29,7 @@
 #define _1GB_ (512 * _2MB_)
 /* ========================================== */
 #define VMM_MAX_SIZE _2MB_
-#define VM_MAX_SIZE _2MB_
+#define VM_MAX_SIZE  _2MB_
 /* ========================================== */
 #define MAP_NEW    0x0   /* Create New Page Tables */
 #define MAP_UPDATE 0x1   /* Update existing Page Tables */
@@ -641,7 +641,7 @@ load_all_vms (phys_addr_t *first_free_addr, phys_addr_t vm_elf_addr)
 }
 
 void 
-kmain (struct boot_stage2_args *boot_args)
+boot_stage2_main (struct boot_stage2_args *boot_args)
 {
   phys_addr_t first_free_addr;
   phys_addr_t stage2_page_tables;

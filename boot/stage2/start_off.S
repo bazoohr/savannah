@@ -116,7 +116,7 @@ start_64:
   movq $0, %rax
   movl %edi, %eax
   movq %rax, %rdi
-  call kmain
+  callq boot_stage2_main
 
   cli
   movb $'!', 0xb8000

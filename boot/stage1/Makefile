@@ -13,7 +13,7 @@ MYDIR    = boot/stage1/
 PROGNAME = stage1
 
 
-LINK_LD = boot.ld
+LINK_LD = stage1.ld
 CFLAGS  += -m32 -I. -I $(ROOT)/include
 ASFLAGS += -m32 -I.
 LDFLAGS += -melf_i386 -T $(LINK_LD)
