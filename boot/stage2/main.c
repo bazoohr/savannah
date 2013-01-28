@@ -485,7 +485,11 @@ load_all_vmms (phys_addr_t *first_free_addr, phys_addr_t vmm_elf_addr)
                  first_free_addr,
                  _1GB_,
                  VMM_PAGE_NORMAL, MAP_NEW);
-
+  }
+  /* =============================================== */
+  for (i = 3; i < get_ncpus (); i++) {
+    (get_cpu_info (i))->vm_start_vaddr = 0;
+    (get_cpu_info (i))->vm_start_paddr = 0;
   }
 #undef VIRT2PHYS
 }

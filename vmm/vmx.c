@@ -352,5 +352,5 @@ void vmx_init(struct cpu_info *cpuinfo)
 
 	vmlaunch ();
 
-	panic("Success.");
+	panic("We MUST NEVER get here.");
 }
