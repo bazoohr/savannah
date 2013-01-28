@@ -98,48 +98,16 @@ void
 boot_loader (unsigned long magic, unsigned long addr)
 {
   multiboot_info_t *mbi = (multiboot_info_t *)addr;
-  phys_addr_t vmm_elf_addr          = 0;
-  phys_addr_t vm_elf_addr           = 0;
   phys_addr_t boot_stage2_elf_addr  = 0;
   phys_addr_t boot_stage2_end_addr  = 0;
   phys_addr_t boot_aps_bin_addr     = 0;
+  phys_addr_t vmm_elf_addr          = 0;
+  phys_addr_t pm_elf_addr           = 0;
+  phys_addr_t fs_elf_addr           = 0;
   size_t memory_size                = 0;
   void (*stage2)(struct boot_stage2_args *);
 
   clrscr ();  /* Clear the screen. */
-#if 0
-  uint32_t rax;
-  uint32_t rbx;
-  uint32_t rcx;
-  uint32_t rdx;
-
-  cpuid (1, &rax, &rbx, &rcx, &rdx);
-  printf ("rax = %x\n", rax);
-  printf ("rbx = %x\n", rbx);
-  printf ("rcx = %x\n", rcx);
-  printf ("rcx = %x\n", rdx);
-  if (rcx & 0x1) {
-    printf ("SSE, SSE1 supported!\n");
-  } else {
-    printf ("SSE, SSE1 NOT supported!\n");
-  }
-  if (rcx & (1<<3)) {
-    printf ("MWAIT supported!\n");
-  } else {
-    printf ("MWAIT NOT supported!\n");
-  }
-
-  if (rcx & (1<<26)) {
-    printf ("SSSE3 is supported!\n");
-  } else {
-    printf ("SSSE3 NOT supported!\n");
-  }
-  /* Am I booted by a Multiboot-compliant boot loader? */
-  if (magic != MULTIBOOT_BOOTLOADER_MAGIC) {
-    printf ("ERROR: Invalid magic number: 0x%x\n", (unsigned) magic);
-    halt ();
-  }
-#endif
   /* Does CPU have longmode? */
   if (has_long_mode () == false) {
     printf ("ERROR: Your system is not supporting long mode!\n");
@@ -163,26 +131,18 @@ boot_loader (unsigned long magic, unsigned long addr)
     halt ();
   }
 
-  /* stage2 should be loaded as a multi-boot module */
   if (CHECK_FLAG (mbi->flags, 3)) {
+  /* stage2 should be loaded as a multi-boot module */
     multiboot_module_t *mod;
-    if (mbi->mods_count != 4) {
+    if (mbi->mods_count != 5) {
       printf ("ERROR: Grub failed to load all needed modules. %d modules loaded, but 3 were needed!\n", mbi->mods_count);
       halt ();
     }
-
     mod = (multiboot_module_t*)mbi->mods_addr;
-    /* VMM is loaded here */
-    vmm_elf_addr = (phys_addr_t)mod->mod_start;
+    /* ================================ */
+    boot_stage2_elf_addr = (phys_addr_t)mod->mod_start;
     if (mod->mod_end > 0x200000) {
-      printf ("ERROR: loaded module overlaps with VMM start address\n");
-      halt ();
-    }
-    mod++;
-    /* VM is loaded here */
-    vm_elf_addr = (phys_addr_t)mod->mod_start;
-    if (mod->mod_end > 0x200000) {
-      printf ("ERROR: loaded module overlaps with VMM start address\n");
+      printf ("ERROR: loaded module overlaps with stage2 start address\n");
       halt ();
     }
     mod++;
@@ -192,13 +152,29 @@ boot_loader (unsigned long magic, unsigned long addr)
       printf ("ERROR: loaded module overlaps with VMM start address\n");
       halt ();
     }
-
     memcpy ((void*)BOOT_APS_BASE_ADDR, (void*)boot_aps_bin_addr, BOOT_APS_LENGTH);
-
     mod++;
-    boot_stage2_elf_addr = (phys_addr_t)mod->mod_start;
+    /* ================================ */
+    /* VMM is loaded here */
+    vmm_elf_addr = (phys_addr_t)mod->mod_start;
     if (mod->mod_end > 0x200000) {
-      printf ("ERROR: loaded module overlaps with stage2 start address\n");
+      printf ("ERROR: loaded module overlaps with VMM start address\n");
+      halt ();
+    }
+    mod++;
+    /* ================================ */
+    /* PM is loaded here */
+    pm_elf_addr = (phys_addr_t)mod->mod_start;
+    if (mod->mod_end > 0x200000) {
+      printf ("ERROR: loaded module overlaps with VMM start address\n");
+      halt ();
+    }
+    mod++;
+    /* ================================ */
+    /* FS is loaded here */
+    fs_elf_addr = (phys_addr_t)mod->mod_start;
+    if (mod->mod_end > 0x200000) {
+      printf ("ERROR: loaded module overlaps with VMM start address\n");
       halt ();
     }
 
@@ -215,6 +191,7 @@ boot_loader (unsigned long magic, unsigned long addr)
   stage2_args.sys_mem_size         = memory_size;           /* First argument: size of memory */
   stage2_args.boot_stage2_end_addr = boot_stage2_end_addr;  /* Third argument: start address of page tables */
   stage2_args.vmm_elf_addr         = vmm_elf_addr;
-  stage2_args.vm_elf_addr          = vm_elf_addr;
+  stage2_args.pm_elf_addr          = pm_elf_addr;
+  stage2_args.fs_elf_addr          = fs_elf_addr;
   stage2 (&stage2_args);    /* Call stage2 */
 }

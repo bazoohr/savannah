@@ -12,7 +12,8 @@ int main (void)
   printf ("#define BOOT_STAGE2_PGTB %10ld\n", offsetof (struct boot_stage2_args, boot_stage2_page_tables));
   printf ("#define BOOT_STAGE2_END_ADDR %10ld\n", offsetof (struct boot_stage2_args, boot_stage2_end_addr));
   printf ("#define VMM_ELF_ADDR %10ld\n", offsetof (struct boot_stage2_args, vmm_elf_addr));
-  printf ("#define VM_ELF_ADDR %10ld\n", offsetof (struct boot_stage2_args, vm_elf_addr));
+  printf ("#define PM_ELF_ADDR %10ld\n", offsetof (struct boot_stage2_args, pm_elf_addr));
+  printf ("#define FS_ELF_ADDR %10ld\n", offsetof (struct boot_stage2_args, fs_elf_addr));
 
   printf ("#endif\n");
 

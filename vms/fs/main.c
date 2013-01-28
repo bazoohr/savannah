@@ -17,6 +17,6 @@ void
 vm_main (struct cpu_info *cpuinfo)
 {
   con_init ();
-  cprintk ("My info is in addr = %x\n", 0xA, cpuinfo->cpuid);
+  cprintk ("\nFS: My info is in addr = %x\n", 0xA, cpuinfo->cpuid);
   while (1) {__asm__ __volatile__ ("cli;pause;\n\t");}
 }

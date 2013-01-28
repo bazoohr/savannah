@@ -33,15 +33,12 @@ static void msr_lock()
 {
 	uint64_t nl = 0;
 
-	cprintk("Reading MSR 0x3A\n", 0xB);
 	nl = rdmsr(MSR_IA32_FEATURE_CONTROL);
 
 	if (!(nl & 1)) {
-		cprintk("Locking MSR...", 0xB);
 		nl |= 1;
 		nl |= 2;
 		wrmsr(MSR_IA32_FEATURE_CONTROL, nl);
-		cprintk("locked\n", 0xB);
 	} else {
 		cprintk("MSR Already locked\n", 0xB);
 	}
@@ -157,9 +154,15 @@ static void setup_vmcs(struct cpu_info *cpuinfo)
 	vmx_vmwrite(VMCS_LINK_POINTER, 0xFFFFFFFF);
 	vmx_vmwrite(VMCS_LINK_POINTER_HIGH, 0xFFFFFFFF);
 
+#if 0
+  /*
+   * We have this problem with Bochs:
+   * "RDMSR: Unknown register 0x1d9"
+   */
 	u64 = rdmsr(MSR_IA32_DEBUGCTLMSR);
 	vmx_vmwrite(GUEST_IA32_DEBUGCTL, u64);
 	vmx_vmwrite(GUEST_IA32_DEBUGCTL_HIGH, u64 >> 32);
+#endif
 
 	// 32-Bit Control Fields
         // According to our new findings (0-settings and 1-settings in spec Appendix A.3.1)
@@ -221,7 +224,6 @@ static void setup_vmcs(struct cpu_info *cpuinfo)
 	asm("mov %%fs, %0" : "=m" (u16));	vmx_vmwrite(GUEST_FS_SELECTOR, u16);
 	asm("mov %%gs, %0" : "=m" (u16));	vmx_vmwrite(GUEST_GS_SELECTOR, u16);
 	asm("sldt %0" : "=m" (u16));		vmx_vmwrite(GUEST_LDTR_SELECTOR, u16);
-        cprintk ("Task register = %x\n", 0x5, store_tr ());
 	/*asm("str %0" : "=m" (u16));*/		vmx_vmwrite(GUEST_TR_SELECTOR, 0x18);
 
 	// 32-Bit Guest-State Fields

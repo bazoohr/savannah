@@ -10,7 +10,8 @@
 #include <cpu.h>
 #include <mp.h>
 #include <interrupt.h>
-#include <cpu.h>
+
+extern struct cpu cpus[MAX_CPUS];
 
 uint32_t
 lapic_read(uint32_t off)
@@ -85,22 +86,15 @@ lapic_startaps (cpuid_t cpuid)
   int r;
   uint16_t *dwordptr;
   uint32_t i;
-/*  struct cpu **aps_info;
-  void (**aps_enterance)(cpuid_t id);*/
-  struct cpu_info **cpu_info;
-  struct cpu_info *cpu;
-
-  cpu = get_cpu_info (cpuid);
-  if (!cpu) {
-    panic ("Failed to get cpu information. boot/stage2/lapic.c");
-  }
-   
-  if (cpu->booted) {
+  struct cpu **aps_info;
+  void (**aps_enterance)(cpuid_t id);
+ 
+  if (cpus[cpuid].booted) {
     panic ("Why do you try to boot a booted processor?!");
   }
 
-  cpu_info = (struct cpu_info **)((uint8_t *)CPU_INFO_PTR_ADDR);
-  //cpu_cr3 = (phys_addr_t *)((uint8_t *)0x9F000 + 520);
+  aps_info = (struct cpu **)((uint8_t *)0x9F000 + 512);
+  aps_enterance = (void (**)(cpuid_t))((uint8_t *)0x9F000 + 520);
 
   // "The BSP must initialize CMOS shutdown code to 0Ah ..."
   outb (NVRAM_RESET, IO_RTC);
@@ -110,14 +104,13 @@ lapic_startaps (cpuid_t cpuid)
   // to the AP startup code ..."
   dwordptr = (uint16_t*)0x467;
   dwordptr[0] = 0;             /* code offset  */
-  dwordptr[1] = BOOT_APS_BASE_ADDR >> 4;  /* code segment */
+  dwordptr[1] = 0x9F000 >> 4;  /* code segment */
   /*
-   * Let the application processor know its stack, and page tables
+   * Let the application processor know its info, & kernel enterance
    */
-  *cpu_info = cpu;
-  //cprintk ("cr3 = %x\n", 0xA, (*cpu_info)->page_tables);
-  //cprintk ("stack = %x\n", 0xA, (*cpu_info)->vstack);
-  //*cpu_cr3 = cpus[cpuid].page_tables;
+  *aps_info      = &cpus[cpuid];
+  *aps_enterance = (void (*)(cpuid_t))0x400000;/*&boot_aps_tail;*/
+
   // ... prior to executing the following sequence:"
   if ((r = lapic_ipi_init(cpuid)) < 0)
     panic ("unable to send init error r");
@@ -127,7 +120,7 @@ lapic_startaps (cpuid_t cpuid)
   for (i = 0; i < 2; i++) {
     lapic_icr_wait();
     lapic_write (LAPIC_ICRHI, cpuid << LAPIC_ID_SHIFT);
-    lapic_write (LAPIC_ICRLO, LAPIC_DLMODE_STARTUP | (BOOT_APS_BASE_ADDR>> 12));
+    lapic_write (LAPIC_ICRLO, LAPIC_DLMODE_STARTUP | (0x9F000 >> 12));
     timer_delay (1);	// 1 ms
   }
 }

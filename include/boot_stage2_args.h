@@ -10,7 +10,8 @@ struct boot_stage2_args {
   uint64_t  boot_stage2_page_tables;
   uint64_t  boot_stage2_end_addr;
   uint64_t  vmm_elf_addr;
-  uint64_t  vm_elf_addr;
+  uint64_t  pm_elf_addr;
+  uint64_t  fs_elf_addr;
 };
 
 #else 

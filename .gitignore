@@ -14,6 +14,7 @@ etc/gen_asm_frame_const_h
 etc/gen_asm_kernel_args_const_h
 etc/gen_asm_proc_const_h
 etc/gen_asm_cpu_const_h
+etc/gen_asm_boot_stage2_args_const_h
 vuos.iso
 anarchix.iso
 init/init
@@ -29,6 +30,7 @@ boot/stage2/boot_aps.out
 boot/stage2/boot_aps
 boot/stage2/include/asm_frame_const.h
 boot/stage2/include/asm_kernel_args_const.h
+boot/stage2/include/asm_boot_stage2_args_const.h
 boot/stage2/include/asm_cpu_const.h
 vmm/vmm
 vmm/include/asm_frame_const.h

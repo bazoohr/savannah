@@ -499,7 +499,7 @@ load_all_vmms (phys_addr_t *first_free_addr, phys_addr_t vmm_elf_addr)
     )
 /* ========================================== */
 static void
-load_all_vms (phys_addr_t *first_free_addr, phys_addr_t vm_elf_addr)
+load_all_vms (phys_addr_t *first_free_addr, phys_addr_t *vms_array)
 {
   Elf64_Ehdr *elf_hdr;  /* Start address of executable */
   Elf64_Phdr *s;
@@ -532,15 +532,16 @@ load_all_vms (phys_addr_t *first_free_addr, phys_addr_t vm_elf_addr)
   /*
    * XXX ATTENTION:
    * XXX: This loop is starting from 1 (ONNNNNNNNNNNNNNNNNNNNNNNNNNE)
+   * XXX: This loop is ends 3 (THREEEEEEEEEEEEEEEEEEEEEEEEE)
    */
-  for (curr_cpu = 1; curr_cpu < 2; curr_cpu++) {
+  for (curr_cpu = 1; curr_cpu < 3; curr_cpu++) {
     //cprintk ("firest_free_addr = %x\n", 0x2, first_free_addr);
     curr_cpu_info = get_cpu_info (curr_cpu);
     curr_cpu_info->vm_start_paddr = curr_vm_phys_addr;
   cprintk ("vm_start_paddr = %x\n", 0xA, curr_cpu_info->vm_start_paddr);
     cprintk ("curr vm %x\n", 0xF, curr_vm_phys_addr);
-    elf_hdr = (Elf64_Ehdr*)vm_elf_addr;  /* Start address of executable */
-    s = (Elf64_Phdr*)((uint8_t*)vm_elf_addr + elf_hdr->e_phoff);
+    elf_hdr = (Elf64_Ehdr*)vms_array[curr_cpu - 1];  /* Start address of executable */
+    s = (Elf64_Phdr*)((uint8_t*)vms_array[curr_cpu - 1] + elf_hdr->e_phoff);
     ph_num = elf_hdr->e_phnum;    /* Number of program headers in ELF executable */
     /*
      * stage2 ELF header contains 4 sections. (look at stage2/link64.ld).
@@ -574,7 +575,7 @@ load_all_vms (phys_addr_t *first_free_addr, phys_addr_t vm_elf_addr)
       phys_addr_t section_dst_paddr;
       size_t section_size;
 
-      section_src_paddr = vm_elf_addr + s->p_offset;  /* Address of section in executable */
+      section_src_paddr = vms_array[curr_cpu - 1] + s->p_offset;  /* Address of section in executable */
       section_dst_paddr = VIRT2PHYS (s->p_vaddr);      /* Address of section when loaded in ram */
       section_size = (size_t)s->p_memsz;               /* Section size */
 
@@ -616,7 +617,8 @@ load_all_vms (phys_addr_t *first_free_addr, phys_addr_t vm_elf_addr)
    *
    * This loop starts from 1 (ONNNNNNNNNNNNNNNNNNNNNNNNNNNNNNE) to 2 TWWWWWWWWWWWWWWWWWWWWWWWO
    */
-  for (curr_cpu = 1; curr_cpu < 2; curr_cpu++) {
+  *first_free_addr = curr_vm_phys_addr;
+  for (curr_cpu = 1; curr_cpu < 3; curr_cpu++) {
     curr_cpu_info = get_cpu_info (curr_cpu);
 
     map_memory (&curr_cpu_info->vm_page_tables,
@@ -632,11 +634,8 @@ load_all_vms (phys_addr_t *first_free_addr, phys_addr_t vm_elf_addr)
         first_free_addr,
         _4KB_,
         VM_PAGE_NORMAL, MAP_UPDATE);
-    cprintk ("maping from %x to %x\n", 0xA, curr_cpu_info->vm_start_vaddr, curr_cpu_info->vm_start_paddr);
-    cprintk ("curr cpu cr3 = %x\n", 0xA, curr_cpu_info->vm_page_tables);
   }
  
-  *first_free_addr = curr_vm_phys_addr;
 #undef VIRT2PHYS
 }
 
@@ -646,12 +645,11 @@ boot_stage2_main (struct boot_stage2_args *boot_args)
   phys_addr_t first_free_addr;
   phys_addr_t stage2_page_tables;
   phys_addr_t vmm_elf_addr;
-  phys_addr_t vm_elf_addr;
+  phys_addr_t vms_array[] = { boot_args->pm_elf_addr, boot_args->fs_elf_addr};
 
   first_free_addr    = boot_args->boot_stage2_end_addr;
   stage2_page_tables = boot_args->boot_stage2_page_tables;
   vmm_elf_addr       = boot_args->vmm_elf_addr;
-  vm_elf_addr        = boot_args->vm_elf_addr;
 
   con_init ();
 
@@ -680,8 +678,7 @@ boot_stage2_main (struct boot_stage2_args *boot_args)
   lapic_init();
   kbd_init ();
   load_all_vmms (&first_free_addr, vmm_elf_addr);
-  cprintk ("vm_elf_addr = %x\n", 0xA, vm_elf_addr);
-  load_all_vms (&first_free_addr, vm_elf_addr);
+  load_all_vms (&first_free_addr, vms_array);
 #if 0
   int i;
   for (i = 0; i < get_ncpus(); i++) {

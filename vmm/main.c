@@ -30,7 +30,6 @@ void
 vmm_main (struct cpu_info *cpuinfo)
 {
   con_init ();
-//  cprintk ("My cpuid is = %d\n", 0xA, cpuinfo->cpuid);
   create_new_gdt (cpuinfo->cpuid);
   interrupt_init ();
 #if 0
@@ -63,6 +62,7 @@ vmm_main (struct cpu_info *cpuinfo)
 #endif
   vmx_init (cpuinfo);
   print_logo();
+  cprintk ("We should not get here!\n", 0x4);halt ();
   cpuinfo->booted = 1;
   /*
   mp_bootothers ();

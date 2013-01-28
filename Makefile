@@ -23,7 +23,7 @@ endif
 build-all: 
 	$(call silent_command, $(MAKE) -s --no-print-directory -C etc   )
 	$(call silent_command, $(MAKE) -s --no-print-directory -C vmm)
-	$(call silent_command, $(MAKE) -s --no-print-directory -C vm)
+	$(call silent_command, $(MAKE) -s --no-print-directory -C vms)
 	$(call silent_command, $(MAKE) -s --no-print-directory -C boot  )
 	$(call silent_command, $(MAKE) -s --no-print-directory -C lib   )
 	@echo "    Built Successfully!"
@@ -35,22 +35,24 @@ install: build-all
 		default 0\n\
 		timeout = 0\n\
 		title \"Anarchix\"\n\
-		kernel --type=multiboot /boot/grub/$(LOADER)\n\
-		module /boot/grub/$(VMM)\n\
-		module /boot/grub/$(VM)\n\
+		kernel --type=multiboot /boot/grub/$(BOOT_STAGE1)\n\
+		module /boot/grub/$(BOOT_STAGE2)\n\
 		module /boot/grub/$(BOOT_APS)\n\
-		module /boot/grub/stage2\n" > /tmp/menu.lst
+		module /boot/grub/$(VMM)\n\
+		module /boot/grub/$(PM)\n\
+		module /boot/grub/$(FS)\n" > /tmp/menu.lst
 	@rm -rf /tmp/iso
 	@rm -f $(IMAGE)
 	@mkdir -p /tmp/iso/boot/grub
 	@cp etc/stage2_eltorito /tmp/iso/boot/grub
 	@cp /tmp/menu.lst /tmp/iso/boot/grub
 	@rm -f /tmp/menu.lst
-	@cp boot/stage1/$(LOADER) /tmp/iso/boot/grub
-	@cp vmm/$(VMM) /tmp/iso/boot/grub
-	@cp vm/$(VM) /tmp/iso/boot/grub
+	@cp boot/stage1/$(BOOT_STAGE1) /tmp/iso/boot/grub
+	@cp boot/stage2/$(BOOT_STAGE2) /tmp/iso/boot/grub
 	@cp boot/stage2/$(BOOT_APS) /tmp/iso/boot/grub
-	@cp boot/stage2/stage2 /tmp/iso/boot/grub
+	@cp vmm/$(VMM) /tmp/iso/boot/grub
+	@cp vms/pm/$(PM) /tmp/iso/boot/grub
+	@cp vms/fs/$(FS) /tmp/iso/boot/grub
 	@genisoimage -quiet -input-charset ascii -R -b boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4 \
              -boot-info-table -o $(IMAGE) /tmp/iso
 	@echo "    Installing... OK"
@@ -62,7 +64,7 @@ clean:
 	$(call silent_command, $(MAKE) clean --no-print-directory -C etc   )
 	$(call silent_command, $(MAKE) clean --no-print-directory -C boot  )
 	$(call silent_command, $(MAKE) clean --no-print-directory -C vmm)
-	$(call silent_command, $(MAKE) clean --no-print-directory -C vm)
+	$(call silent_command, $(MAKE) clean --no-print-directory -C vms)
 	$(call silent_command, $(MAKE) clean --no-print-directory -C lib   )
 distclean:
 	$(call silent_command, rm -f *.o *.d *.bin, "    CLEAN ALL")
@@ -70,6 +72,6 @@ distclean:
 	$(call silent_command, $(MAKE) distclean --no-print-directory -C etc     )
 	$(call silent_command, $(MAKE) distclean --no-print-directory -C boot    )
 	$(call silent_command, $(MAKE) distclean --no-print-directory -C vmm  )
-	$(call silent_command, $(MAKE) distclean --no-print-directory -C vm  )
+	$(call silent_command, $(MAKE) distclean --no-print-directory -C vms  )
 	$(call silent_command, $(MAKE) distclean --no-print-directory -C lib     )
 	$(call silent_command, rm -f $(CONFIG-MAK))
