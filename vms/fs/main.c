@@ -16,10 +16,15 @@
 void
 vm_main (struct cpu_info *cpuinfo)
 {
-  con_init ();
   int i;
-  for (i = 0 ; i < cpuinfo->cpuid ; i++) cprintk("\n", 0x7);
-  cprintk ("FS: My info is in addr = %d\n", 0xA, cpuinfo->cpuid);
+
+  con_init ();
+  for (i = 0 ; i < cpuinfo->cpuid; i++) cprintk("\n", 0x7);
+
   cpuinfo->booted = 1;
+  while(! cpuinfo->ready)
+    /* Wait */;
+
+  cprintk ("FS: My info is in addr = %d\n", 0x5, cpuinfo->cpuid);
   while (1) {__asm__ __volatile__ ("cli;pause;\n\t");}
 }

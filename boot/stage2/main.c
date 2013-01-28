@@ -34,6 +34,8 @@
 #define MAP_NEW    0x0   /* Create New Page Tables */
 #define MAP_UPDATE 0x1   /* Update existing Page Tables */
 /* ========================================== */
+#define NUMBER_SERVERS 2 /* Number of servers to run at booting time */
+/* ========================================== */
 phys_addr_t vmx_data_structure_pool;
 /* ========================================== */
 phys_addr_t
@@ -487,7 +489,8 @@ load_all_vmms (phys_addr_t *first_free_addr, phys_addr_t vmm_elf_addr)
                  VMM_PAGE_NORMAL, MAP_NEW);
   }
   /* =============================================== */
-  for (i = 3; i < get_ncpus (); i++) {
+  /* Starting from NUMBER_SERVERS to set idle because there is also CPU 0! */
+  for (i = NUMBER_SERVERS; i < get_ncpus (); i++) {
     (get_cpu_info (i))->vm_start_vaddr = 0;
     (get_cpu_info (i))->vm_start_paddr = 0;
   }
@@ -538,14 +541,14 @@ load_all_vms (phys_addr_t *first_free_addr, phys_addr_t *vms_array)
    * XXX: This loop is starting from 1 (ONNNNNNNNNNNNNNNNNNNNNNNNNNE)
    * XXX: This loop is ends 3 (THREEEEEEEEEEEEEEEEEEEEEEEEE)
    */
-  for (curr_cpu = 1; curr_cpu < 3; curr_cpu++) {
+  for (curr_cpu = 0; curr_cpu < NUMBER_SERVERS; curr_cpu++) {
     //cprintk ("firest_free_addr = %x\n", 0x2, first_free_addr);
     curr_cpu_info = get_cpu_info (curr_cpu);
     curr_cpu_info->vm_start_paddr = curr_vm_phys_addr;
   cprintk ("vm_start_paddr = %x\n", 0xA, curr_cpu_info->vm_start_paddr);
     cprintk ("curr vm %x\n", 0xF, curr_vm_phys_addr);
-    elf_hdr = (Elf64_Ehdr*)vms_array[curr_cpu - 1];  /* Start address of executable */
-    s = (Elf64_Phdr*)((uint8_t*)vms_array[curr_cpu - 1] + elf_hdr->e_phoff);
+    elf_hdr = (Elf64_Ehdr*)vms_array[curr_cpu];  /* Start address of executable */
+    s = (Elf64_Phdr*)((uint8_t*)vms_array[curr_cpu] + elf_hdr->e_phoff);
     ph_num = elf_hdr->e_phnum;    /* Number of program headers in ELF executable */
     /*
      * stage2 ELF header contains 4 sections. (look at stage2/link64.ld).
@@ -579,7 +582,7 @@ load_all_vms (phys_addr_t *first_free_addr, phys_addr_t *vms_array)
       phys_addr_t section_dst_paddr;
       size_t section_size;
 
-      section_src_paddr = vms_array[curr_cpu - 1] + s->p_offset;  /* Address of section in executable */
+      section_src_paddr = vms_array[curr_cpu] + s->p_offset;  /* Address of section in executable */
       section_dst_paddr = VIRT2PHYS (s->p_vaddr);      /* Address of section when loaded in ram */
       section_size = (size_t)s->p_memsz;               /* Section size */
 
@@ -622,7 +625,7 @@ load_all_vms (phys_addr_t *first_free_addr, phys_addr_t *vms_array)
    * This loop starts from 1 (ONNNNNNNNNNNNNNNNNNNNNNNNNNNNNNE) to 2 TWWWWWWWWWWWWWWWWWWWWWWWO
    */
   *first_free_addr = curr_vm_phys_addr;
-  for (curr_cpu = 1; curr_cpu < 3; curr_cpu++) {
+  for (curr_cpu = 0; curr_cpu < NUMBER_SERVERS; curr_cpu++) {
     curr_cpu_info = get_cpu_info (curr_cpu);
 
     map_memory (&curr_cpu_info->vm_page_tables,

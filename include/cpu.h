@@ -126,6 +126,7 @@ struct cpu_info {
   uint8_t lapic_id; // Local APIC ID
   uint8_t cpuid;  // Kernel CPU ID
   volatile uint8_t booted;  // Has the CPU completed booting?
+  volatile uint8_t ready;   // Is the CPU ready to launch the VM?
   virt_addr_t vmm_vstack;       // CPU stack (Will be VMM's stack)
   phys_addr_t vmm_page_tables;  // CPU page tables (VMM page tables
   phys_addr_t vmm_ept_tables;   // CPU EPT page tables
