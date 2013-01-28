@@ -7,7 +7,7 @@
 #include <types.h>
 #include <elf.h>
 #include <string.h>
-#include <kernel_args.h>
+#include <boot_stage2_args.h>
 #include <cpu.h>
 #include "screen.h"
 #include "bootio.h"
@@ -34,25 +34,25 @@ cpuid(uint32_t info, uint32_t *eaxp, uint32_t *ebxp,
 		*edxp = edx;
 }
 
-static struct kernel_args kargs;
+static struct boot_stage2_args stage2_args;
 /*
- * Kernel ELF executable is loaded into memory by Grub. It is not
+ * boot stage2 ELF executable is loaded into memory by Grub. It is not
  * yet ready for execution. Boot loader should read the ELF header
  * and copy each section of executable into the right place of memory
- * before the Kernel can run.
+ * before the stage2 can run.
  * This function is supposed to do that.
  */
 static void
-load_kernel (phys_addr_t kernel_elf_addr, 
-             void (**kernel)(struct kernel_args *),
-             phys_addr_t *kernel_end_addr)
+load_stage2 (phys_addr_t stage2_elf_addr,
+             void (**stage2)(struct boot_stage2_args *),
+             phys_addr_t *stage2_end_addr)
 {
-	Elf64_Ehdr *elf_hdr = (Elf64_Ehdr*)kernel_elf_addr;  /* Start address of executable */
-	Elf64_Phdr *s = (Elf64_Phdr*)((uint8_t*)kernel_elf_addr + elf_hdr->e_phoff);
+	Elf64_Ehdr *elf_hdr = (Elf64_Ehdr*)stage2_elf_addr;  /* Start address of executable */
+	Elf64_Phdr *s = (Elf64_Phdr*)((uint8_t*)stage2_elf_addr + elf_hdr->e_phoff);
   int ph_num = elf_hdr->e_phnum;    /* Number of program headers in ELF executable */
   int i;
   /*
-   * Kernel ELF header contains 4 sections. (look at kernel/link64.ld).
+   * stage2 ELF header contains 4 sections. (look at stage2/link64.ld).
    * These sections are respectively
    *   1. text
    *   2. data
@@ -66,22 +66,22 @@ load_kernel (phys_addr_t kernel_elf_addr,
    * contents are OK at the moment.
    */
   if (ph_num != 4) {
-    printf ("Unexpected Kernel Header!\n");
+    printf ("Unexpected stage2 Header!\n");
     halt ();
   }
-  /* After loading all sections of kernel in the right address,
-   * boot loader will transfer the control to kernel, by calling
-   * the "kernel" function pointer which is assigned here. */
-  *kernel = (void (*)(struct kernel_args *))((phys_addr_t)s->p_vaddr);
+  /* After loading all sections of stage2 in the right address,
+   * boot loader will transfer the control to stage2, by calling
+   * the "stage2" function pointer which is assigned here. */
+  *stage2 = (void (*)(struct boot_stage2_args *))((phys_addr_t)s->p_vaddr);
   /* Why Upper bound is ph_num - 1?
-   * Because in kernel ELF executable, last section is .bss which does not have any byes.
+   * Because in stage2 ELF executable, last section is .bss which does not have any byes.
    * So we don't need to copy any bytes from this section into memory. But we do need to allocate
    * enough memory for this section when we load the executable, and we
    * also need to zero out allocated memory. That's why we put .bss section at the
    * end of executable.
    */
   for (i = 0; i < ph_num - 1; i++) {
-    phys_addr_t section_src_addr = kernel_elf_addr + s->p_offset;      /* Address of section in executable */
+    phys_addr_t section_src_addr = stage2_elf_addr + s->p_offset;      /* Address of section in executable */
     phys_addr_t section_dst_addr = (phys_addr_t)s->p_vaddr;  /* Address of section when loaded in ram */
     size_t section_size = (size_t)s->p_memsz;                /* Section size */
     /* If section contains bytes, we copy them into the proper memory address */
@@ -92,19 +92,19 @@ load_kernel (phys_addr_t kernel_elf_addr,
   }
   /* Last section is bss. We zero out this section */
   memset ((void*)((phys_addr_t)s->p_vaddr), 0, s->p_memsz);
-  *kernel_end_addr = s->p_vaddr + s->p_memsz;    /* Shows where kernel ends! */
+  *stage2_end_addr = s->p_vaddr + s->p_memsz;    /* Shows where stage2 ends! */
 }
 void
 boot_loader (unsigned long magic, unsigned long addr)
 {
   multiboot_info_t *mbi = (multiboot_info_t *)addr;
-  phys_addr_t init_elf_addr          = 0;
-  phys_addr_t vm_elf_addr          = 0;
-  phys_addr_t kernel_elf_addr       = 0;
+  phys_addr_t vmm_elf_addr          = 0;
+  phys_addr_t vm_elf_addr           = 0;
+  phys_addr_t boot_stage2_elf_addr  = 0;
+  phys_addr_t boot_stage2_end_addr  = 0;
   phys_addr_t boot_aps_bin_addr     = 0;
-  phys_addr_t kernel_end_addr       = 0;
   size_t memory_size                = 0;
-  void (*kernel)(struct kernel_args *);
+  void (*stage2)(struct boot_stage2_args *);
 
   clrscr ();  /* Clear the screen. */
 #if 0
@@ -163,7 +163,7 @@ boot_loader (unsigned long magic, unsigned long addr)
     halt ();
   }
 
-  /* Kernel should be loaded as a multi-boot module */
+  /* stage2 should be loaded as a multi-boot module */
   if (CHECK_FLAG (mbi->flags, 3)) {
     multiboot_module_t *mod;
     if (mbi->mods_count != 4) {
@@ -172,14 +172,14 @@ boot_loader (unsigned long magic, unsigned long addr)
     }
 
     mod = (multiboot_module_t*)mbi->mods_addr;
-/* Init is supposed to be VMM */
-    init_elf_addr = (phys_addr_t)mod->mod_start;
+    /* VMM is loaded here */
+    vmm_elf_addr = (phys_addr_t)mod->mod_start;
     if (mod->mod_end > 0x200000) {
       printf ("ERROR: loaded module overlaps with VMM start address\n");
       halt ();
     }
     mod++;
-/* VM is loaded here */
+    /* VM is loaded here */
     vm_elf_addr = (phys_addr_t)mod->mod_start;
     if (mod->mod_end > 0x200000) {
       printf ("ERROR: loaded module overlaps with VMM start address\n");
@@ -196,25 +196,25 @@ boot_loader (unsigned long magic, unsigned long addr)
     memcpy ((void*)BOOT_APS_BASE_ADDR, (void*)boot_aps_bin_addr, BOOT_APS_LENGTH);
 
     mod++;
-    kernel_elf_addr = (phys_addr_t)mod->mod_start;
+    boot_stage2_elf_addr = (phys_addr_t)mod->mod_start;
     if (mod->mod_end > 0x200000) {
-      printf ("ERROR: loaded module overlaps with kernel start address\n");
+      printf ("ERROR: loaded module overlaps with stage2 start address\n");
       halt ();
     }
 
   } else {
-    printf ("ERROR: Kernel is not loaded as multiboot!\n");
+    printf ("ERROR: stage2 is not loaded as multiboot!\n");
     halt ();
   }
   /* 
-   * Now we put each section of kernel in the right address
-   * so that we can run the kernel.
+   * Now we put each section of stage2 in the right address
+   * so that we can run the stage2.
    */
-  load_kernel (kernel_elf_addr, &kernel, &kernel_end_addr);
-  /* we pass several arguments to kernel */
-  kargs.ka_memsz            = memory_size;           /* First argument: size of memory */
-  kargs.ka_kernel_end_addr  = kernel_end_addr;   /* Third argument: start address of page tables */
-  kargs.ka_init_addr        = init_elf_addr;
-  kargs.ka_vm_addr          = vm_elf_addr;
-  kernel (&kargs);    /* Call kernel */
+  load_stage2 (boot_stage2_elf_addr, &stage2, &boot_stage2_end_addr);
+  /* we pass several arguments to stage2 */
+  stage2_args.sys_mem_size         = memory_size;           /* First argument: size of memory */
+  stage2_args.boot_stage2_end_addr = boot_stage2_end_addr;  /* Third argument: start address of page tables */
+  stage2_args.vmm_elf_addr         = vmm_elf_addr;
+  stage2_args.vm_elf_addr          = vm_elf_addr;
+  stage2 (&stage2_args);    /* Call stage2 */
 }

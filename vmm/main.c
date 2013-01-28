@@ -1,7 +1,6 @@
 #include <cdef.h>
 #include <dev/pic.h>
 #include <types.h>
-#include <kernel_args.h>
 #include <printk.h>
 #include <console.h>
 #include <const.h>

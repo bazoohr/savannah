@@ -5,7 +5,7 @@
  * Sunday 15 July 2012 Amsterdam             *
  * ========================================= */
 #include <page.h>
-#include <asm_kernel_args_const.h>
+#include <asm_boot_stage2_args_const.h>
 #include <asm_cpu_const.h>
 #include <const.h>
 .code32
@@ -50,7 +50,7 @@ cont:
 	movl %eax, %cr3
 
   movl 4(%esp), %ebx
-  movl $0x1000, KA_KCR3(%ebx)
+  movl $0x1000, BOOT_STAGE2_PGTB(%ebx)
 
   movl 4(%esp), %edi  /* Save kernel arguments. */
   /* Going to enable long-mode */

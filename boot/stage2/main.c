@@ -1,7 +1,7 @@
 #include <cdef.h>
 #include <dev/pic.h>
 #include <types.h>
-#include <kernel_args.h>
+#include <boot_stage2_args.h>
 #include <printk.h>
 #include <console.h>
 #include <const.h>
@@ -133,7 +133,7 @@ map_memory (phys_addr_t *pml4_paddr,
 
   paddr = memory_region_start_paddr;
   /*
-   * In the whole kernel, virtual addresses are equal to
+   * In the whole stage2, virtual addresses are equal to
    * physical addresses
    */
   vaddr = memory_region_start_vaddr;
@@ -278,7 +278,7 @@ EPT_map_memory (phys_addr_t *pml4_paddr,
 
   paddr = memory_region_start_paddr;
   /*
-   * In the whole kernel, virtual addresses are equal to
+   * In the whole stage2, virtual addresses are equal to
    * physical addresses
    */
   vaddr = memory_region_start_vaddr;
@@ -394,7 +394,7 @@ load_all_vmms (phys_addr_t *first_free_addr, phys_addr_t vmm_elf_addr)
     s = (Elf64_Phdr*)((uint8_t*)vmm_elf_addr + elf_hdr->e_phoff);
     ph_num = elf_hdr->e_phnum;    /* Number of program headers in ELF executable */
     /*
-     * Kernel ELF header contains 4 sections. (look at kernel/link64.ld).
+     * stage2 ELF header contains 4 sections. (look at stage2/link64.ld).
      * These sections are respectively
      *   1. text
      *   2. data
@@ -543,7 +543,7 @@ load_all_vms (phys_addr_t *first_free_addr, phys_addr_t vm_elf_addr)
     s = (Elf64_Phdr*)((uint8_t*)vm_elf_addr + elf_hdr->e_phoff);
     ph_num = elf_hdr->e_phnum;    /* Number of program headers in ELF executable */
     /*
-     * Kernel ELF header contains 4 sections. (look at kernel/link64.ld).
+     * stage2 ELF header contains 4 sections. (look at stage2/link64.ld).
      * These sections are respectively
      *   1. text
      *   2. data
@@ -641,17 +641,17 @@ load_all_vms (phys_addr_t *first_free_addr, phys_addr_t vm_elf_addr)
 }
 
 void 
-kmain (struct kernel_args *stage1_info)
+kmain (struct boot_stage2_args *boot_args)
 {
   phys_addr_t first_free_addr;
-  phys_addr_t stage2_pml4;
+  phys_addr_t stage2_page_tables;
   phys_addr_t vmm_elf_addr;
   phys_addr_t vm_elf_addr;
 
-  first_free_addr = stage1_info->ka_kernel_end_addr;
-  stage2_pml4     = stage1_info->ka_kernel_cr3;
-  vmm_elf_addr    = stage1_info->ka_init_addr;
-  vm_elf_addr     = stage1_info->ka_vm_addr;
+  first_free_addr    = boot_args->boot_stage2_end_addr;
+  stage2_page_tables = boot_args->boot_stage2_page_tables;
+  vmm_elf_addr       = boot_args->vmm_elf_addr;
+  vm_elf_addr        = boot_args->vm_elf_addr;
 
   con_init ();
 
@@ -664,7 +664,7 @@ kmain (struct kernel_args *stage1_info)
    *    to know the correct end address of stage2 program.
    */
   cprintk ("stage2_end_addr = %x\n", 0x6, first_free_addr);
-  map_memory (&stage2_pml4, 0xFEC00000, 0x100000000, 0xFEC00000, &first_free_addr, _2MB_, VMM_PAGE_UNCACHABLE, MAP_UPDATE);
+  map_memory (&stage2_page_tables, 0xFEC00000, 0x100000000, 0xFEC00000, &first_free_addr, _2MB_, VMM_PAGE_UNCACHABLE, MAP_UPDATE);
   //map_iomem (stage2_pml4, &stage2_end_addr);
   cprintk ("stage2_end_addr = %x\n", 0x6, first_free_addr);
 

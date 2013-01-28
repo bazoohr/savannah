@@ -14,16 +14,16 @@ silent_command = $(if $(2), @echo $2 && $1, @$(1))
 MYDIR = etc/
 
 .PHONY: all clean distclean
-all: gen_asm_frame_const_h gen_asm_kernel_args_const_h gen_asm_cpu_const_h
+all: gen_asm_frame_const_h gen_asm_boot_stage2_args_const_h gen_asm_cpu_const_h
 
 gen_asm_frame_const_h: gen_asm_frame_const_h.c $(ROOT)/boot/stage2/include/frame.h
 	$(CC) $(CFLAGS) -o $@ $@.c
 	$(call silent_command, ./$@ > $(ROOT)/boot/stage2/include/asm_frame_const.h, "    GEN    $(CURDIR)/boot/stage2/include/asm_frame_const.h")
 	$(call silent_command, ./$@ > $(ROOT)/vmm/include/asm_frame_const.h, "    GEN    $(CURDIR)/vmm/include/asm_frame_const.h")
 	$(call silent_command, ./$@ > $(ROOT)/vm/include/asm_frame_const.h, "    GEN    $(CURDIR)/vm/include/asm_frame_const.h")
-gen_asm_kernel_args_const_h: gen_asm_kernel_args_const_h.c $(ROOT)/include/kernel_args.h
+gen_asm_boot_stage2_args_const_h: gen_asm_boot_stage2_args_const_h.c $(ROOT)/include/boot_stage2_args.h
 	$(CC) $(CFLAGS) -o $@ $@.c
-	$(call silent_command, ./$@ > $(ROOT)/boot/stage2/include/asm_kernel_args_const.h, "    GEN    $(CURDIR)/boot/stage2/include/asm_kernel_args_const.h")
+	$(call silent_command, ./$@ > $(ROOT)/boot/stage2/include/asm_boot_stage2_args_const.h, "    GEN    $(CURDIR)/boot/stage2/include/asm_boot_stage2_args_const.h")
 gen_asm_cpu_const_h: gen_asm_cpu_const_h.c $(ROOT)/include/cpu.h
 	$(CC) $(CFLAGS) -o $@ $@.c
 	$(call silent_command, ./$@ > $(ROOT)/boot/stage2/include/asm_cpu_const.h, "    GEN    $(CURDIR)/boot/stage2/include/asm_cpu_const.h")
