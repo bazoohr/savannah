@@ -51,7 +51,7 @@ static void __vmxon(phys_addr_t vmxon_ptr)
 			: "memory", "cc");
 }
 
-static void vmxon(phys_addr_t vmcs_ptr, phys_addr_t vmxon_ptr)
+static void vmxon(phys_addr_t vmcs_ptr, phys_addr_t vmxon_ptr, cpuid_t cpuid)
 {
 	uint64_t nl = 0;
 
@@ -60,6 +60,7 @@ static void vmxon(phys_addr_t vmcs_ptr, phys_addr_t vmxon_ptr)
 	int i;
 	uint64_t *reg;
 	reg = (uint64_t *)vmxon_ptr;//vmxon_ptr;
+
 	for(i = 0; i < 1024; i++) reg[i] = 0;
 	reg[0] = nl;
 
@@ -342,7 +343,7 @@ void vmx_init(struct cpu_info *cpuinfo)
 
 	msr_lock();
 
-	vmxon(cpuinfo->vm_vmcs_ptr, cpuinfo->vm_vmxon_ptr);
+	vmxon(cpuinfo->vm_vmcs_ptr, cpuinfo->vm_vmxon_ptr, cpuinfo->cpuid);
 
 	clear_vmcs (cpuinfo->vm_vmcs_ptr);
 

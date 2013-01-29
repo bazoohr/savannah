@@ -6,6 +6,7 @@
 #include <types.h>
 #include <cdef.h>
 #include <const.h>
+#include <message.h>
 
 struct system_descriptor {
 	uint64_t sd_lolimit:16;
@@ -145,6 +146,7 @@ struct cpu_info {
   phys_addr_t vm_vmcs_ptr;   // VMX VMC Pointer (must be 4KB aligned)
   phys_addr_t vm_vmxon_ptr;  // VMXON pointer   (must be 4KB aligned)
 
+  struct message *msg_box;
   struct system_descriptor gdt[NGDT] __aligned (16);
 };
 struct cpu_info * cpu_alloc (void);

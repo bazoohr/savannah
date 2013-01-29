@@ -25,6 +25,10 @@ vm_main (struct cpu_info *cpuinfo)
   while(! cpuinfo->ready)
     /* Wait */;
 
-  cprintk ("FS: My info is in addr = %d\n", 0x5, cpuinfo->cpuid);
+  cpuinfo->msg_box[0].from = 0;
+  cpuinfo->msg_box[0].data = 0;
+
+  cpuinfo->msg_box[0].from = cpuinfo->cpuid;
+  cpuinfo->msg_box[0].data = 0xA;
   while (1) {__asm__ __volatile__ ("cli;pause;\n\t");}
 }

@@ -122,6 +122,8 @@ mp_bootothers (void)
   for (i = 0 ; i < get_ncpus () ; i++) {
     (get_cpu_info(i))->ready = 1;
   }
+    //cprintk ("\n\nPM__VMM: MY DATA IS %x %d\n", 0x5, (get_cpu_info(0))->msg_box, *((uint8_t *)(get_cpu_info(0))->msg_box));
+    //for (;;);
   __asm__ __volatile__ ("movq %0, %%rsp\n\t"
                         "movq %%rsp, %%rbp\n\t"::"r"((get_cpu_info(0))->vmm_vstack)
                        );

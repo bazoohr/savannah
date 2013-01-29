@@ -16,6 +16,7 @@
 #include <string.h>
 #include <panic.h>
 #include <page.h>
+#include <message.h>
 /* ========================================== */
 #define VMM_PAGE_UNCACHABLE (PAGE_PRESENT | PAGE_RW | PAGE_PSE | PAGE_PCD) /* Page is not cachable */
 #define VMM_PAGE_NORMAL (PAGE_PRESENT | PAGE_RW | PAGE_PSE)
@@ -37,6 +38,7 @@
 #define NUMBER_SERVERS 2 /* Number of servers to run at booting time */
 /* ========================================== */
 phys_addr_t vmx_data_structure_pool;
+struct message *msg_box;
 /* ========================================== */
 phys_addr_t
 get_vmxon_ptr (cpuid_t cpuid)
@@ -57,6 +59,17 @@ get_vmcs_ptr (cpuid_t cpuid)
 
   return vmx_data_structure_pool + cpuid * 0x2000 + 0x1000;
 }
+/* ========================================== */
+struct message *
+get_msg_box (cpuid_t cpuid)
+{
+  if (cpuid > get_ncpus ()) {
+    panic ("get_vmxon_ptr: cpuid out of rainge!");
+  }
+
+  return msg_box;
+}
+
 /* ========================================== */
 void
 map_memory (phys_addr_t *pml4_paddr,
@@ -453,6 +466,8 @@ load_all_vmms (phys_addr_t *first_free_addr, phys_addr_t vmm_elf_addr)
 
     curr_cpu_info->vmm_end_paddr = curr_cpu_info->vmm_start_paddr + vmm_size;
 
+    /* Message Box */
+    curr_cpu_info->msg_box = msg_box;
   //  cprintk ("curr_phys_addr = %x vmm_stack = %x vmm_end_addr %x\n", 0xE, curr_vmm_phys_addr, curr_cpu_info->vmm_vstack, curr_cpu_info->vmm_end_vaddr);
     /*
        cpus[i].vmm_start_paddr = ALIGN (cpus[i - 1].vmm_end_paddr, _2MB_);
@@ -620,10 +635,7 @@ load_all_vms (phys_addr_t *first_free_addr, phys_addr_t *vms_array)
        halt ();*/
     curr_vm_phys_addr += VM_MAX_SIZE;
   } /* For */
-  /* XXX: ATTENTION
-   *
-   * This loop starts from 1 (ONNNNNNNNNNNNNNNNNNNNNNNNNNNNNNE) to 2 TWWWWWWWWWWWWWWWWWWWWWWWO
-   */
+
   *first_free_addr = curr_vm_phys_addr;
   for (curr_cpu = 0; curr_cpu < NUMBER_SERVERS; curr_cpu++) {
     curr_cpu_info = get_cpu_info (curr_cpu);
@@ -673,10 +685,15 @@ boot_stage2_main (struct boot_stage2_args *boot_args)
   //map_iomem (stage2_pml4, &stage2_end_addr);
   cprintk ("stage2_end_addr = %x\n", 0x6, first_free_addr);
 
-  vmx_data_structure_pool = (phys_addr_t)(ALIGN (first_free_addr, 0x1000) + (get_ncpus () * 0x1000 * 2));
-  first_free_addr = vmx_data_structure_pool;
-
   mp_init ();
+
+  vmx_data_structure_pool = (phys_addr_t)ALIGN (first_free_addr, 0x1000);
+  first_free_addr = vmx_data_structure_pool + (get_ncpus () * 0x1000 * 2);
+  cprintk ("stage2_end_addr = %x\n", 0x6, first_free_addr);
+  cprintk ("msg_box = %x\n", 0xB, msg_box);
+  msg_box = (struct message *)ALIGN (first_free_addr, 16);
+  first_free_addr = (phys_addr_t)msg_box + (size_t)((get_ncpus () * sizeof (struct message)));
+  cprintk ("stage2_end_addr = %x\n", 0x6, first_free_addr);
 
   interrupt_init ();
 

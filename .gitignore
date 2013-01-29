@@ -5,8 +5,13 @@
 *.s
 
 tags
-
 config.mak
+
+vms/fs/fs
+vms/fs/include/asm_frame_const.h
+vms/pm/include/asm_frame_const.h
+vms/pm/pm
+
 boot/loader.bin
 boot/boot_aps
 boot/boot_aps.out
