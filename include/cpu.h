@@ -146,7 +146,10 @@ struct cpu_info {
   phys_addr_t vm_vmcs_ptr;   // VMX VMC Pointer (must be 4KB aligned)
   phys_addr_t vm_vmxon_ptr;  // VMXON pointer   (must be 4KB aligned)
 
-  struct message *msg_box;
+  struct message *msg_input;
+  struct message *msg_output;
+  bool *msg_ready;
+
   struct system_descriptor gdt[NGDT] __aligned (16);
 };
 struct cpu_info * cpu_alloc (void);

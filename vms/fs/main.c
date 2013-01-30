@@ -13,22 +13,36 @@
 #include <dev/lapic.h>
 #include <cpu.h>
 
+// TODO Move this function in a general library
 void
-vm_main (struct cpu_info *cpuinfo)
+wait_ready(struct cpu_info *cpuinfo)
 {
-  int i;
-
-  con_init ();
-  for (i = 0 ; i < cpuinfo->cpuid; i++) cprintk("\n", 0x7);
-
   cpuinfo->booted = 1;
   while(! cpuinfo->ready)
     /* Wait */;
+}
 
-  cpuinfo->msg_box[0].from = 0;
-  cpuinfo->msg_box[0].data = 0;
+// TODO Move this function in a general library
+void
+msg_send(struct cpu_info *cpuinfo, const int to, const int data)
+{
+  cpuinfo->msg_output[cpuinfo->cpuid].from = cpuinfo->cpuid;
+  cpuinfo->msg_output[cpuinfo->cpuid].data = data;
+  cpuinfo->msg_ready[cpuinfo->cpuid] = true;
+}
 
-  cpuinfo->msg_box[0].from = cpuinfo->cpuid;
-  cpuinfo->msg_box[0].data = 0xA;
+void
+vm_main (struct cpu_info *cpuinfo)
+{
+  wait_ready(cpuinfo);
+
+  int i;
+  con_init ();
+  for (i = 0 ; i < cpuinfo->cpuid; i++) printk("\n");
+
+  cprintk ("FS: My info is in addr = %d\n", 0xD, cpuinfo->cpuid);
+
+  msg_send(cpuinfo, 0, 42);
+
   while (1) {__asm__ __volatile__ ("cli;pause;\n\t");}
 }
