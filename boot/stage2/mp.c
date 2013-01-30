@@ -122,16 +122,15 @@ mp_bootothers (void)
   for (i = 0 ; i < get_ncpus () ; i++) {
     (get_cpu_info(i))->ready = 1;
   }
-    //cprintk ("\n\nPM__VMM: MY DATA IS %x %d\n", 0x5, (get_cpu_info(0))->msg_box, *((uint8_t *)(get_cpu_info(0))->msg_box));
-    //for (;;);
-  __asm__ __volatile__ ("movq %0, %%rsp\n\t"
-                        "movq %%rsp, %%rbp\n\t"::"r"((get_cpu_info(0))->vmm_vstack)
-                       );
   /* ==================================================== *
    * XXX:                                                 *
    *     Since stack is changed, after this point, We can *
    *     NOT use local variables.                         *
    * ==================================================== */
+
+  __asm__ __volatile__ ("movq %0, %%rsp\n\t"
+                        "movq %%rsp, %%rbp\n\t"::"r"((get_cpu_info(0))->vmm_vstack)
+                       );
   /*
    * NOTE:
    *      CPU_INFO_PTR_ADDR, holds the address of the cpu_info structure belonging to
@@ -149,7 +148,7 @@ mp_bootothers (void)
   __asm__ __volatile__ ("movq %0, %%rdi\n\t"
                         "movq $0x40000000, %%rax; jmp *%%rax\n\t"::"r"(get_cpu_info (0)));
   /* ========================================== */
-  cprintk("We Should NEVER get to this point", 0x4);
+  cprintk ("We Should NEVER get to this point", 0x4);
   halt ();
 }
 void
