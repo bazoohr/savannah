@@ -38,7 +38,9 @@
 #define NUMBER_SERVERS 2 /* Number of servers to run at booting time */
 /* ========================================== */
 phys_addr_t vmx_data_structure_pool;
-struct message *msg_box;
+struct message *msg_input;
+struct message *msg_output;
+bool *msg_ready;
 /* ========================================== */
 phys_addr_t
 get_vmxon_ptr (cpuid_t cpuid)
@@ -61,13 +63,31 @@ get_vmcs_ptr (cpuid_t cpuid)
 }
 /* ========================================== */
 struct message *
-get_msg_box (cpuid_t cpuid)
+get_msg_input (cpuid_t cpuid)
 {
   if (cpuid > get_ncpus ()) {
     panic ("get_vmxon_ptr: cpuid out of rainge!");
   }
 
-  return msg_box;
+  return msg_input;
+}
+struct message *
+get_msg_output (cpuid_t cpuid)
+{
+  if (cpuid > get_ncpus ()) {
+    panic ("get_vmxon_ptr: cpuid out of rainge!");
+  }
+
+  return msg_output;
+}
+bool *
+get_msg_ready (cpuid_t cpuid)
+{
+  if (cpuid > get_ncpus ()) {
+    panic ("get_vmxon_ptr: cpuid out of rainge!");
+  }
+
+  return msg_ready;
 }
 
 /* ========================================== */
@@ -467,7 +487,9 @@ load_all_vmms (phys_addr_t *first_free_addr, phys_addr_t vmm_elf_addr)
     curr_cpu_info->vmm_end_paddr = curr_cpu_info->vmm_start_paddr + vmm_size;
 
     /* Message Box */
-    curr_cpu_info->msg_box = msg_box;
+    curr_cpu_info->msg_input  = get_msg_input(curr_cpu);
+    curr_cpu_info->msg_output = get_msg_output(curr_cpu);
+    curr_cpu_info->msg_ready  = get_msg_ready(curr_cpu);
   //  cprintk ("curr_phys_addr = %x vmm_stack = %x vmm_end_addr %x\n", 0xE, curr_vmm_phys_addr, curr_cpu_info->vmm_vstack, curr_cpu_info->vmm_end_vaddr);
     /*
        cpus[i].vmm_start_paddr = ALIGN (cpus[i - 1].vmm_end_paddr, _2MB_);
@@ -690,9 +712,19 @@ boot_stage2_main (struct boot_stage2_args *boot_args)
   vmx_data_structure_pool = (phys_addr_t)ALIGN (first_free_addr, 0x1000);
   first_free_addr = vmx_data_structure_pool + (get_ncpus () * 0x1000 * 2);
   cprintk ("stage2_end_addr = %x\n", 0x6, first_free_addr);
-  cprintk ("msg_box = %x\n", 0xB, msg_box);
-  msg_box = (struct message *)ALIGN (first_free_addr, 16);
-  first_free_addr = (phys_addr_t)msg_box + (size_t)((get_ncpus () * sizeof (struct message)));
+  cprintk ("msg_input = %x\n", 0xB, msg_input);
+  msg_input = (struct message *)ALIGN (first_free_addr, 16);
+  memset((struct message *)msg_input, 0, get_ncpus() * sizeof(struct message));
+  cprintk ("msg_input = %x\n", 0xB, msg_input);
+  first_free_addr = (phys_addr_t)msg_input + (size_t)((get_ncpus () * sizeof (struct message)));
+  msg_output = (struct message *)ALIGN (first_free_addr, 16);
+  memset((struct message *)msg_output, 0, get_ncpus() * sizeof(struct message));
+  cprintk ("msg_output = %x\n", 0xB, msg_output);
+  first_free_addr = (phys_addr_t)msg_output + (size_t)((get_ncpus () * sizeof (struct message)));
+  msg_ready = (bool *)ALIGN (first_free_addr, 16);
+  memset((bool *)msg_ready, 0, get_ncpus() * sizeof(bool));
+  cprintk ("msg_ready = %x\n", 0xB, msg_ready);
+  first_free_addr = (phys_addr_t)msg_ready + (size_t)((get_ncpus () * sizeof (bool)));
   cprintk ("stage2_end_addr = %x\n", 0x6, first_free_addr);
 
   interrupt_init ();

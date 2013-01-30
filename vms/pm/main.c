@@ -14,23 +14,52 @@
 #include <cpu.h>
 #include <string.h>
 
+// TODO Move this function in a general library
+void
+wait_ready(struct cpu_info *cpuinfo)
+{
+  cpuinfo->booted = 1;
+  while(! cpuinfo->ready)
+    /* Wait */;
+}
+
+// TODO Move this function in a general library
+int
+msg_receive(struct cpu_info *cpuinfo)
+{
+  int i;
+  int from = -1;
+
+  while (1) {
+    for (i = 0 ; i < 8/*get_ncpus()*/ ; i++) {
+      if (cpuinfo->msg_ready[i])
+        from = i;
+    }
+    if (from != -1)
+      break;
+  }
+
+  int m = cpuinfo->msg_output[from].data;
+
+  cpuinfo->msg_ready[from] = false;
+
+  return m;
+}
+
 void
 vm_main (struct cpu_info *cpuinfo)
 {
+  wait_ready (cpuinfo);
+
   int i;
   con_init ();
-  for (i = 0 ; i < cpuinfo->cpuid ; i++) cprintk("\n", 0x7);
-
-  cpuinfo->booted = 1;
-  while(! cpuinfo->ready);
+  for (i = 0 ; i < cpuinfo->cpuid ; i++) printk("\n");
 
   cprintk ("PM: My info is in addr = %d\n", 0xD, cpuinfo->cpuid);
-  while (1) {
-    if (cpuinfo->msg_box[cpuinfo->cpuid].from != 0 ||
-        cpuinfo->msg_box[cpuinfo->cpuid].data != 0 ) {
-      cprintk ("Message from %d data %x\n", 0xD, (cpuinfo->msg_box[cpuinfo->cpuid]).from, (cpuinfo->msg_box[cpuinfo->cpuid]).data);
-      memset (&(cpuinfo->msg_box[cpuinfo->cpuid]), 0, sizeof (struct message));
-    }
-  }
+
+  int m = msg_receive(cpuinfo);
+
+  cprintk("Message received: %d\n", 0xD, m);
+
   while (1) {__asm__ __volatile__ ("cli;pause;\n\t");}
 }
