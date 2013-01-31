@@ -4,8 +4,9 @@
 #include <types.h>
 #include <cdef.h>
 
-void mm_init (const phys_addr_t first_free_byte, const phys_addr_t kcr3, const size_t memsz);
-phys_addr_t __warn_unused_result alloc_mem_pages (size_t n);
-void free_mem_pages (phys_addr_t addr);
-
+void memory_init (phys_addr_t last_allocated_byte, size_t mem_size);
+__warn_unused_result void * malloc (size_t size);
+__warn_unused_result void * malloc_align (size_t size, size_t alignment);
+__warn_unused_result void * calloc (size_t nmemb, size_t size);
+__warn_unused_result void * calloc_align (size_t nmemb, size_t size, size_t alignment);
 #endif /* __MEMORY_H__ */

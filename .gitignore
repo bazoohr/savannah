@@ -6,6 +6,7 @@
 
 tags
 config.mak
+output.log
 
 vms/fs/fs
 vms/fs/include/asm_frame_const.h

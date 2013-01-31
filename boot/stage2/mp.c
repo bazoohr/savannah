@@ -118,6 +118,10 @@ mp_bootothers (void)
   /*
    * TODO: Find a better place to put this loop; Probably the best
    *       place would be PM code.
+   * NOTE:
+   *       We are leaving this loop here, so that if we changed the
+   *       page tables at sometime, it will (MAYBE) break, and helps
+   *       us finding the bug.
    */
   for (i = 0 ; i < get_ncpus () ; i++) {
     (get_cpu_info(i))->ready = 1;
@@ -146,7 +150,7 @@ mp_bootothers (void)
    * of the VMM for BSP.
    */
   __asm__ __volatile__ ("movq %0, %%rdi\n\t"
-                        "movq $0x40000000, %%rax; jmp *%%rax\n\t"::"r"(get_cpu_info (0)));
+                        "movq %1, %%rax; jmp *%%rax\n\t"::"r"(get_cpu_info (0)), "r"((get_cpu_info (0))->vm_start_vaddr));
   /* ========================================== */
   cprintk ("We Should NEVER get to this point", 0x4);
   halt ();

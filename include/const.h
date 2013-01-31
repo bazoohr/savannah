@@ -31,4 +31,9 @@
 #define SYS_DSEL       0xC   /* System processes data selector */
 #define TRAP_SYSCALL   0x80  /* Trap to kernel */
 
+#define _4KB_ 0x1000
+#define _1MB_ 0x100000
+#define _2MB_ (512 * _4KB_)
+#define _1GB_ (512 * _2MB_)
+
 #endif /* __CONST_H__ */
