@@ -13,51 +13,18 @@
 #include <dev/lapic.h>
 #include <cpu.h>
 #include <string.h>
-
-// TODO Move this function in a general library
-void
-wait_ready(struct cpu_info *cpuinfo)
-{
-  cpuinfo->booted = 1;
-  while(! cpuinfo->ready)
-    /* Wait */;
-}
-
-// TODO Move this function in a general library
-int
-msg_receive(struct cpu_info *cpuinfo)
-{
-  int i;
-  int from = -1;
-
-  while (1) {
-    for (i = 0 ; i < 8/*get_ncpus()*/ ; i++) {
-      if (cpuinfo->msg_ready[i])
-        from = i;
-    }
-    if (from != -1)
-      break;
-  }
-
-  int m = cpuinfo->msg_output[from].data;
-
-  cpuinfo->msg_ready[from] = false;
-
-  return m;
-}
+#include <ipc.h>
 
 void
-vm_main (struct cpu_info *cpuinfo)
+vm_main (void)
 {
-  wait_ready (cpuinfo);
-
   int i;
   con_init ();
   for (i = 0 ; i < cpuinfo->cpuid ; i++) printk("\n");
 
   cprintk ("PM: My info is in addr = %d\n", 0xD, cpuinfo->cpuid);
 
-  int m = msg_receive(cpuinfo);
+  int m = msg_receive();
 
   cprintk("Message received: %d\n", 0xD, m);
 

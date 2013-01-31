@@ -10,11 +10,12 @@ include $(ROOT)/rules.mak
 
 LINK_LD = pm.ld
 
-CFLAGS  += -I include/ -I $(ROOT)/include/
-ASFLAGS += -I include/ -I $(ROOT)/include/
+CFLAGS  += -I include/ -I $(ROOT)/include/ -I $(ROOT)/lib/include
+ASFLAGS += -I include/ -I $(ROOT)/include/ -I $(ROOT)/lib/include
 LDFLAGS += -n -T $(LINK_LD)
 
 MYDIR = vms/pm/
+LIBDIR = $(ROOT)/lib/
 
 SRC = start_off.S main.c console.c printk.c string.c panic.c trap.S trap_handler.c \
 			asmfunc.S \
@@ -23,7 +24,7 @@ SRC = start_off.S main.c console.c printk.c string.c panic.c trap.S trap_handler
 OBJ = $(subst .S,.o,$(filter %.S,$(SRC))) $(subst .c,.o,$(filter %.c,$(SRC)))
 
 $(PM): $(OBJ)
-	$(call silent_command, $(LD) $(LDFLAGS) -o $@ $(OBJ), "    LINK  $(MYDIR)$@")
+	$(call silent_command, $(LD) $(LDFLAGS) -o $@ $(OBJ) $(LIBDIR)/$(USRLIB), "    LINK  $(MYDIR)$@")
 
 -include $(subst .c,.d,$(filter %.c,$(SRC)))
 

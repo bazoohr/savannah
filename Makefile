@@ -22,10 +22,10 @@ endif
 
 build-all: 
 	$(call silent_command, $(MAKE) -s --no-print-directory -C etc   )
-	$(call silent_command, $(MAKE) -s --no-print-directory -C vmm)
-	$(call silent_command, $(MAKE) -s --no-print-directory -C vms)
 	$(call silent_command, $(MAKE) -s --no-print-directory -C boot  )
 	$(call silent_command, $(MAKE) -s --no-print-directory -C lib   )
+	$(call silent_command, $(MAKE) -s --no-print-directory -C vmm)
+	$(call silent_command, $(MAKE) -s --no-print-directory -C vms)
 	@echo "    Built Successfully!"
 
 install: build-all
@@ -63,15 +63,15 @@ clean:
 	$(call silent_command, rm -f $(IMAGE))
 	$(call silent_command, $(MAKE) clean --no-print-directory -C etc   )
 	$(call silent_command, $(MAKE) clean --no-print-directory -C boot  )
+	$(call silent_command, $(MAKE) clean --no-print-directory -C lib   )
 	$(call silent_command, $(MAKE) clean --no-print-directory -C vmm)
 	$(call silent_command, $(MAKE) clean --no-print-directory -C vms)
-	$(call silent_command, $(MAKE) clean --no-print-directory -C lib   )
 distclean:
 	$(call silent_command, rm -f *.o *.d *.bin, "    CLEAN ALL")
 	$(call silent_command, rm -f $(IMAGE))
 	$(call silent_command, $(MAKE) distclean --no-print-directory -C etc     )
 	$(call silent_command, $(MAKE) distclean --no-print-directory -C boot    )
+	$(call silent_command, $(MAKE) distclean --no-print-directory -C lib     )
 	$(call silent_command, $(MAKE) distclean --no-print-directory -C vmm  )
 	$(call silent_command, $(MAKE) distclean --no-print-directory -C vms  )
-	$(call silent_command, $(MAKE) distclean --no-print-directory -C lib     )
 	$(call silent_command, rm -f $(CONFIG-MAK))
