@@ -3,8 +3,11 @@
 
 #include <cpuinfo.h>
 
-void msg_send (const int to, const int data);
-int msg_receive ();
+#define PM	0
+#define FS	1
+
+void msg_send (const int to, const int number, const void *data, int size);
+struct message msg_receive (int from);
 
 
 #endif /* __IPC_H__ */

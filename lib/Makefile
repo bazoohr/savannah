@@ -10,7 +10,7 @@ ASFLAGS += -I ./include/ -I $(ROOT)/include/
 AR=ar
 ARFLAGS=cr
 
-SRC = ipc.c misc.c
+SRC = ipc.c misc.c string.c fs.c
 
 OBJ = $(subst .S,.o,$(filter %.S,$(SRC))) $(subst .c,.o,$(filter %.c,$(SRC)))
 

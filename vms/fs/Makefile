@@ -17,7 +17,7 @@ LDFLAGS += -n -T $(LINK_LD)
 MYDIR = vms/fs/
 LIBDIR = $(ROOT)/lib/
 
-SRC = start_off.S main.c console.c printk.c string.c panic.c trap.S trap_handler.c \
+SRC = start_off.S main.c console.c printk.c panic.c trap.S trap_handler.c \
 			asmfunc.S \
 			segment.c interrupt.c cpu.c
 

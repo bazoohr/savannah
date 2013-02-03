@@ -1,31 +1,44 @@
 #include <ipc.h>
+#include <fs.h>
+#include <string.h>
+
 void
-msg_send(const int to, const int data)
+msg_send(const int to, const int number, const void *data, int size)
 {
-  cpuinfo->msg_output[cpuinfo->cpuid].from = cpuinfo->cpuid;
-  cpuinfo->msg_output[cpuinfo->cpuid].data = data;
-  cpuinfo->msg_ready[cpuinfo->cpuid] = true;
+  int id = cpuinfo->cpuid;
+
+  cpuinfo->msg_output[id].from = id;
+  cpuinfo->msg_output[id].number = number;
+
+  memset(&cpuinfo->msg_output[id].data, 0, MSG_DATA_SIZE);
+  memcpy(&cpuinfo->msg_output[id].data, data, size);
+
+  cpuinfo->msg_ready[id] = true;
 }
-int
-msg_receive(void)
+
+struct message
+msg_receive(int from)
 {
   int i;
-  int from = -1;
 
-  while (1) {
-    for (i = 0 ; i < 8/*get_ncpus()*/ ; i++) {
-      if (cpuinfo->msg_ready[i])
-        from = i;
+  if (from == ANY) {
+    while (1) {
+      for (i = 0 ; i < 8/*get_ncpus()*/ ; i++) {
+        if (cpuinfo->msg_ready[i])
+          from = i;
+      }
+      if (from != -1)
+        break;
     }
-    if (from != -1)
-      break;
+  } else {
+    while (1) {
+      if (cpuinfo->msg_ready[from])
+        break;
+    }
   }
-
-  int m = cpuinfo->msg_output[from].data;
 
   cpuinfo->msg_ready[from] = false;
 
-  return m;
+  return cpuinfo->msg_output[from];
 }
-
 
