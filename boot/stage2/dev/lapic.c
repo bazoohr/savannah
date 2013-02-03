@@ -14,7 +14,7 @@
 
 uint32_t
 lapic_read(uint32_t off)
-{   
+{
   return *(volatile uint32_t *) ((uint8_t*)0xFEE00000 + off);
 }
 
@@ -26,7 +26,7 @@ lapic_eoi(void)
 
 void
 lapic_write(uint32_t off, uint32_t val)
-{   
+{
   *(volatile uint32_t *) ((uint8_t*)0xFEE00000 + off) = val; /* FEE00000 should be fixed */
   lapic_read(LAPIC_ID);        // Wait for the write to finish, by reading
 }
@@ -91,10 +91,11 @@ lapic_startaps (cpuid_t cpuid)
   struct cpu_info *cpu;
 
   cpu = get_cpu_info (cpuid);
+
   if (!cpu) {
     panic ("Failed to get cpu information. boot/stage2/lapic.c");
   }
-   
+
   if (cpu->booted) {
     panic ("Why do you try to boot a booted processor?!");
   }
@@ -115,12 +116,11 @@ lapic_startaps (cpuid_t cpuid)
    * Let the application processor know its stack, and page tables
    */
   *cpu_info = cpu;
-  //cprintk ("cr3 = %x\n", 0xA, (*cpu_info)->page_tables);
-  //cprintk ("stack = %x\n", 0xA, (*cpu_info)->vstack);
   //*cpu_cr3 = cpus[cpuid].page_tables;
   // ... prior to executing the following sequence:"
   if ((r = lapic_ipi_init(cpuid)) < 0)
     panic ("unable to send init error r");
+  cprintk ("LAPIC cpuid = %x\n", 0x6, cpuid);
 
   timer_delay (10);	// 10ms
 

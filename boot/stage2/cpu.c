@@ -3,8 +3,10 @@
 #include <cpu.h>
 #include <page.h>
 #include <mp.h>
+#include <memory.h>
+#include <panic.h>
 /* ================================================== */
-static struct cpu_info cpus[MAX_CPUS];
+static struct cpu_info *cpuinfo_table[MAX_CPUS];
 /* ================================================== */
 static uint64_t ncpus = 0;
 /* ================================================== */
@@ -20,7 +22,7 @@ void
 wrmsr (uint32_t reg, uint64_t val)
 {
 	__asm__ __volatile__ ("wrmsr" : : "d"((uint32_t)(val >> 32)),
-	                         "a"((uint32_t)(val & 0xFFFFFFFF)), 
+	                         "a"((uint32_t)(val & 0xFFFFFFFF)),
 	                         "c"(reg));
 }
 /* ================================================== */
@@ -106,7 +108,7 @@ cpuid (uint32_t function, uint32_t *eaxp, uint32_t *ebxp,
 {
 	uint32_t eax, ebx, ecx, edx;
 
-	__asm__ __volatile__ ("cpuid" 
+	__asm__ __volatile__ ("cpuid"
 		: "=a" (eax), "=b" (ebx), "=c" (ecx), "=d" (edx)
 		: "a" (function));
 	if (eaxp)
@@ -136,11 +138,18 @@ get_ncpus (void)
 struct cpu_info *
 get_cpu_info (cpuid_t cpuid)
 {
-  return cpuid < ncpus ? &cpus[cpuid]: NULL;
+  if (cpuid > MAX_CPUS) {
+    panic ("get_cpu_info: No CPU with id %d\n", cpuid);
+  }
+  return cpuinfo_table[cpuid];
 }
 /* ================================================== */
 struct cpu_info *
 cpu_alloc (void)
 {
-  return ncpus < MAX_CPUS ? &cpus[ncpus++]: NULL;
+  if (ncpus > MAX_CPUS) {
+    panic ("Too many CPUs");
+  }
+  cpuinfo_table[ncpus] = (struct cpu_info *)calloc_align (sizeof (uint8_t), 0x1000, 0x1000);
+  return cpuinfo_table[ncpus++];
 }

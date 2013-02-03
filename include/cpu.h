@@ -1,7 +1,7 @@
 #ifndef __CPU_H__
 #define __CPU_H__
 
-#ifndef __ASSEMBLY__ 
+#ifndef __ASSEMBLY__
 
 #include <types.h>
 #include <cdef.h>
@@ -157,7 +157,7 @@ struct cpu_info * get_cpu_info (cpuid_t cpuid);
 uint64_t get_ncpus (void);
 
 #endif
-/* =============================================== 
+/* ===============================================
  * These macros are used for two purposes
  * 1. Booting application processors
  * 2. Sending information in CPU structure to all
@@ -230,4 +230,3 @@ uint64_t get_ncpus (void);
 #define MTRR_PHYSMASK7			0x20f
 
 #endif
-

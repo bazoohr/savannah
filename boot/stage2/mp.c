@@ -100,21 +100,12 @@ mp_bootothers (void)
   cli ();
   for (i = 1; i < get_ncpus (); i++) {
     cpu = get_cpu_info (i);
-    if (!cpu) {
-      panic ("Failed to get cpu information! (mp.c; mp_bootothers())");
-    }
+
     lapic_startaps (cpu->lapic_id);
+
     while (!cpu->booted)
       /* Wait*/;
   }
-  /*
-   * XXX:
-   *     Here, the BSP switchs to become process manager PM.
-   *     To this end, we have to switch to page tables of VMM considered for PM.
-   *     Then, we have to change the stack to the virtual VMM stack address. This
-   *     is what happening in below two lines of assembly.
-   */
-  __asm__ __volatile__ ("movq %0, %%cr3\n\t"::"r"((get_cpu_info (0))->vmm_page_tables));
   /*
    * TODO: Find a better place to put this loop; Probably the best
    *       place would be PM code.
@@ -124,36 +115,30 @@ mp_bootothers (void)
    *       us finding the bug.
    */
   for (i = 0 ; i < get_ncpus () ; i++) {
-    (get_cpu_info(i))->ready = 1;
+    get_cpu_info (i)->ready = 1;
   }
-  /* ==================================================== *
-   * XXX:                                                 *
-   *     Since stack is changed, after this point, We can *
-   *     NOT use local variables.                         *
-   * ==================================================== */
-
-  __asm__ __volatile__ ("movq %0, %%rsp\n\t"
-                        "movq %%rsp, %%rbp\n\t"::"r"((get_cpu_info(0))->vmm_vstack)
-                       );
   /*
-   * NOTE:
-   *      CPU_INFO_PTR_ADDR, holds the address of the cpu_info structure belonging to
-   *      VMs, Not VMM.
-   * HACK: Actually a NASTY one
-   *       HERE, we have to upade the content of this fixed address --->>CPU_INFO_PTR_ADDR;
-   *       Currently, this is pointing to the last launched VM's cpu_info. But we have to
-   *       update it to point to the cpu_info of PM.
+   * XXX:
+   *     Here, the BSP switchs to become process manager PM.
+   *     To this end, we have to switch to page tables of VMM considered for PM.
+   *     Then, we have to change the stack to the virtual VMM stack address. This
+   *     is what happening in below two lines of assembly.
    */
-  __asm__ __volatile__ ("movq %0, (%1)\n\t"::"r"(get_cpu_info (0)),"r"(CPU_INFO_PTR_ADDR));
-  /*
-   * Here, we pass the cpu_info of cpu 0 to the VMM, and jump to the starting virtual address
-   * of the VMM for BSP.
-   */
-  __asm__ __volatile__ ("movq %0, %%rdi\n\t"
-                        "movq %1, %%rax; jmp *%%rax\n\t"::"r"(get_cpu_info (0)), "r"((get_cpu_info (0))->vm_start_vaddr));
-  /* ========================================== */
-  cprintk ("We Should NEVER get to this point", 0x4);
-  halt ();
+  __asm__ __volatile__ ("movq %0, %%cr3\n\t"
+                        "movq %1, %%rsp\n\t"
+                        "movq %%rsp, %%rbp\n\t"
+                        "movq %2, (%3)\n\t"
+                        "movq %2, %%rdi\n\t"
+                        "movq %4, %%rax\n\t"
+                        "jmp *%%rax\n\t"::
+                        "r"(get_cpu_info (0)->vmm_page_tables),
+                        "r"(get_cpu_info(0)->vmm_vstack),
+                        "r"(get_cpu_info (0)),
+                        "r"(CPU_INFO_PTR_ADDR),
+                        "r"(get_cpu_info (0)->vm_start_vaddr)
+                        );
+  /* We MUST NOT get to this point */
+  panic ("Failed to run VMM on BootStrap Processor");
 }
 void
 mp_init(void)
@@ -181,7 +166,7 @@ mp_init(void)
     panic("PIC Mode not supported\n");
 
   /*
-   * Because physaddr varibale is 32 bit and in 64-bit mode 
+   * Because physaddr varibale is 32 bit and in 64-bit mode
    * all pointers are 64 bit, GCC complains about the below assignment
    * therefore to cheat it, we cast mp->physaddr to phys_addr_t.
    */
@@ -206,7 +191,7 @@ mp_init(void)
 			case MP_PROC:
         proc = (struct mp_proc *)p;
         curr_cpu_info = cpu_alloc ();
- 
+
         curr_cpu_info->cpuid = curr_cpu;
         curr_cpu_info->lapic_id = proc->apicid;
 				curr_cpu++;
