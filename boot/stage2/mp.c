@@ -190,7 +190,7 @@ mp_init(void)
 		switch(*p) {
 			case MP_PROC:
         proc = (struct mp_proc *)p;
-        curr_cpu_info = cpu_alloc ();
+        curr_cpu_info = add_cpu ();
 
         curr_cpu_info->cpuid = curr_cpu;
         curr_cpu_info->lapic_id = proc->apicid;

@@ -41,7 +41,7 @@ map_memory (phys_addr_t *pml4_paddr,
   }
 
   if (flags == MAP_NEW) {
-    pml4 = (page_table_entry_t *)calloc_align (sizeof (uint8_t), PAGE_TABLE_SIZE, 0x1000);
+    pml4 = (page_table_entry_t *)calloc_align (sizeof (uint8_t), PAGE_TABLE_SIZE, _2MB_); /* Normally _4KB_ */
     if (pml4 == NULL) {
       panic ("BOOT STAGE2: Memory Allocation Failed line %d\n", __LINE__);
     }
@@ -108,7 +108,7 @@ map_memory (phys_addr_t *pml4_paddr,
         panic ("BOOT STAGE2: Memory Allocation Failed line %d\n", __LINE__);
       }
 
-      pml4[pml4_idx] = (phys_addr_t)pdpe | (PAGE_PRESENT | PAGE_RW);
+      pml4[pml4_idx] = (phys_addr_t)pdpe | 0x7;//(PAGE_PRESENT | PAGE_RW);
     }
 
     pdpe = (page_table_entry_t *)((phys_addr_t)pml4[pml4_idx] & ~0xFFF);
@@ -118,7 +118,7 @@ map_memory (phys_addr_t *pml4_paddr,
         panic ("BOOT STAGE2: Memory Allocation Failed line %d\n", __LINE__);
       }
 
-      pdpe[pdpe_idx] = (phys_addr_t)pde | (PAGE_PRESENT | PAGE_RW);
+      pdpe[pdpe_idx] = (phys_addr_t)pde | 0x7;//| (PAGE_PRESENT | PAGE_RW);
     }
     if (page_size < _1GB_) {
       pde = (page_table_entry_t *)((phys_addr_t)pdpe[pdpe_idx] & ~0xFFF);
@@ -129,16 +129,22 @@ map_memory (phys_addr_t *pml4_paddr,
           panic ("BOOT STAGE2: Memory Allocation Failed line %d\n", __LINE__);
         }
 
-        pde[pde_idx] = (phys_addr_t)pte | (PAGE_PRESENT | PAGE_RW);
+        pde[pde_idx] = (phys_addr_t)pte | 0x7;//(PAGE_PRESENT | PAGE_RW);
       }
     }
     if (page_size == _4KB_) {
       pte = (page_table_entry_t *)((phys_addr_t)pde[pde_idx] & ~0xFFF);
       pte[pte_idx] = (phys_addr_t)paddr | protection;
     } else if (page_size == _2MB_) {
+      if (paddr & (_2MB_ - 1)) {
+        panic ("Address %x is not 2MB aligned", paddr);
+      }
       pde[pde_idx] = (phys_addr_t)paddr | protection;
     } else {  /* 1GB Pages */
-      pdpe[pdpe_idx] = (phys_addr_t)paddr | protection;
+      if (paddr & (_1GB_ - 1)) {
+        panic ("Address %x is not 1GB aligned", paddr);
+      }
+      pdpe[pdpe_idx] = (phys_addr_t)paddr | 0x7 | (1 << 7);//protection;
     }
 
     page++;
@@ -180,7 +186,7 @@ EPT_map_memory (phys_addr_t *pml4_paddr,
   }
 
   if (flags == MAP_NEW) {
-    pml4 = (page_table_entry_t *)calloc_align (sizeof (uint8_t), PAGE_TABLE_SIZE, 0x1000);
+    pml4 = (page_table_entry_t *)calloc_align (sizeof (uint8_t), PAGE_TABLE_SIZE, _2MB_); /* Normally _4KB_ */
     if (pml4 == NULL) {
       panic ("BOOT STAGE2: Memory Allocation Failed line %d\n", __LINE__);
     }
@@ -257,7 +263,7 @@ EPT_map_memory (phys_addr_t *pml4_paddr,
         panic ("BOOT STAGE2: Memory Allocation Failed line %d\n", __LINE__);
       }
 
-      pdpe[pdpe_idx] = (phys_addr_t)pde | (PAGE_PRESENT | PAGE_RW);
+      pdpe[pdpe_idx] = (phys_addr_t)pde | 0x7;/*(PAGE_PRESENT | PAGE_RW)*/;
     }
     if (page_size < _1GB_) {
       pde = (page_table_entry_t *)((phys_addr_t)pdpe[pdpe_idx] & ~0xFFF);
@@ -268,15 +274,21 @@ EPT_map_memory (phys_addr_t *pml4_paddr,
           panic ("BOOT STAGE2: Memory Allocation Failed line %d\n", __LINE__);
         }
 
-        pde[pde_idx] = (phys_addr_t)pte | (PAGE_PRESENT | PAGE_RW);
+        pde[pde_idx] = (phys_addr_t)pte | 0x7;/*(PAGE_PRESENT | PAGE_RW)*/;
       }
     }
     if (page_size == _4KB_) {
       pte = (page_table_entry_t *)((phys_addr_t)pde[pde_idx] & ~0xFFF);
-      pte[pte_idx] = (phys_addr_t)paddr | protection;
+      pte[pte_idx] = (phys_addr_t)paddr | 0x7;
     } else if (page_size == _2MB_) {
-      pde[pde_idx] = (phys_addr_t)paddr | protection;
+      if (paddr & (_2MB_ - 1)) {
+        panic ("EPT MAP: Address %x is not 2MB aligned", paddr);
+      }
+      pde[pde_idx] = (phys_addr_t)paddr | 0x7 | (1 << 7);
     } else {  /* 1GB Pages */
+      if (paddr & (_1GB_ - 1)) {
+        panic ("EPT MAP: Address %x is not 1GB aligned", paddr);
+      }
       pdpe[pdpe_idx] = (phys_addr_t)paddr | 0x7 | (1 << 7);/*| protection*/;
     }
 

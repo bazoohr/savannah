@@ -280,7 +280,7 @@ static void setup_vmcs(struct cpu_info *cpuinfo)
 	vmx_vmwrite(GUEST_GDTR_BASE, gdtr->dr_base);
 	vmx_vmwrite(GUEST_IDTR_BASE, idtr->dr_base);
 
-	vmx_vmwrite(EPT_POINTER, cpuinfo->vmm_ept_tables | 0x6 | (3 << 3));
+	vmx_vmwrite(EPT_POINTER, cpuinfo->vm_ept_tables | 0x6 | (3 << 3));
 
 	flags = rflags();
 	vmx_vmwrite(GUEST_RFLAGS, flags);
