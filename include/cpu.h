@@ -1,7 +1,7 @@
 #ifndef __CPU_H__
 #define __CPU_H__
 
-#ifndef __ASSEMBLY__ 
+#ifndef __ASSEMBLY__
 
 #include <types.h>
 #include <cdef.h>
@@ -130,7 +130,6 @@ struct cpu_info {
   volatile uint8_t ready;   // Is the CPU ready to launch the VM?
   virt_addr_t vmm_vstack;       // CPU stack (Will be VMM's stack)
   phys_addr_t vmm_page_tables;  // CPU page tables (VMM page tables
-  phys_addr_t vmm_ept_tables;   // CPU EPT page tables
   phys_addr_t vmm_start_paddr; // VMM's physical start address
   phys_addr_t vmm_end_paddr;   // VMM's physical end address
   virt_addr_t vmm_start_vaddr; // VMM's virtual start address
@@ -139,6 +138,7 @@ struct cpu_info {
   virt_addr_t vm_vstack;       // CPU stack (Will be VMM's stack)
   phys_addr_t vm_start_paddr; // VM's physical start address
   phys_addr_t vm_page_tables;  // CPU page tables (VM page tables
+  phys_addr_t vm_ept_tables;   // CPU EPT page tables
   phys_addr_t vm_end_paddr;   // VM's physical end address
   virt_addr_t vm_start_vaddr; // VM's virtual start address
   virt_addr_t vm_end_vaddr;   // VM's virtual end address
@@ -152,12 +152,12 @@ struct cpu_info {
 
   struct system_descriptor gdt[NGDT] __aligned (16);
 };
-struct cpu_info * cpu_alloc (void);
+struct cpu_info * add_cpu ();
 struct cpu_info * get_cpu_info (cpuid_t cpuid);
 uint64_t get_ncpus (void);
 
 #endif
-/* =============================================== 
+/* ===============================================
  * These macros are used for two purposes
  * 1. Booting application processors
  * 2. Sending information in CPU structure to all
@@ -230,4 +230,3 @@ uint64_t get_ncpus (void);
 #define MTRR_PHYSMASK7			0x20f
 
 #endif
-

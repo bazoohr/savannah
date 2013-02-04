@@ -3,8 +3,10 @@
 #include <cpu.h>
 #include <page.h>
 #include <mp.h>
+#include <memory.h>
+#include <panic.h>
 /* ================================================== */
-static struct cpu_info cpus[MAX_CPUS];
+static struct cpu_info *cpuinfo_table[MAX_CPUS];
 /* ================================================== */
 static uint64_t ncpus = 0;
 /* ================================================== */
@@ -20,7 +22,7 @@ void
 wrmsr (uint32_t reg, uint64_t val)
 {
 	__asm__ __volatile__ ("wrmsr" : : "d"((uint32_t)(val >> 32)),
-	                         "a"((uint32_t)(val & 0xFFFFFFFF)), 
+	                         "a"((uint32_t)(val & 0xFFFFFFFF)),
 	                         "c"(reg));
 }
 /* ================================================== */
@@ -106,7 +108,7 @@ cpuid (uint32_t function, uint32_t *eaxp, uint32_t *ebxp,
 {
 	uint32_t eax, ebx, ecx, edx;
 
-	__asm__ __volatile__ ("cpuid" 
+	__asm__ __volatile__ ("cpuid"
 		: "=a" (eax), "=b" (ebx), "=c" (ecx), "=d" (edx)
 		: "a" (function));
 	if (eaxp)
@@ -127,6 +129,39 @@ halt(void)
   }
 }
 /* ================================================== */
+static bool first_time = true;
+static struct cpu_info *cpuinfo_pool;
+/* ================================================== */
+void
+allocate_cpuinfo_pool (void)
+{
+  uint64_t max_pool_size = MAX_CPUS * _4KB_;
+
+  if (max_pool_size > _2MB_) {
+    panic ("Second Boot Stage: Max CPU information Pool is bigger than 2MB\n");
+  }
+
+  cpuinfo_pool = (struct cpu_info *)calloc_align (sizeof (uint8_t), _2MB_, _2MB_);
+  /* We put the first CPU in cpuinfo table */
+  cpuinfo_table[0] = cpuinfo_pool;
+}
+/* ================================================== */
+struct cpu_info *
+add_cpu ()
+{
+  if (ncpus > MAX_CPUS) {
+    panic ("Too many CPUs");
+  }
+
+  if (first_time) {
+    first_time = false;
+    allocate_cpuinfo_pool ();
+  }
+
+  cpuinfo_table[ncpus] = (struct cpu_info *)((phys_addr_t)cpuinfo_pool + (ncpus * _4KB_));
+  return cpuinfo_table[ncpus++];
+}
+/* ================================================== */
 uint64_t
 get_ncpus (void)
 {
@@ -136,11 +171,8 @@ get_ncpus (void)
 struct cpu_info *
 get_cpu_info (cpuid_t cpuid)
 {
-  return cpuid < ncpus ? &cpus[cpuid]: NULL;
-}
-/* ================================================== */
-struct cpu_info *
-cpu_alloc (void)
-{
-  return ncpus < MAX_CPUS ? &cpus[ncpus++]: NULL;
+  if (cpuid > MAX_CPUS) {
+    panic ("get_cpu_info: No CPU with id %d\n", cpuid);
+  }
+  return cpuinfo_table[cpuid];
 }

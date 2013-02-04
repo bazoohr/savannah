@@ -106,6 +106,7 @@ vm_main (void)
 {
   int i;
   con_init ();
+
   for (i = 0 ; i < cpuinfo->cpuid; i++) printk("\n");
 
   cprintk ("FS: My info is in addr = %d\n", 0xD, cpuinfo->cpuid);

@@ -5,6 +5,7 @@
 #include <asmfunc.h>
 #include <printk.h>
 #include <cpu.h>
+#include <string.h>
 
 static int cpu_has_vmx()
 {
@@ -53,20 +54,22 @@ static void __vmxon(phys_addr_t vmxon_ptr)
 
 static void vmxon(phys_addr_t vmcs_ptr, phys_addr_t vmxon_ptr)
 {
-	uint64_t nl = 0;
+  uint32_t vmcs_revision_id;
+  uint32_t vmx_abort_indicator = 0;
+  uint32_t *ptr;
 
-	nl = rdmsr(MSR_IA32_VMX_BASIC);
+	vmcs_revision_id = rdmsr(MSR_IA32_VMX_BASIC);
 
-	int i;
-	uint64_t *reg;
-	reg = (uint64_t *)vmxon_ptr;//vmxon_ptr;
+  memset ((uint8_t*)vmxon_ptr, 0, 4096);
+  memset ((uint8_t*)vmcs_ptr, 0, 4096);
 
-	for(i = 0; i < 1024; i++) reg[i] = 0;
-	reg[0] = nl;
+  ptr = (uint32_t *)vmxon_ptr;
+  ptr[0] = vmcs_revision_id;
+  ptr[1] = vmx_abort_indicator;
 
-	reg = (uint64_t *)vmcs_ptr;//vmcs_ptr;
-	for(i = 0; i < 1024; i++) reg[i] = 0;
-	reg[0] = nl;
+  ptr = (uint32_t *)vmcs_ptr;
+  ptr[0] = vmcs_revision_id;
+  ptr[1] = vmx_abort_indicator;
 
 	__vmxon(vmxon_ptr);
 }
@@ -277,7 +280,7 @@ static void setup_vmcs(struct cpu_info *cpuinfo)
 	vmx_vmwrite(GUEST_GDTR_BASE, gdtr->dr_base);
 	vmx_vmwrite(GUEST_IDTR_BASE, idtr->dr_base);
 
-	vmx_vmwrite(EPT_POINTER, cpuinfo->vmm_ept_tables | 0x6 | (3 << 3));
+	vmx_vmwrite(EPT_POINTER, cpuinfo->vm_ept_tables | 0x6 | (3 << 3));
 
 	flags = rflags();
 	vmx_vmwrite(GUEST_RFLAGS, flags);

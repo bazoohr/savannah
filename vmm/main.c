@@ -10,7 +10,7 @@
 #include <cpu.h>
 #include <vmx.h>
 /* ========================================== */
-void 
+void
 vmm_main (struct cpu_info *cpuinfo)
 {
   int i;

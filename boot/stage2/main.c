@@ -22,57 +22,36 @@
 #include <macro.h>
 #include <config.h>
 /* ========================================== */
-phys_addr_t vmx_data_structure_pool;
 struct message *msg_input;
 struct message *msg_output;
 bool *msg_ready;
 /* ========================================== */
-phys_addr_t
-get_vmxon_ptr (cpuid_t cpuid)
-{
-  if (cpuid > get_ncpus ()) {
-    panic ("get_vmxon_ptr: cpuid out of rainge!");
-  }
-
-  return vmx_data_structure_pool + cpuid * 0x2000;
-}
-/* ========================================== */
-phys_addr_t
-get_vmcs_ptr (cpuid_t cpuid)
-{
-  if (cpuid > get_ncpus ()) {
-    panic ("get_vmxon_ptr: cpuid out of rainge!");
-  }
-
-  return vmx_data_structure_pool + cpuid * 0x2000 + 0x1000;
-}
-/* ========================================== */
-struct message *
+static struct message *
 get_msg_input (cpuid_t cpuid)
 {
   if (cpuid > get_ncpus ()) {
     panic ("get_vmxon_ptr: cpuid out of rainge!");
   }
 
-  return msg_input;
+  return (struct message *)((phys_addr_t)msg_input + cpuid * _4KB_);
 }
-struct message *
+static struct message *
 get_msg_output (cpuid_t cpuid)
 {
   if (cpuid > get_ncpus ()) {
     panic ("get_vmxon_ptr: cpuid out of rainge!");
   }
 
-  return msg_output;
+  return (struct message *)((phys_addr_t)msg_output + cpuid * _4KB_);
 }
-bool *
+static bool *
 get_msg_ready (cpuid_t cpuid)
 {
   if (cpuid > get_ncpus ()) {
     panic ("get_vmxon_ptr: cpuid out of rainge!");
   }
 
-  return msg_ready;
+  return (bool *)((phys_addr_t)msg_ready + cpuid * _4KB_);
 }
 /* ========================================== */
 #define VIRT2PHYS(vaddr) (\
@@ -117,8 +96,22 @@ load_all_vmms (phys_addr_t vmm_elf_addr, phys_addr_t boot_stage2_end_addr)
     }
 
     curr_cpu_info = get_cpu_info (curr_cpu);
+
+    /*
+     * For servers, we are going to use 2MB pages (for performance and security reasons).
+     * Therefore, the VMXPTR and VMCSPTR must be 2MB aligned.
+     */
+    if (curr_cpu > NUMBER_SERVERS) {
+      curr_cpu_info->vm_vmcs_ptr = (phys_addr_t)calloc_align (sizeof (uint8_t), _4KB_, _4KB_);
+      curr_cpu_info->vm_vmxon_ptr = (phys_addr_t)calloc_align (sizeof (uint8_t), _4KB_, _4KB_);
+    } else {
+      curr_cpu_info->vm_vmcs_ptr = (phys_addr_t)calloc_align (sizeof (uint8_t), _4KB_, _2MB_);
+      curr_cpu_info->vm_vmxon_ptr = (phys_addr_t)calloc_align (sizeof (uint8_t), _4KB_, _2MB_);
+    }
+    cprintk ("vm_vmcs_ptr = %x  vm_vmxon_ptr=%x\n", 0x9, curr_cpu_info->vm_vmcs_ptr, curr_cpu_info->vm_vmxon_ptr);
+
     curr_cpu_info->vmm_start_paddr = curr_vmm_phys_addr;
-    cprintk ("curr vmm %x curr cpu info %x\n", 0xF, curr_vmm_phys_addr, curr_cpu_info);
+    //cprintk ("curr vmm %x curr cpu info %x\n", 0xF, curr_vmm_phys_addr, curr_cpu_info);
 
     /*
      * stage2 ELF header contains 4 sections. (look at stage2/link64.ld).
@@ -131,7 +124,7 @@ load_all_vmms (phys_addr_t vmm_elf_addr, phys_addr_t boot_stage2_end_addr)
      * ELF file loaded by grub.
      * TODO:
      * Its also best if we check to make sure that each of these sections
-     * contains exactly the content we expect. Checking only the number of 
+     * contains exactly the content we expect. Checking only the number of
      * program headers is SO trivial and unsafe check.
      */
     elf_hdr = (Elf64_Ehdr*)vmm_elf_addr;  /* Start address of executable */
@@ -188,34 +181,40 @@ load_all_vmms (phys_addr_t vmm_elf_addr, phys_addr_t boot_stage2_end_addr)
     curr_cpu_info->msg_output = get_msg_output(curr_cpu);
     curr_cpu_info->msg_ready  = get_msg_ready(curr_cpu);
   } /* For */
-  
+
   for (curr_cpu = 0; curr_cpu < get_ncpus (); curr_cpu++) {
     curr_cpu_info = get_cpu_info (curr_cpu);
 
     //cprintk ("Last MAPED ADDRESS = %x\n", 0xF, (phys_addr_t)get_cpu_info (get_ncpus () - 1) + sizeof (struct cpu_info));
     map_memory (&curr_cpu_info->vmm_page_tables,
                  0, boot_stage2_end_addr,
-                 0, 
+                 0,
                  _4KB_,
                  VMM_PAGE_NORMAL, MAP_NEW);
+    //cprintk ("cpuinfo_table = %x curr_cpu_info %x cpuid - %d\n", 0x2, cpuinfo_table, curr_cpu_info, curr_cpu_info->cpuid);
+    map_memory (&curr_cpu_info->vmm_page_tables,
+                 curr_cpu_info->vm_vmxon_ptr, curr_cpu_info->vm_vmxon_ptr + _4KB_,
+                 curr_cpu_info->vm_vmxon_ptr,
+                 _4KB_,
+                 VMM_PAGE_NORMAL, MAP_UPDATE);
+    map_memory (&curr_cpu_info->vmm_page_tables,
+                 curr_cpu_info->vm_vmcs_ptr, curr_cpu_info->vm_vmcs_ptr + _4KB_,
+                 curr_cpu_info->vm_vmcs_ptr,
+                 _4KB_,
+                 VMM_PAGE_NORMAL, MAP_UPDATE);
 
     map_memory (&curr_cpu_info->vmm_page_tables,
-                 vmx_data_structure_pool, (phys_addr_t)msg_input,
-                 vmx_data_structure_pool,
+                 (phys_addr_t)curr_cpu_info, (phys_addr_t)curr_cpu_info + _4KB_,
+                 (phys_addr_t)curr_cpu_info,
                  _4KB_,
                  VMM_PAGE_NORMAL, MAP_UPDATE);
 
     map_memory (&curr_cpu_info->vmm_page_tables,
                  curr_cpu_info->vmm_start_vaddr, curr_cpu_info->vmm_end_vaddr,
-                 curr_cpu_info->vmm_start_paddr, 
+                 curr_cpu_info->vmm_start_paddr,
                  _4KB_,
                  VMM_PAGE_NORMAL, MAP_UPDATE);
 
-    EPT_map_memory (&curr_cpu_info->vmm_ept_tables,
-                 0, curr_cpu_info->vmm_start_vaddr,
-                 0, 
-                 _1GB_,
-                 VMM_PAGE_NORMAL, MAP_NEW);
   }
   /* =============================================== */
   /* XXX:
@@ -226,8 +225,8 @@ load_all_vmms (phys_addr_t vmm_elf_addr, phys_addr_t boot_stage2_end_addr)
    *    are zero, VMM will not try to launch any VM.
    */
   for (i = NUMBER_SERVERS; i < get_ncpus (); i++) {
-    (get_cpu_info (i))->vm_start_vaddr = 0;
-    (get_cpu_info (i))->vm_start_paddr = 0;
+    get_cpu_info (i)->vm_start_vaddr = 0;
+    get_cpu_info (i)->vm_start_paddr = 0;
   }
 #undef VIRT2PHYS
 }
@@ -274,6 +273,7 @@ load_all_vms (phys_addr_t *vms_array, phys_addr_t boot_stage2_end_addr)
     }
 
     curr_cpu_info = get_cpu_info (curr_cpu);
+
     curr_cpu_info->vm_start_paddr = curr_vm_phys_addr;
 
     cprintk ("curr vm %x\n", 0xF, curr_vm_phys_addr);
@@ -288,7 +288,7 @@ load_all_vms (phys_addr_t *vms_array, phys_addr_t boot_stage2_end_addr)
      * ELF file loaded by grub.
      * TODO:
      * Its also best if we check to make sure that each of these sections
-     * contains exactly the content we expect. Checking only the number of 
+     * contains exactly the content we expect. Checking only the number of
      * program headers is SO trivial and unsafe check.
      */
     elf_hdr = (Elf64_Ehdr*)vms_array[curr_cpu];  /* Start address of executable */
@@ -330,9 +330,6 @@ load_all_vms (phys_addr_t *vms_array, phys_addr_t boot_stage2_end_addr)
      */
     curr_cpu_info->vm_vstack = ALIGN ((virt_addr_t)s->p_vaddr + s->p_memsz, 16) + VM_STACK_SIZE;
 
-    curr_cpu_info->vm_vmxon_ptr = get_vmxon_ptr (curr_cpu_info->cpuid);
-    curr_cpu_info->vm_vmcs_ptr  = get_vmcs_ptr  (curr_cpu_info->cpuid);
-
     vm_size = curr_cpu_info->vm_vstack - curr_cpu_info->vm_start_vaddr;
 
     curr_cpu_info->vm_end_vaddr = curr_cpu_info->vm_start_vaddr + vm_size;
@@ -345,30 +342,141 @@ load_all_vms (phys_addr_t *vms_array, phys_addr_t boot_stage2_end_addr)
 
   } /* For */
 
-  for (curr_cpu = 0; curr_cpu < NUMBER_SERVERS; curr_cpu++) {
+  for (curr_cpu = NUMBER_SERVERS; curr_cpu < get_ncpus (); curr_cpu++) {
     curr_cpu_info = get_cpu_info (curr_cpu);
 
     map_memory (&curr_cpu_info->vm_page_tables,
+                 0, (virt_addr_t)((virt_addr_t)_1GB_ * 4),
+                 0,
+                 _1GB_,
+                 VM_PAGE_NORMAL, MAP_NEW);
+    /* TODO:
+     *      Check carefully whether all these parts of memory are needed to
+     *      be mapped for all the VMs.
+     */
+    EPT_map_memory (&curr_cpu_info->vm_ept_tables,
                  0, boot_stage2_end_addr,
                  0,
                  _4KB_,
                  VM_PAGE_NORMAL, MAP_NEW);
-    map_memory (&curr_cpu_info->vm_page_tables,
-                 vmx_data_structure_pool, (phys_addr_t)msg_ready + get_ncpus() * sizeof(bool),
-                 vmx_data_structure_pool,
+    EPT_map_memory (&curr_cpu_info->vm_ept_tables,
+                 curr_cpu_info->vm_page_tables, curr_cpu_info->vm_page_tables + 2 * _4KB_,
+                 curr_cpu_info->vm_page_tables,
                  _4KB_,
                  VM_PAGE_NORMAL, MAP_UPDATE);
-    map_memory (&curr_cpu_info->vm_page_tables,
+
+    EPT_map_memory (&curr_cpu_info->vm_ept_tables,
+                 curr_cpu_info->vm_vmxon_ptr, curr_cpu_info->vm_vmxon_ptr + _4KB_,
+                 curr_cpu_info->vm_vmxon_ptr,
+                 _4KB_,
+                 VM_PAGE_NORMAL, MAP_UPDATE);
+    EPT_map_memory (&curr_cpu_info->vm_ept_tables,
+                 curr_cpu_info->vm_vmcs_ptr, curr_cpu_info->vm_vmcs_ptr + _4KB_,
+                 curr_cpu_info->vm_vmcs_ptr,
+                 _4KB_,
+                 VM_PAGE_NORMAL, MAP_UPDATE);
+    EPT_map_memory (&curr_cpu_info->vm_ept_tables,
+                 (phys_addr_t)curr_cpu_info, (phys_addr_t)curr_cpu_info + _4KB_,
+                 (phys_addr_t)curr_cpu_info,
+                 _4KB_,
+                 VM_PAGE_NORMAL, MAP_UPDATE);
+    EPT_map_memory (&curr_cpu_info->vm_ept_tables,
+                 (phys_addr_t)curr_cpu_info->msg_input, (phys_addr_t)curr_cpu_info->msg_input + _4KB_,
+                 (phys_addr_t)curr_cpu_info->msg_input,
+                 _4KB_,
+                 VM_PAGE_NORMAL, MAP_UPDATE);
+    EPT_map_memory (&curr_cpu_info->vm_ept_tables,
+                 (phys_addr_t)curr_cpu_info->msg_output, (phys_addr_t)curr_cpu_info->msg_output + _4KB_,
+                 (phys_addr_t)curr_cpu_info->msg_output,
+                 _4KB_,
+                 VM_PAGE_NORMAL, MAP_UPDATE);
+    EPT_map_memory (&curr_cpu_info->vm_ept_tables,
+                 (phys_addr_t)curr_cpu_info->msg_ready, (phys_addr_t)curr_cpu_info->msg_ready + _4KB_,
+                 (phys_addr_t)curr_cpu_info->msg_ready,
+                 _4KB_,
+                 VM_PAGE_NORMAL, MAP_UPDATE);
+    /*
+     * We currently don't have any normal processes to load,
+     * this later would be done by PM + MM
+     */
+#if 0
+    EPT_map_memory (&curr_cpu_info->vm_ept_tables,
         curr_cpu_info->vm_start_vaddr, curr_cpu_info->vm_end_vaddr,
-        curr_cpu_info->vm_start_paddr, 
+        curr_cpu_info->vm_start_paddr,
         _4KB_,
         VM_PAGE_NORMAL, MAP_UPDATE);
+#endif
   }
- 
+  /* ============================================ *
+   * Mapping Servers
+   * ============================================ */
+  for (curr_cpu = 0; curr_cpu < NUMBER_SERVERS; curr_cpu++) {
+    curr_cpu_info = get_cpu_info (curr_cpu);
+
+    map_memory (&curr_cpu_info->vm_page_tables,
+                 0, (virt_addr_t)((virt_addr_t)_1GB_ * 4),
+                 0,
+                 _1GB_,
+                 VM_PAGE_NORMAL, MAP_NEW);
+
+    /* TODO:
+     *      Check carefully whether all these parts of memory are needed to
+     *      be mapped for all the VMs.
+     */
+    EPT_map_memory (&curr_cpu_info->vm_ept_tables,
+                 0, boot_stage2_end_addr,
+                 0,
+                 _2MB_,
+                 VM_PAGE_NORMAL, MAP_NEW);
+    EPT_map_memory (&curr_cpu_info->vm_ept_tables,
+                 curr_cpu_info->vm_page_tables, curr_cpu_info->vm_page_tables + 2 * _4KB_,
+                 curr_cpu_info->vm_page_tables,
+                 _2MB_,
+                 VM_PAGE_NORMAL, MAP_UPDATE);
+
+    EPT_map_memory (&curr_cpu_info->vm_ept_tables,
+                 curr_cpu_info->vm_vmxon_ptr, curr_cpu_info->vm_vmxon_ptr + _4KB_,
+                 curr_cpu_info->vm_vmxon_ptr,
+                 _2MB_,
+                 VM_PAGE_NORMAL, MAP_UPDATE);
+    EPT_map_memory (&curr_cpu_info->vm_ept_tables,
+                 curr_cpu_info->vm_vmcs_ptr, curr_cpu_info->vm_vmcs_ptr + _4KB_,
+                 curr_cpu_info->vm_vmcs_ptr,
+                 _2MB_,
+                 VM_PAGE_NORMAL, MAP_UPDATE);
+    EPT_map_memory (&curr_cpu_info->vm_ept_tables,
+                 (phys_addr_t)get_cpu_info (0), (phys_addr_t)get_cpu_info (0) + _2MB_,
+                 (phys_addr_t)get_cpu_info (0),
+                 _2MB_,
+                 VM_PAGE_NORMAL, MAP_UPDATE);
+    EPT_map_memory (&curr_cpu_info->vm_ept_tables,
+                 (phys_addr_t)msg_input, (phys_addr_t)msg_input + _2MB_,
+                 (phys_addr_t)msg_input,
+                 _2MB_,
+                 VM_PAGE_NORMAL, MAP_UPDATE);
+    EPT_map_memory (&curr_cpu_info->vm_ept_tables,
+                 (phys_addr_t)msg_output, (phys_addr_t)msg_output + _2MB_,
+                 (phys_addr_t)msg_output,
+                 _2MB_,
+                 VM_PAGE_NORMAL, MAP_UPDATE);
+    EPT_map_memory (&curr_cpu_info->vm_ept_tables,
+                 (phys_addr_t)msg_ready, (phys_addr_t)msg_ready + _2MB_,
+                 (phys_addr_t)msg_ready,
+                 _2MB_,
+                 VM_PAGE_NORMAL, MAP_UPDATE);
+
+    EPT_map_memory (&curr_cpu_info->vm_ept_tables,
+        curr_cpu_info->vm_start_vaddr, curr_cpu_info->vm_end_vaddr,
+        curr_cpu_info->vm_start_paddr,
+        _2MB_,
+        VM_PAGE_NORMAL, MAP_UPDATE);
+
+  }
+
 #undef VIRT2PHYS
 }
 
-void 
+void
 boot_stage2_main (struct boot_stage2_args *boot_args)
 {
   phys_addr_t vms_array[] = {boot_args->pm_elf_addr, boot_args->fs_elf_addr};
@@ -381,14 +489,22 @@ boot_stage2_main (struct boot_stage2_args *boot_args)
 
   mp_init ();
 
-  vmx_data_structure_pool = (phys_addr_t)malloc_align (get_ncpus () * 0x1000 * 2, 0x1000);
-  cprintk ("vmx_data_structure_pool = %x\n", 0xB, vmx_data_structure_pool);
-  msg_input = (struct message *)calloc_align (sizeof (uint8_t), get_ncpus() * sizeof(struct message), 16);
+  int i;
+
+  for (i = 0; i < get_ncpus (); i++) {
+    cprintk ("cpuinfo --> %x cpuid = %d\n", 0x6, get_cpu_info (i), get_cpu_info (i)->cpuid);
+  }
+  msg_input = (struct message *)calloc_align (sizeof (uint8_t), get_ncpus() * _4KB_, _2MB_);
   cprintk ("msg_input = %x\n", 0xB, msg_input);
-  msg_output = (struct message *)calloc_align (sizeof (uint8_t), get_ncpus() * sizeof(struct message), 16);
+  msg_output = (struct message *)calloc_align (sizeof (uint8_t), get_ncpus() * _4KB_, _2MB_);
   cprintk ("msg_output = %x\n", 0xB, msg_output);
-  msg_ready = (bool *)calloc_align (sizeof (uint8_t), get_ncpus() * sizeof(bool), 16);
+  msg_ready = (bool *)calloc_align (sizeof (uint8_t), get_ncpus() * _4KB_, _2MB_);
   cprintk ("msg_ready = %x\n", 0xB, msg_ready);
+
+
+  cprintk ("msg_input[%d] = %x\n", 0xC, 2, get_msg_input (2));
+  cprintk ("msg_out[%d] = %x\n", 0xC, 2, get_msg_output (2));
+  cprintk ("msg_ready[%d] = %x\n", 0xC, 2, get_msg_ready (2));
 
   interrupt_init ();
 

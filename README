@@ -1,6 +1,6 @@
 * How to build the system?
   Its so simple. just run
-   
+
   $./install.sh
 
   The script will do everything for you. Then you need to use qemu to

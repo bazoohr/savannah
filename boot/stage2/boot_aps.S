@@ -35,7 +35,7 @@ jmp_32:
 protmode:
   movl $bootdata-GDT, %eax
   movl %eax, %ds   /* We only need data segment here */
-  /* 
+  /*
    * BSP has already made VMm's page tables,
    * so we just load the page table base address
    * into cr3, of application processors (aps)
@@ -51,7 +51,7 @@ protmode:
 
   /*
    * TODO:
-   *  Do a cpuid to check whether CPU supports NotExecutable 
+   *  Do a cpuid to check whether CPU supports NotExecutable
    *  pages or not?!
    */
  	movl $0xC0000080, %ecx
@@ -94,7 +94,7 @@ start_64:
   movq %cr4, %rax
   btsq $9, %rax
   movq %rax, %cr4
-  /* No processor emulate coprocessor 
+  /* No processor emulate coprocessor
    * by clearing cr0.em (bit number 2) */
   movq %cr0, %rax
   btrq $2, %rax
@@ -123,7 +123,7 @@ start_64:
 GDT:
 	.quad 0
 code64:
-	.quad 0x0020980000000000	
+	.quad 0x0020980000000000
 	/*.quad 0x00BF9B000000FFFF*/
 bootcode:
 	.quad 0x00CF9B000000FFFF
