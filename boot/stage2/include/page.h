@@ -7,10 +7,8 @@
 #ifndef __PAGE_H__
 #define __PAGE_H__
 
-
-#define __4KB__  0x1000
-#define __2MB__  0x200000
-
+#include <const.h>
+/* =========================================== */
 #if ! defined __ASSEMBLY__
 
 #include <types.h>
@@ -23,14 +21,10 @@ typedef uint64_t page_table_entry_t;
 #define PAGE_TABLE_ENTRY_SIZE (8)
 
 #endif  /* __ASSEMBLY__ */
-
-
-#define PAGE_TABLE_SIZE       __4KB__
+/* =========================================== */
+#define PAGE_TABLE_SIZE       _4KB_
 #define PAGE_TABLE_ENTRIES    (PAGE_TABLE_SIZE / PAGE_TABLE_ENTRY_SIZE)
 #define PAGE_TABLE_MAX_IDX    (PAGE_TABLE_ENTRIES - 1)
-
-#define KNL_PAGE_SIZE  __2MB__
-#define USR_PAGE_SIZE  __4KB__
 
 #define PML4_SHIFT  39
 #define PDPE_SHIFT  30
@@ -63,7 +57,26 @@ typedef uint64_t page_table_entry_t;
  * by using an OR operation with this constant, which is exactly the same.
  */
 #define PAGE_NX       (0x8000000000000000UL)
+/* =========================================== *
+ * EPT stuffs
+ * =========================================== */
+#define _EPT_PAGE_BIT_READ     0
+#define _EPT_PAGE_BIT_WRITE    1
+#define _EPT_PAGE_BIT_EXEC     2
+#define _EPT_PAGE_BIT_MTYPE    3
+#define _EPT_PAGE_BIT_PSE      7
 
+#define EPT_PAGE_READ     (1 << _EPT_PAGE_BIT_READ)
+#define EPT_PAGE_WRITE    (1 << _EPT_PAGE_BIT_WRITE)
+#define EPT_PAGE_EXEC     (1 << _EPT_PAGE_BIT_EXEC)
+#define EPT_PAGE_MTYPE(x) ((x) << _EPT_PAGE_BIT_MTYPE)
+#define EPT_PAGE_PSE      (1 << _EPT_PAGE_BIT_PSE)
 
+/* EPT memory types */
+#define EPT_MTYPE_UC 0  /* Uncachable */
+#define EPT_MTYPE_WC 1  /* Write Combining */
+#define EPT_MTYPE_WT 4  /* Write Through */
+#define EPT_MTYPE_WP 5  /* Write Protected */
+#define EPT_MTYPE_WB 6  /* Write Back */
 #endif
 

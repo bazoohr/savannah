@@ -12,4 +12,8 @@
 
 #define NUMBER_SERVERS 2 /* Number of servers to run at booting time */
 
+#define BSP_PAGE_SIZE  _2MB_
+#define SRVR_VMS_PAGE_SIZE _2MB_
+#define USER_VMS_PAGE_SIZE _4KB_
+
 #endif /* __CONFIG_H__ */

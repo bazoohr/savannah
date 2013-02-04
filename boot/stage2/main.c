@@ -427,49 +427,46 @@ load_all_vms (phys_addr_t *vms_array, phys_addr_t boot_stage2_end_addr)
                  0, boot_stage2_end_addr,
                  0,
                  _2MB_,
-                 VM_PAGE_NORMAL, MAP_NEW);
+                 EPT_PAGE_READ | EPT_PAGE_WRITE, MAP_NEW);  /* XXX: Why do we need write access here? */
+    /*
+     * XXX:
+     *    This may cause a bug. Because We are mapping more than enough here.
+     *    We want to map only 8KB of memory, but we are actually mapping 2MB
+     */
     EPT_map_memory (&curr_cpu_info->vm_ept_tables,
                  curr_cpu_info->vm_page_tables, curr_cpu_info->vm_page_tables + 2 * _4KB_,
                  curr_cpu_info->vm_page_tables,
                  _2MB_,
-                 VM_PAGE_NORMAL, MAP_UPDATE);
-
-    EPT_map_memory (&curr_cpu_info->vm_ept_tables,
-                 curr_cpu_info->vm_vmxon_ptr, curr_cpu_info->vm_vmxon_ptr + _4KB_,
-                 curr_cpu_info->vm_vmxon_ptr,
-                 _2MB_,
-                 VM_PAGE_NORMAL, MAP_UPDATE);
-    EPT_map_memory (&curr_cpu_info->vm_ept_tables,
-                 curr_cpu_info->vm_vmcs_ptr, curr_cpu_info->vm_vmcs_ptr + _4KB_,
-                 curr_cpu_info->vm_vmcs_ptr,
-                 _2MB_,
-                 VM_PAGE_NORMAL, MAP_UPDATE);
+                 EPT_PAGE_READ, MAP_UPDATE);
     EPT_map_memory (&curr_cpu_info->vm_ept_tables,
                  (phys_addr_t)get_cpu_info (0), (phys_addr_t)get_cpu_info (0) + _2MB_,
                  (phys_addr_t)get_cpu_info (0),
                  _2MB_,
-                 VM_PAGE_NORMAL, MAP_UPDATE);
+                 EPT_PAGE_READ | EPT_PAGE_WRITE, MAP_UPDATE);
     EPT_map_memory (&curr_cpu_info->vm_ept_tables,
                  (phys_addr_t)msg_input, (phys_addr_t)msg_input + _2MB_,
                  (phys_addr_t)msg_input,
                  _2MB_,
-                 VM_PAGE_NORMAL, MAP_UPDATE);
+                 EPT_PAGE_READ, MAP_UPDATE);
     EPT_map_memory (&curr_cpu_info->vm_ept_tables,
                  (phys_addr_t)msg_output, (phys_addr_t)msg_output + _2MB_,
                  (phys_addr_t)msg_output,
                  _2MB_,
-                 VM_PAGE_NORMAL, MAP_UPDATE);
+                 EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
     EPT_map_memory (&curr_cpu_info->vm_ept_tables,
                  (phys_addr_t)msg_ready, (phys_addr_t)msg_ready + _2MB_,
                  (phys_addr_t)msg_ready,
                  _2MB_,
-                 VM_PAGE_NORMAL, MAP_UPDATE);
+                 EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
 
+    /* TODO:
+     * We have to set permissions here per process segment.
+     */
     EPT_map_memory (&curr_cpu_info->vm_ept_tables,
         curr_cpu_info->vm_start_vaddr, curr_cpu_info->vm_end_vaddr,
         curr_cpu_info->vm_start_paddr,
         _2MB_,
-        VM_PAGE_NORMAL, MAP_UPDATE);
+        EPT_PAGE_WRITE | EPT_PAGE_READ | EPT_PAGE_EXEC, MAP_UPDATE);
 
   }
 
