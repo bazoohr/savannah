@@ -24,7 +24,7 @@ vm_main (void)
 
   cprintk ("FS: My info is in addr = %d\n", 0xD, cpuinfo->cpuid);
 
-  msg_send(0, 42);
+  //msg_send(0, 42);
 
-  while (1) {__asm__ __volatile__ ("cli;pause;\n\t");}
+  while (1) {__asm__ __volatile__ ("cli;hlt;\n\t");}
 }

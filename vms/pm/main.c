@@ -24,9 +24,9 @@ vm_main (void)
 
   cprintk ("PM: My info is in addr = %d\n", 0xD, cpuinfo->cpuid);
 
-  int m = msg_receive();
+//  int m = msg_receive();
 
-  cprintk("Message received: %d\n", 0xD, m);
+//  cprintk("Message received: %d\n", 0xD, m);
 
   while (1) {__asm__ __volatile__ ("cli;pause;\n\t");}
 }
