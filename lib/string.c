@@ -46,6 +46,16 @@ strncpy(char *dest, const char *src, size_t count)
 }
 
 int
+strlen(const char *s)
+{
+	const char *sc;
+
+	for (sc = s; *sc != '\0'; ++sc)
+		/* nothing */;
+	return sc - s;
+}
+
+int
 strcmp(const char *cs, const char *ct)
 {
 	unsigned char c1, c2;

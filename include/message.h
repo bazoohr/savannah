@@ -5,11 +5,9 @@
 
 #define MSG_DATA_SIZE   64
 
-#define ANY             -1
-
 struct message {
   cpuid_t from;
-  int number;
+  volatile int number;
   char data[MSG_DATA_SIZE];
 };
 

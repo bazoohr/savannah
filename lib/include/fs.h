@@ -9,14 +9,17 @@
 #define READ_IPC	2
 #define CLOSE_IPC       3
 
+#define MAX_PATHNAME    32
+#define MAX_BUFFER      32
+
 struct open_ipc {
-	char pathname[32];
+	char pathname[MAX_PATHNAME];
 	int flags;
 };
 
 struct read_ipc {
 	int fd;
-	char buf[32]; // TODO Remove this and use a pointer once we have a PM/MM
+	char buf[MAX_BUFFER]; // TODO Remove this and use a pointer once we have a PM/MM
 	int count;
 };
 

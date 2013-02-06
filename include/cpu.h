@@ -148,7 +148,7 @@ struct cpu_info {
 
   struct message *msg_input;
   struct message *msg_output;
-  volatile bool *msg_ready;
+  bool *msg_ready;
 
   struct system_descriptor gdt[NGDT] __aligned (16);
 };

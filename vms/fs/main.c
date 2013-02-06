@@ -82,6 +82,8 @@ local_read(int fd, void *buf, int count)
 
   if (count > tmp.length)
     count = tmp.length;
+  if (count > MAX_BUFFER)
+    count = MAX_BUFFER;
 
   memcpy(buf, filesystem + tmp.offset, count);
 
@@ -112,28 +114,28 @@ vm_main (void)
   cprintk ("FS: My info is in addr = %d\n", 0xD, cpuinfo->cpuid);
 
   while (1) {
-    struct message m = msg_receive(ANY);
+    struct message *m = msg_check();
     struct open_ipc opentmp;
     struct read_ipc readtmp;
     struct close_ipc closetmp;
     int r;
 
-    switch(m.number) {
+    switch(m->number) {
     case OPEN_IPC:
-      memcpy(&opentmp, &m.data, sizeof(struct open_ipc));
+      memcpy(&opentmp, &m->data, sizeof(struct open_ipc));
       r = local_open(opentmp.pathname, opentmp.flags);
-      msg_send(m.from, OPEN_IPC, &r, sizeof(int));
+      msg_reply(m->from, OPEN_IPC, &r, sizeof(int));
       break;
     case READ_IPC:
-      memcpy(&readtmp, &m.data, sizeof(struct read_ipc));
+      memcpy(&readtmp, &m->data, sizeof(struct read_ipc));
       r = local_read(readtmp.fd, &readtmp.buf, readtmp.count);
       readtmp.count = r;
-      msg_send(m.from, READ_IPC, &readtmp, sizeof(struct read_ipc));
+      msg_reply(m->from, READ_IPC, &readtmp, sizeof(struct read_ipc));
       break;
     case CLOSE_IPC:
-      memcpy(&closetmp, &m.data, sizeof(struct close_ipc));
+      memcpy(&closetmp, &m->data, sizeof(struct close_ipc));
       r = local_close(closetmp.fd);
-      msg_send(m.from, CLOSE_IPC, &r, sizeof(int));
+      msg_reply(m->from, CLOSE_IPC, &r, sizeof(int));
       break;
     }
   }
