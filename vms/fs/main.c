@@ -15,6 +15,7 @@
 #include <ipc.h>
 #include <fs.h>
 #include <string.h>
+#include <panic.h>
 
 struct header {
   char name[32];
@@ -137,6 +138,8 @@ vm_main (void)
       r = local_close(closetmp.fd);
       msg_reply(m->from, CLOSE_IPC, &r, sizeof(int));
       break;
+    default:
+      cprintk("FS: Warning, unknown request %d\n", 0xD, m->number);
     }
   }
 

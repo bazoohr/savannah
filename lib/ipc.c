@@ -27,9 +27,6 @@ msg_send(const int to, const int number, const void *data, const int size)
 {
   int id = cpuinfo->cpuid;
 
-  memset(cpuinfo->msg_output, 0, sizeof(struct message));
-  memset(cpuinfo->msg_input, 0, sizeof(struct message));
-
   cpuinfo->msg_output->from = id;
   cpuinfo->msg_output->number = number;
   memcpy(&cpuinfo->msg_output->data, data, size);
@@ -51,8 +48,10 @@ void
 msg_receive()
 {
   while (1)
-    if (cpuinfo->msg_input->number)
+    if (cpuinfo->msg_input->number) {
+      cpuinfo->msg_input->number = 0;
       break;
+    }
 }
 
 /*
@@ -137,10 +136,10 @@ msg_reply(const int to, const int number, const void *data, const int size)
 
   int id = cpuinfo->cpuid;
 
-  struct message *base = (struct message *)((phys_addr_t)cpuinfo->msg_input - (_4KB_ * id));
-  struct message *inbox = (struct message *)((phys_addr_t)base + (_4KB_ * to));
+  struct message *base = (struct message *)(((phys_addr_t)cpuinfo->msg_input - (_4KB_ * id)));
+  struct message *inbox = (struct message *)(((phys_addr_t)base + (_4KB_ * to)));
 
   inbox->from = id;
-  inbox->number = number;
   memcpy(&inbox->data, data, size);
+  inbox->number = number;
 }

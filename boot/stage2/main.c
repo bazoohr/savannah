@@ -526,7 +526,7 @@ EPT_map_memory_user (struct cpu_info *curr_cpu_info)
       (phys_addr_t)curr_cpu_info->msg_input, (phys_addr_t)curr_cpu_info->msg_input + _4KB_,
       (phys_addr_t)curr_cpu_info->msg_input,
       USER_VMS_PAGE_SIZE,
-      EPT_PAGE_READ, MAP_UPDATE);
+      EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
   EPT_map_memory (&curr_cpu_info->vm_info.vm_ept,
       (phys_addr_t)curr_cpu_info->msg_output, (phys_addr_t)curr_cpu_info->msg_output + _4KB_,
       (phys_addr_t)curr_cpu_info->msg_output,
@@ -631,7 +631,7 @@ EPT_map_memory_server (struct cpu_info *curr_cpu_info)
       (phys_addr_t)msg_input, (phys_addr_t)msg_input + _2MB_,
       (phys_addr_t)msg_input,
       SRVR_VMS_PAGE_SIZE,
-      EPT_PAGE_READ, MAP_UPDATE);
+      EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
   EPT_map_memory (&curr_cpu_info->vm_info.vm_ept,
       (phys_addr_t)msg_output, (phys_addr_t)msg_output + _2MB_,
       (phys_addr_t)msg_output,
