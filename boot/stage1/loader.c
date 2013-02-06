@@ -9,19 +9,19 @@
 #include <string.h>
 #include <boot_stage2_args.h>
 #include <cpu.h>
+#include <config.h>
 #include "screen.h"
 #include "bootio.h"
 #include "multiboot.h"
 #include "asm.h"
 
-#define ALIGN(addr, bound) (((addr)+((bound)-1))&(~((bound)-1)))
 #define CHECK_FLAG(flags,bit)   ((flags) & (1 << (bit)))
 void
 cpuid(uint32_t info, uint32_t *eaxp, uint32_t *ebxp,
       uint32_t *ecxp, uint32_t *edxp)
 {
 	uint32_t eax, ebx, ecx, edx;
-	__asm volatile("cpuid" 
+	__asm volatile("cpuid"
 		: "=a" (eax), "=b" (ebx), "=c" (ecx), "=d" (edx)
 		: "a" (info));
 	if (eaxp)
@@ -104,6 +104,7 @@ boot_loader (unsigned long magic, unsigned long addr)
   phys_addr_t vmm_elf_addr          = 0;
   phys_addr_t pm_elf_addr           = 0;
   phys_addr_t fs_elf_addr           = 0;
+  phys_addr_t init_elf_addr         = 0;
   size_t memory_size                = 0;
   void (*stage2)(struct boot_stage2_args *);
 
@@ -134,7 +135,7 @@ boot_loader (unsigned long magic, unsigned long addr)
   if (CHECK_FLAG (mbi->flags, 3)) {
   /* stage2 should be loaded as a multi-boot module */
     multiboot_module_t *mod;
-    if (mbi->mods_count != 5) {
+    if (mbi->mods_count != NUMBER_MODULES) {
       printf ("ERROR: Grub failed to load all needed modules. %d modules loaded, but 3 were needed!\n", mbi->mods_count);
       halt ();
     }
@@ -177,12 +178,22 @@ boot_loader (unsigned long magic, unsigned long addr)
       printf ("ERROR: loaded module overlaps with VMM start address\n");
       halt ();
     }
+    mod++;
+    /* ================================ */
+    /* init is loaded here */
+    init_elf_addr = (phys_addr_t)mod->mod_start;
+    if (mod->mod_end > 0x200000) {
+      printf ("ERROR: loaded module overlaps with VMM start address\n");
+      halt ();
+    }
+    mod++;
+    /* ================================ */
 
   } else {
     printf ("ERROR: stage2 is not loaded as multiboot!\n");
     halt ();
   }
-  /* 
+  /*
    * Now we put each section of stage2 in the right address
    * so that we can run the stage2.
    */
@@ -193,5 +204,6 @@ boot_loader (unsigned long magic, unsigned long addr)
   stage2_args.vmm_elf_addr         = vmm_elf_addr;
   stage2_args.pm_elf_addr          = pm_elf_addr;
   stage2_args.fs_elf_addr          = fs_elf_addr;
+  stage2_args.init_elf_addr        = init_elf_addr;
   stage2 (&stage2_args);    /* Call stage2 */
 }

@@ -197,6 +197,21 @@ load_all_vmms (phys_addr_t vmm_elf_addr, phys_addr_t boot_stage2_end_addr)
                  curr_cpu_info->vm_info.vm_vmcs_ptr,
                  _4KB_,
                  VMM_PAGE_NORMAL, MAP_UPDATE);
+    map_memory (&curr_cpu_info->vmm_info.vmm_page_tables,
+                 (phys_addr_t)curr_cpu_info->msg_input, (phys_addr_t)curr_cpu_info->msg_input + _4KB_,
+                 (phys_addr_t)curr_cpu_info->msg_input,
+                 _4KB_,
+                 VMM_PAGE_NORMAL, MAP_UPDATE);
+    map_memory (&curr_cpu_info->vmm_info.vmm_page_tables,
+                 (phys_addr_t)curr_cpu_info->msg_output, (phys_addr_t)curr_cpu_info->msg_output + _4KB_,
+                 (phys_addr_t)curr_cpu_info->msg_output,
+                 _4KB_,
+                 VMM_PAGE_NORMAL, MAP_UPDATE);
+    map_memory (&curr_cpu_info->vmm_info.vmm_page_tables,
+                 (phys_addr_t)curr_cpu_info->msg_ready, (phys_addr_t)curr_cpu_info->msg_ready + _4KB_,
+                 (phys_addr_t)curr_cpu_info->msg_ready,
+                 _4KB_,
+                 VMM_PAGE_NORMAL, MAP_UPDATE);
 
     map_memory (&curr_cpu_info->vmm_info.vmm_page_tables,
                  (phys_addr_t)curr_cpu_info, (phys_addr_t)curr_cpu_info + _4KB_,
@@ -225,32 +240,138 @@ load_all_vmms (phys_addr_t vmm_elf_addr, phys_addr_t boot_stage2_end_addr)
   }
 #undef VIRT2PHYS
 }
-/* ========================================== */
 static void
-load_all_vms (phys_addr_t *vms_array, phys_addr_t boot_stage2_end_addr)
+load_user_vms (phys_addr_t *vms_array)
 {
-  Elf64_Ehdr *elf_hdr;  /* Start address of executable */
-  Elf64_Phdr *s;
-
   size_t vm_size;     /* VMM's Code + data + rodata + bss + stack */
   int ph_num;          /* VMM's number of program headers */
   int i;
   cpuid_t curr_cpu;
   struct cpu_info *curr_cpu_info;
+  Elf64_Ehdr *elf_hdr;  /* Start address of executable */
+  Elf64_Phdr *s;
 
-  /* TODO:
-   *    Replace constant value 0x400000 with a meaningful MACRO
-   * XXX:
-   *    I'm going to use variables curr_vmm_phys_addr and curr_cpu_info in the macro
-   *    VIRT2PHYS(). So be careful in using/altering/removing this
-   *    variable. This is a bad hack, but it makes our code a lot
-   *    easier to read.
-   *    Before Using VIRT2PHYS() macro, make sure
-   *    curr_vmm_phys_addr and curr_cpu_info are assigned with proper value. Otherwise
-   *    everything will break.
-   *    To minimize the threat, I'm going to define VIRT2PHYS Macro
-   *    after assignment of curr_vmm_phys_addr. Don't move or reorder them!
-   */
+  for (curr_cpu = NUMBER_SERVERS; curr_cpu < NUMBER_SERVERS + NUMBER_USER_VMS; curr_cpu++) {
+    curr_cpu_info = get_cpu_info (curr_cpu);
+    /*
+     * stage2 ELF header contains 4 sections. (look at stage2/link64.ld).
+     * These sections are respectively
+     *   1. text
+     *   2. data
+     *   3. rodata
+     *   4. bss
+     * If we first check to make sure we have exactly four sections in the
+     * ELF file loaded by grub.
+     * TODO:
+     * Its also best if we check to make sure that each of these sections
+     * contains exactly the content we expect. Checking only the number of
+     * program headers is SO trivial and unsafe check.
+     */
+    elf_hdr = (Elf64_Ehdr*)vms_array[curr_cpu];  /* Start address of executable */
+
+    ph_num = elf_hdr->e_phnum;    /* Number of program headers in ELF executable */
+    if (ph_num != 4) {
+      cprintk ("ELF executable contains %d sections!\n", 0x4, ph_num);
+      panic ("Unexpected VM Header!\n");
+    }
+
+    s = (Elf64_Phdr*)((uint8_t*)vms_array[curr_cpu] + elf_hdr->e_phoff);
+    curr_cpu_info->vm_info.vm_start_vaddr = (virt_addr_t)s->p_vaddr;
+    /* Why Upper bound is ph_num - 1?
+     * Because in the VM ELF executable, last section is .bss which does not have any byes.
+     * So we don't need to copy any bytes from this section into memory. But we do need to allocate
+     * enough memory for this section when we load the executable, and we
+     * also need to zero out allocated memory. That's why we put .bss section at the
+     * end of executable.
+     */
+    for (i = 0; i < ph_num - 1; i++) {
+      phys_addr_t section_src_paddr = 0;
+      phys_addr_t section_dst_paddr = 0;
+      size_t section_size;
+
+      section_src_paddr = vms_array[curr_cpu] + s->p_offset;  /* Address of section in executable */
+      section_size = (size_t)s->p_memsz;               /* Section size */
+      if (section_size > 0) {
+        /* Address of section when loaded in ram */
+        section_dst_paddr = (phys_addr_t)malloc_align (section_size, USER_VMS_PAGE_SIZE);
+      }
+
+      switch (i) {
+        case 0:  /* Code */
+          if (section_size == 0) {
+            panic ("VM without code section!");
+          }
+          curr_cpu_info->vm_info.vm_start_paddr = section_dst_paddr;
+          curr_cpu_info->vm_info.vm_code_vaddr = s->p_vaddr;
+          curr_cpu_info->vm_info.vm_code_paddr = section_dst_paddr;
+          curr_cpu_info->vm_info.vm_code_size = section_size;
+          break;
+        case 1:  /* Data */
+          curr_cpu_info->vm_info.vm_data_vaddr = s->p_vaddr;
+          curr_cpu_info->vm_info.vm_data_paddr = section_size > 0 ? section_dst_paddr : 0;
+          curr_cpu_info->vm_info.vm_data_size = section_size;
+          break;
+        case 2:  /* Rodata */
+          curr_cpu_info->vm_info.vm_rodata_vaddr = s->p_vaddr;
+          curr_cpu_info->vm_info.vm_rodata_paddr = section_size > 0 ? section_dst_paddr : 0;
+          curr_cpu_info->vm_info.vm_rodata_size = section_size;
+          break;
+        default:
+          panic ("Unexpected VM ELF Header!");
+      }
+
+      if (section_size > 0) {
+        memcpy ((void*)section_dst_paddr, (void*)section_src_paddr, section_size);
+      }
+      s++;    /* Go to next section */
+    }
+
+    /* Last section is bss. We zero out this section */
+    curr_cpu_info->vm_info.vm_bss_vaddr = s->p_vaddr;
+
+    if (s->p_memsz > 0) {
+      curr_cpu_info->vm_info.vm_bss_paddr = (phys_addr_t)malloc_align (_2MB_, USER_VMS_PAGE_SIZE);
+      curr_cpu_info->vm_info.vm_bss_size = s->p_memsz;
+      memset ((void*)curr_cpu_info->vm_info.vm_bss_paddr, 0, s->p_memsz);
+    }
+    /*
+     * Here we want to reserve some space for the stack. Stack should be
+     * 16 byte aligned!
+     */
+    curr_cpu_info->vm_info.vm_stack_vaddr = ALIGN ((virt_addr_t)s->p_vaddr + s->p_memsz, USER_VMS_PAGE_SIZE) + _2MB_;
+    curr_cpu_info->vm_info.vm_stack_size = _2MB_;
+    curr_cpu_info->vm_info.vm_stack_paddr = (phys_addr_t)malloc_align (_2MB_, USER_VMS_PAGE_SIZE);
+
+    vm_size = curr_cpu_info->vm_info.vm_stack_paddr - curr_cpu_info->vm_info.vm_start_paddr;
+
+    curr_cpu_info->vm_info.vm_end_vaddr = curr_cpu_info->vm_info.vm_start_vaddr + vm_size;
+    curr_cpu_info->vm_info.vm_end_paddr = curr_cpu_info->vm_info.vm_start_paddr + vm_size;
+
+    if (curr_cpu_info->vm_info.vm_end_paddr != curr_cpu_info->vm_info.vm_start_paddr + vm_size) {
+      panic ("Second Boot Stage: Computed two different VM end addresses %x & %x\n", curr_cpu_info->vm_info.vm_end_paddr, curr_cpu_info->vm_info.vm_start_paddr + vm_size);
+    }
+
+    cprintk ("code p = %x v = %x\ndata p = %x v = %x\nrodata p = %x v = %x\nbss p = %x v = %x\nstack p = %x v = %x\n", 0xC, curr_cpu_info->vm_info.vm_code_paddr, curr_cpu_info->vm_info.vm_code_vaddr,
+        curr_cpu_info->vm_info.vm_data_paddr, curr_cpu_info->vm_info.vm_data_vaddr,
+        curr_cpu_info->vm_info.vm_rodata_paddr, curr_cpu_info->vm_info.vm_rodata_vaddr,
+        curr_cpu_info->vm_info.vm_bss_paddr, curr_cpu_info->vm_info.vm_bss_vaddr,
+        curr_cpu_info->vm_info.vm_stack_paddr, curr_cpu_info->vm_info.vm_stack_vaddr);
+    cprintk ("========================\n", 0xA);
+
+  } /* For */
+
+}
+static void
+load_server_vms (phys_addr_t *vms_array)
+{
+  size_t vm_size;     /* VMM's Code + data + rodata + bss + stack */
+  int ph_num;          /* VMM's number of program headers */
+  int i;
+  cpuid_t curr_cpu;
+  struct cpu_info *curr_cpu_info;
+  Elf64_Ehdr *elf_hdr;  /* Start address of executable */
+  Elf64_Phdr *s;
+
   for (curr_cpu = 0; curr_cpu < NUMBER_SERVERS; curr_cpu++) {
     curr_cpu_info = get_cpu_info (curr_cpu);
     /*
@@ -292,7 +413,8 @@ load_all_vms (phys_addr_t *vms_array, phys_addr_t boot_stage2_end_addr)
       section_src_paddr = vms_array[curr_cpu] + s->p_offset;  /* Address of section in executable */
       section_size = (size_t)s->p_memsz;               /* Section size */
       if (section_size > 0) {
-        section_dst_paddr = (phys_addr_t)malloc_align (_2MB_, _2MB_);//VIRT2PHYS (s->p_vaddr);      /* Address of section when loaded in ram */
+        /* Address of section when loaded in ram */
+        section_dst_paddr = (phys_addr_t)malloc_align (section_size, SRVR_VMS_PAGE_SIZE);
       }
 
       switch (i) {
@@ -323,13 +445,13 @@ load_all_vms (phys_addr_t *vms_array, phys_addr_t boot_stage2_end_addr)
         memcpy ((void*)section_dst_paddr, (void*)section_src_paddr, section_size);
       }
       s++;    /* Go to next section */
-    }
+    } /* For */
 
     /* Last section is bss. We zero out this section */
     curr_cpu_info->vm_info.vm_bss_vaddr = s->p_vaddr;
 
     if (s->p_memsz > 0) {
-      curr_cpu_info->vm_info.vm_bss_paddr = (phys_addr_t)malloc_align (_2MB_, _2MB_);//s->p_memsz > 0 ? VIRT2PHYS(s->p_vaddr) : 0;
+      curr_cpu_info->vm_info.vm_bss_paddr = (phys_addr_t)malloc_align (_2MB_, SRVR_VMS_PAGE_SIZE);
       curr_cpu_info->vm_info.vm_bss_size = s->p_memsz;
       memset ((void*)curr_cpu_info->vm_info.vm_bss_paddr, 0, s->p_memsz);
     }
@@ -337,9 +459,9 @@ load_all_vms (phys_addr_t *vms_array, phys_addr_t boot_stage2_end_addr)
      * Here we want to reserve some space for the stack. Stack should be
      * 16 byte aligned!
      */
-    curr_cpu_info->vm_info.vm_stack_vaddr = ALIGN ((virt_addr_t)s->p_vaddr + s->p_memsz, _2MB_) + _2MB_;
+    curr_cpu_info->vm_info.vm_stack_vaddr = ALIGN ((virt_addr_t)s->p_vaddr + s->p_memsz, SRVR_VMS_PAGE_SIZE) + _2MB_;
     curr_cpu_info->vm_info.vm_stack_size = _2MB_;
-    curr_cpu_info->vm_info.vm_stack_paddr = (phys_addr_t)malloc_align (_2MB_, _2MB_);//VIRT2PHYS (curr_cpu_info->vm_info.vm_stack_vaddr);
+    curr_cpu_info->vm_info.vm_stack_paddr = (phys_addr_t)malloc_align (_2MB_, SRVR_VMS_PAGE_SIZE);
 
     vm_size = curr_cpu_info->vm_info.vm_stack_paddr - curr_cpu_info->vm_info.vm_start_paddr;
 
@@ -355,176 +477,236 @@ load_all_vms (phys_addr_t *vms_array, phys_addr_t boot_stage2_end_addr)
         curr_cpu_info->vm_info.vm_rodata_paddr, curr_cpu_info->vm_info.vm_rodata_vaddr,
         curr_cpu_info->vm_info.vm_bss_paddr, curr_cpu_info->vm_info.vm_bss_vaddr,
         curr_cpu_info->vm_info.vm_stack_paddr, curr_cpu_info->vm_info.vm_stack_vaddr);
+    cprintk ("========================\n", 0xA);
 
   } /* For */
 
-  for (curr_cpu = NUMBER_SERVERS; curr_cpu < get_ncpus (); curr_cpu++) {
-    curr_cpu_info = get_cpu_info (curr_cpu);
+}
+/* ========================================== */
+static void
+EPT_map_memory_user (struct cpu_info *curr_cpu_info)
+{
+  map_memory (&curr_cpu_info->vm_info.vm_page_tables,
+      0, (virt_addr_t)((virt_addr_t)_1GB_ * 4),
+      0,
+      _1GB_,
+      VM_PAGE_NORMAL, MAP_NEW);
 
-    map_memory (&curr_cpu_info->vm_info.vm_page_tables,
-                 0, (virt_addr_t)((virt_addr_t)_1GB_ * 4),
-                 0,
-                 _1GB_,
-                 VM_PAGE_NORMAL, MAP_NEW);
-    /* TODO:
-     *      Check carefully whether all these parts of memory are needed to
-     *      be mapped for all the VMs.
-     */
+  /* TODO:
+   *      Check carefully whether all these parts of memory are needed to
+   *      be mapped for all the VMs.
+   */
+  EPT_map_memory (&curr_cpu_info->vm_info.vm_ept,
+      0, _1MB_,
+      0,
+      USER_VMS_PAGE_SIZE,
+      EPT_PAGE_READ | EPT_PAGE_WRITE, MAP_NEW);  /* XXX: Why do we need write access here? */
+  /*
+   * XXX:
+   *    This may cause a bug. Because We are mapping more than needed here.
+   *    We need to map only 8KB of memory, but we are actually mapping 2MB
+   */
+  EPT_map_memory (&curr_cpu_info->vm_info.vm_ept,
+      curr_cpu_info->vm_info.vm_page_tables, curr_cpu_info->vm_info.vm_page_tables + 2 * _4KB_,
+      curr_cpu_info->vm_info.vm_page_tables,
+      USER_VMS_PAGE_SIZE,
+      EPT_PAGE_READ, MAP_UPDATE);
+  /*
+   * TODO:
+   *     This permission should be readonly, but at the moment because of flag "booted"
+   *     in cpu_info structure, we need to give write permission to this part of memory
+   *     for all CPUs.
+   */
+  EPT_map_memory (&curr_cpu_info->vm_info.vm_ept,
+      (phys_addr_t)curr_cpu_info, (phys_addr_t)curr_cpu_info + _4KB_,
+      (phys_addr_t)curr_cpu_info,
+      USER_VMS_PAGE_SIZE,
+      EPT_PAGE_READ, MAP_UPDATE);
+  EPT_map_memory (&curr_cpu_info->vm_info.vm_ept,
+      (phys_addr_t)curr_cpu_info->msg_input, (phys_addr_t)curr_cpu_info->msg_input + _4KB_,
+      (phys_addr_t)curr_cpu_info->msg_input,
+      USER_VMS_PAGE_SIZE,
+      EPT_PAGE_READ, MAP_UPDATE);
+  EPT_map_memory (&curr_cpu_info->vm_info.vm_ept,
+      (phys_addr_t)curr_cpu_info->msg_output, (phys_addr_t)curr_cpu_info->msg_output + _4KB_,
+      (phys_addr_t)curr_cpu_info->msg_output,
+      USER_VMS_PAGE_SIZE,
+      EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
+  EPT_map_memory (&curr_cpu_info->vm_info.vm_ept,
+      (phys_addr_t)curr_cpu_info->msg_ready, (phys_addr_t)curr_cpu_info->msg_ready + _4KB_,
+      (phys_addr_t)curr_cpu_info->msg_ready,
+      USER_VMS_PAGE_SIZE,
+      EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
+  if (curr_cpu_info->vm_info.vm_code_size > 0) {
     EPT_map_memory (&curr_cpu_info->vm_info.vm_ept,
-                 0, boot_stage2_end_addr,
-                 0,
-                 _4KB_,
-                 VM_PAGE_NORMAL, MAP_NEW);
+        curr_cpu_info->vm_info.vm_code_vaddr, curr_cpu_info->vm_info.vm_code_vaddr + curr_cpu_info->vm_info.vm_code_size,
+        curr_cpu_info->vm_info.vm_code_paddr,
+        USER_VMS_PAGE_SIZE,
+        EPT_PAGE_READ | EPT_PAGE_EXEC, MAP_UPDATE);
+  }
+  if (curr_cpu_info->vm_info.vm_data_size > 0) {
     EPT_map_memory (&curr_cpu_info->vm_info.vm_ept,
-                 curr_cpu_info->vm_info.vm_page_tables, curr_cpu_info->vm_info.vm_page_tables + 2 * _4KB_,
-                 curr_cpu_info->vm_info.vm_page_tables,
-                 _4KB_,
-                 VM_PAGE_NORMAL, MAP_UPDATE);
-
+        curr_cpu_info->vm_info.vm_data_vaddr, curr_cpu_info->vm_info.vm_data_vaddr + curr_cpu_info->vm_info.vm_data_size,
+        curr_cpu_info->vm_info.vm_data_paddr,
+        USER_VMS_PAGE_SIZE,
+        EPT_PAGE_READ | EPT_PAGE_EXEC, MAP_UPDATE);
+  }
+  if (curr_cpu_info->vm_info.vm_rodata_size > 0) {
     EPT_map_memory (&curr_cpu_info->vm_info.vm_ept,
-                 curr_cpu_info->vm_info.vm_vmxon_ptr, curr_cpu_info->vm_info.vm_vmxon_ptr + _4KB_,
-                 curr_cpu_info->vm_info.vm_vmxon_ptr,
-                 _4KB_,
-                 VM_PAGE_NORMAL, MAP_UPDATE);
+        curr_cpu_info->vm_info.vm_rodata_vaddr, curr_cpu_info->vm_info.vm_rodata_vaddr + curr_cpu_info->vm_info.vm_rodata_size,
+        curr_cpu_info->vm_info.vm_rodata_paddr,
+        USER_VMS_PAGE_SIZE,
+        EPT_PAGE_READ, MAP_UPDATE);
+  }
+  if (curr_cpu_info->vm_info.vm_bss_size > 0) {
     EPT_map_memory (&curr_cpu_info->vm_info.vm_ept,
-                 curr_cpu_info->vm_info.vm_vmcs_ptr, curr_cpu_info->vm_info.vm_vmcs_ptr + _4KB_,
-                 curr_cpu_info->vm_info.vm_vmcs_ptr,
-                 _4KB_,
-                 VM_PAGE_NORMAL, MAP_UPDATE);
+        curr_cpu_info->vm_info.vm_bss_vaddr, curr_cpu_info->vm_info.vm_bss_vaddr + curr_cpu_info->vm_info.vm_bss_size,
+        curr_cpu_info->vm_info.vm_bss_paddr,
+        USER_VMS_PAGE_SIZE,
+        EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
+  }
+  if (curr_cpu_info->vm_info.vm_stack_size > 0) {
     EPT_map_memory (&curr_cpu_info->vm_info.vm_ept,
-                 (phys_addr_t)curr_cpu_info, (phys_addr_t)curr_cpu_info + _4KB_,
-                 (phys_addr_t)curr_cpu_info,
-                 _4KB_,
-                 VM_PAGE_NORMAL, MAP_UPDATE);
-    EPT_map_memory (&curr_cpu_info->vm_info.vm_ept,
-                 (phys_addr_t)curr_cpu_info->msg_input, (phys_addr_t)curr_cpu_info->msg_input + _4KB_,
-                 (phys_addr_t)curr_cpu_info->msg_input,
-                 _4KB_,
-                 VM_PAGE_NORMAL, MAP_UPDATE);
-    EPT_map_memory (&curr_cpu_info->vm_info.vm_ept,
-                 (phys_addr_t)curr_cpu_info->msg_output, (phys_addr_t)curr_cpu_info->msg_output + _4KB_,
-                 (phys_addr_t)curr_cpu_info->msg_output,
-                 _4KB_,
-                 VM_PAGE_NORMAL, MAP_UPDATE);
-    EPT_map_memory (&curr_cpu_info->vm_info.vm_ept,
-                 (phys_addr_t)curr_cpu_info->msg_ready, (phys_addr_t)curr_cpu_info->msg_ready + _4KB_,
-                 (phys_addr_t)curr_cpu_info->msg_ready,
-                 _4KB_,
-                 VM_PAGE_NORMAL, MAP_UPDATE);
-    /*
-     * We currently don't have any normal processes to load,
-     * this later would be done by PM + MM
-     */
+        curr_cpu_info->vm_info.vm_stack_vaddr - curr_cpu_info->vm_info.vm_stack_size, curr_cpu_info->vm_info.vm_stack_vaddr,
+        curr_cpu_info->vm_info.vm_stack_paddr,
+        USER_VMS_PAGE_SIZE,
+        EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
+  }
+}
+/* ========================================== */
+static void
+EPT_map_memory_server (struct cpu_info *curr_cpu_info)
+{
+  map_memory (&curr_cpu_info->vm_info.vm_page_tables,
+      0, (virt_addr_t)((virt_addr_t)_1GB_ * 4),
+      0,
+      _1GB_,
+      VM_PAGE_NORMAL, MAP_NEW);
 #if 0
-    EPT_map_memory (&curr_cpu_info->vm_ept_tables,
-        curr_cpu_info->vm_start_vaddr, curr_cpu_info->vm_end_vaddr,
-        curr_cpu_info->vm_start_paddr,
-        _4KB_,
-        VM_PAGE_NORMAL, MAP_UPDATE);
+  /*
+   * For PM, we map the whole memory (Currently only 4GB) with
+   * 1GB EPT pages. The rest of servers still use 2MB EPT pages.
+   */
+  if (curr_cpu_info->cpuid == 0) {
+    EPT_map_memory (&curr_cpu_info->vm_info.vm_ept,
+        0, (phys_addr_t)((phys_addr_t)_1GB_ * 4),
+        0,
+        _1GB_,
+        EPT_PAGE_READ | EPT_PAGE_WRITE | EPT_PAGE_EXEC, MAP_NEW);
+    return;
+  }
 #endif
+  /* TODO:
+   *      Check carefully whether all these parts of memory are needed to
+   *      be mapped for all the VMs.
+   */
+  EPT_map_memory (&curr_cpu_info->vm_info.vm_ept,
+      0, _2MB_,
+      0,
+      SRVR_VMS_PAGE_SIZE,
+      EPT_PAGE_READ | EPT_PAGE_WRITE, MAP_NEW);  /* XXX: Why do we need write access here? */
+  /*
+   * XXX:
+   *    This may cause a bug. Because We are mapping more than needed here.
+   *    We need to map only 8KB of memory, but we are actually mapping 2MB
+   */
+  EPT_map_memory (&curr_cpu_info->vm_info.vm_ept,
+      curr_cpu_info->vm_info.vm_page_tables, curr_cpu_info->vm_info.vm_page_tables + 2 * _4KB_,
+      curr_cpu_info->vm_info.vm_page_tables,
+      SRVR_VMS_PAGE_SIZE,
+      EPT_PAGE_READ, MAP_UPDATE);
+  /*
+   * TODO:
+   *     This permission should be readonly, but at the moment because of flag "booted"
+   *     in cpu_info structure, we need to give write permission to this part of memory
+   *     for all CPUs.
+   */
+  EPT_map_memory (&curr_cpu_info->vm_info.vm_ept,
+      (phys_addr_t)get_cpu_info (0), (phys_addr_t)get_cpu_info (0) + _2MB_,
+      (phys_addr_t)get_cpu_info (0),
+      SRVR_VMS_PAGE_SIZE,
+      EPT_PAGE_READ |
+      (curr_cpu_info->cpuid == 0 ? EPT_PAGE_WRITE : 0), MAP_UPDATE);
+  EPT_map_memory (&curr_cpu_info->vm_info.vm_ept,
+      (phys_addr_t)msg_input, (phys_addr_t)msg_input + _2MB_,
+      (phys_addr_t)msg_input,
+      SRVR_VMS_PAGE_SIZE,
+      EPT_PAGE_READ, MAP_UPDATE);
+  EPT_map_memory (&curr_cpu_info->vm_info.vm_ept,
+      (phys_addr_t)msg_output, (phys_addr_t)msg_output + _2MB_,
+      (phys_addr_t)msg_output,
+      SRVR_VMS_PAGE_SIZE,
+      EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
+  EPT_map_memory (&curr_cpu_info->vm_info.vm_ept,
+      (phys_addr_t)msg_ready, (phys_addr_t)msg_ready + _2MB_,
+      (phys_addr_t)msg_ready,
+      SRVR_VMS_PAGE_SIZE,
+      EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
+  if (curr_cpu_info->vm_info.vm_code_size > 0) {
+    EPT_map_memory (&curr_cpu_info->vm_info.vm_ept,
+        curr_cpu_info->vm_info.vm_code_vaddr, curr_cpu_info->vm_info.vm_code_vaddr + curr_cpu_info->vm_info.vm_code_size,
+        curr_cpu_info->vm_info.vm_code_paddr,
+        SRVR_VMS_PAGE_SIZE,
+        EPT_PAGE_READ | EPT_PAGE_EXEC, MAP_UPDATE);
+  }
+  if (curr_cpu_info->vm_info.vm_data_size > 0) {
+    EPT_map_memory (&curr_cpu_info->vm_info.vm_ept,
+        curr_cpu_info->vm_info.vm_data_vaddr, curr_cpu_info->vm_info.vm_data_vaddr + curr_cpu_info->vm_info.vm_data_size,
+        curr_cpu_info->vm_info.vm_data_paddr,
+        SRVR_VMS_PAGE_SIZE,
+        EPT_PAGE_READ | EPT_PAGE_EXEC, MAP_UPDATE);
+  }
+  if (curr_cpu_info->vm_info.vm_rodata_size > 0) {
+    EPT_map_memory (&curr_cpu_info->vm_info.vm_ept,
+        curr_cpu_info->vm_info.vm_rodata_vaddr, curr_cpu_info->vm_info.vm_rodata_vaddr + curr_cpu_info->vm_info.vm_rodata_size,
+        curr_cpu_info->vm_info.vm_rodata_paddr,
+        SRVR_VMS_PAGE_SIZE,
+        EPT_PAGE_READ, MAP_UPDATE);
+  }
+  if (curr_cpu_info->vm_info.vm_bss_size > 0) {
+    EPT_map_memory (&curr_cpu_info->vm_info.vm_ept,
+        curr_cpu_info->vm_info.vm_bss_vaddr, curr_cpu_info->vm_info.vm_bss_vaddr + curr_cpu_info->vm_info.vm_bss_size,
+        curr_cpu_info->vm_info.vm_bss_paddr,
+        SRVR_VMS_PAGE_SIZE,
+        EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
+  }
+  if (curr_cpu_info->vm_info.vm_stack_size > 0) {
+    EPT_map_memory (&curr_cpu_info->vm_info.vm_ept,
+        curr_cpu_info->vm_info.vm_stack_vaddr - curr_cpu_info->vm_info.vm_stack_size, curr_cpu_info->vm_info.vm_stack_vaddr,
+        curr_cpu_info->vm_info.vm_stack_paddr,
+        SRVR_VMS_PAGE_SIZE,
+        EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
+  }
+}
+/* ========================================== */
+static void
+load_all_vms (phys_addr_t *vms_array, phys_addr_t boot_stage2_end_addr)
+{
+  cpuid_t curr_cpu;
+
+  load_server_vms (vms_array);
+  load_user_vms (vms_array);
+
+  for (curr_cpu = NUMBER_SERVERS; curr_cpu < get_ncpus (); curr_cpu++) {
+    EPT_map_memory_user (get_cpu_info (curr_cpu));
   }
   /* ============================================ *
    * Mapping Servers
    * ============================================ */
   for (curr_cpu = 0; curr_cpu < NUMBER_SERVERS; curr_cpu++) {
-    curr_cpu_info = get_cpu_info (curr_cpu);
+    EPT_map_memory_server (get_cpu_info (curr_cpu));
 
-    map_memory (&curr_cpu_info->vm_info.vm_page_tables,
-                 0, (virt_addr_t)((virt_addr_t)_1GB_ * 4),
-                 0,
-                 _1GB_,
-                 VM_PAGE_NORMAL, MAP_NEW);
-
-    /* TODO:
-     *      Check carefully whether all these parts of memory are needed to
-     *      be mapped for all the VMs.
-     */
-    EPT_map_memory (&curr_cpu_info->vm_info.vm_ept,
-                 0, boot_stage2_end_addr,
-                 0,
-                 _2MB_,
-                 EPT_PAGE_READ | EPT_PAGE_WRITE, MAP_NEW);  /* XXX: Why do we need write access here? */
-    /*
-     * XXX:
-     *    This may cause a bug. Because We are mapping more than needed here.
-     *    We need to map only 8KB of memory, but we are actually mapping 2MB
-     */
-    EPT_map_memory (&curr_cpu_info->vm_info.vm_ept,
-                 curr_cpu_info->vm_info.vm_page_tables, curr_cpu_info->vm_info.vm_page_tables + 2 * _4KB_,
-                 curr_cpu_info->vm_info.vm_page_tables,
-                 _2MB_,
-                 EPT_PAGE_READ, MAP_UPDATE);
-    /*
-     * TODO:
-     *     This permission should be readonly, but at the moment because of flag "booted"
-     *     in cpu_info structure, we need to give write permission to this part of memory
-     *     for all CPUs.
-     */
-    EPT_map_memory (&curr_cpu_info->vm_info.vm_ept,
-                 (phys_addr_t)get_cpu_info (0), (phys_addr_t)get_cpu_info (0) + _2MB_,
-                 (phys_addr_t)get_cpu_info (0),
-                 _2MB_,
-                 EPT_PAGE_READ | EPT_PAGE_WRITE, MAP_UPDATE);
-    EPT_map_memory (&curr_cpu_info->vm_info.vm_ept,
-                 (phys_addr_t)msg_input, (phys_addr_t)msg_input + _2MB_,
-                 (phys_addr_t)msg_input,
-                 _2MB_,
-                 EPT_PAGE_READ, MAP_UPDATE);
-    EPT_map_memory (&curr_cpu_info->vm_info.vm_ept,
-                 (phys_addr_t)msg_output, (phys_addr_t)msg_output + _2MB_,
-                 (phys_addr_t)msg_output,
-                 _2MB_,
-                 EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
-    EPT_map_memory (&curr_cpu_info->vm_info.vm_ept,
-                 (phys_addr_t)msg_ready, (phys_addr_t)msg_ready + _2MB_,
-                 (phys_addr_t)msg_ready,
-                 _2MB_,
-                 EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
-    if (curr_cpu_info->vm_info.vm_code_size > 0) {
-      EPT_map_memory (&curr_cpu_info->vm_info.vm_ept,
-          curr_cpu_info->vm_info.vm_code_vaddr, curr_cpu_info->vm_info.vm_code_vaddr + curr_cpu_info->vm_info.vm_code_size,
-          curr_cpu_info->vm_info.vm_code_paddr,
-          _2MB_,
-          EPT_PAGE_READ | EPT_PAGE_EXEC, MAP_UPDATE);
-    }
-    if (curr_cpu_info->vm_info.vm_data_size > 0) {
-      EPT_map_memory (&curr_cpu_info->vm_info.vm_ept,
-          curr_cpu_info->vm_info.vm_data_vaddr, curr_cpu_info->vm_info.vm_data_vaddr + curr_cpu_info->vm_info.vm_data_size,
-          curr_cpu_info->vm_info.vm_data_paddr,
-          _2MB_,
-          EPT_PAGE_READ | EPT_PAGE_EXEC, MAP_UPDATE);
-    }
-    if (curr_cpu_info->vm_info.vm_rodata_size > 0) {
-      EPT_map_memory (&curr_cpu_info->vm_info.vm_ept,
-          curr_cpu_info->vm_info.vm_rodata_vaddr, curr_cpu_info->vm_info.vm_rodata_vaddr + curr_cpu_info->vm_info.vm_rodata_size,
-          curr_cpu_info->vm_info.vm_rodata_paddr,
-          _2MB_,
-          EPT_PAGE_READ, MAP_UPDATE);
-    }
-    if (curr_cpu_info->vm_info.vm_bss_size > 0) {
-      EPT_map_memory (&curr_cpu_info->vm_info.vm_ept,
-          curr_cpu_info->vm_info.vm_bss_vaddr, curr_cpu_info->vm_info.vm_bss_vaddr + curr_cpu_info->vm_info.vm_bss_size,
-          curr_cpu_info->vm_info.vm_bss_paddr,
-          _2MB_,
-          EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
-    }
-    if (curr_cpu_info->vm_info.vm_stack_size > 0) {
-      EPT_map_memory (&curr_cpu_info->vm_info.vm_ept,
-          curr_cpu_info->vm_info.vm_stack_vaddr - curr_cpu_info->vm_info.vm_stack_size, curr_cpu_info->vm_info.vm_stack_vaddr,
-          curr_cpu_info->vm_info.vm_stack_paddr,
-          _2MB_,
-          EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
-    }
   }
 }
-
+/* ========================================== */
 void
 boot_stage2_main (struct boot_stage2_args *boot_args)
 {
-  phys_addr_t vms_array[] = {boot_args->pm_elf_addr, boot_args->fs_elf_addr};
+  phys_addr_t vms_array[] = {boot_args->pm_elf_addr, boot_args->fs_elf_addr, boot_args->init_elf_addr};
 
   con_init ();
   cprintk ("boot_stage2_end_addr = %x\n", 0xB, boot_args->boot_stage2_end_addr);
+  cprintk ("fs_elf_addr = %x\ninit_elf_addr = %x\n", 0x5, boot_args->fs_elf_addr, boot_args->init_elf_addr);
   memory_init (boot_args->boot_stage2_end_addr, boot_args->sys_mem_size);
 
   map_memory (&(boot_args->boot_stage2_page_tables), 0xFEC00000, 0x100000000, 0xFEC00000, _2MB_, VMM_PAGE_UNCACHABLE, MAP_UPDATE);

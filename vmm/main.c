@@ -23,7 +23,7 @@ vmm_main (struct cpu_info *cpuinfo)
       cprintk ("VMM[%d]: misconfigured VM information\n", 0x4, cpuinfo->cpuid);
       halt ();
     }
-    cpuinfo->booted = 1;
+    cpuinfo->msg_ready[0] = true;
     for (i = 0 ; i < cpuinfo->cpuid ; i++) cprintk("\n", 0x7);
     while(! cpuinfo->ready);
     cprintk ("IDLE: I am ready = %d\n", 0xA, cpuinfo->cpuid);

@@ -89,7 +89,7 @@ lapic_startaps (cpuid_t cpuid)
   struct cpu_info **aps_info;
   void (**aps_enterance)(cpuid_t id);
  
-  if (cpus[cpuid].booted) {
+  if (cpus[cpuid].msg_ready[0]) {
     panic ("Why do you try to boot a booted processor?!");
   }
 

@@ -186,14 +186,13 @@ struct vmm_proc {
 struct cpu_info {
   uint8_t lapic_id; // Local APIC ID
   uint8_t cpuid;  // Kernel CPU ID
-  volatile uint8_t booted;  // Has the CPU completed booting?
   volatile uint8_t ready;   // Is the CPU ready to launch the VM?
   struct vm_proc vm_info;
   struct vmm_proc vmm_info;
 
   struct message *msg_input;
   struct message *msg_output;
-  bool *msg_ready;
+  bool * volatile msg_ready;
 
   struct system_descriptor gdt[NGDT] __aligned (16);
 };

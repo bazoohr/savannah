@@ -14,6 +14,7 @@ int main (void)
   printf ("#define VMM_ELF_ADDR %10ld\n", offsetof (struct boot_stage2_args, vmm_elf_addr));
   printf ("#define PM_ELF_ADDR %10ld\n", offsetof (struct boot_stage2_args, pm_elf_addr));
   printf ("#define FS_ELF_ADDR %10ld\n", offsetof (struct boot_stage2_args, fs_elf_addr));
+  printf ("#define INIT_ELF_ADDR %10ld\n", offsetof (struct boot_stage2_args, init_elf_addr));
 
   printf ("#endif\n");
 

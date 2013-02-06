@@ -12,9 +12,10 @@ struct boot_stage2_args {
   uint64_t  vmm_elf_addr;
   uint64_t  pm_elf_addr;
   uint64_t  fs_elf_addr;
+  uint64_t  init_elf_addr;
 };
 
-#else 
+#else
 
 #include <stage2_args_const.h>
 

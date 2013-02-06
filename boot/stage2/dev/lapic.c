@@ -96,7 +96,7 @@ lapic_startaps (cpuid_t cpuid)
     panic ("Failed to get cpu information. boot/stage2/lapic.c");
   }
 
-  if (cpu->booted) {
+  if (cpu->msg_ready[0]) {
     panic ("Why do you try to boot a booted processor?!");
   }
 

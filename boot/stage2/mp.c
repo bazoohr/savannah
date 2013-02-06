@@ -103,8 +103,10 @@ mp_bootothers (void)
 
     lapic_startaps (cpu->lapic_id);
 
-    while (!cpu->booted)
+    while (!cpu->msg_ready[0])
       /* Wait*/;
+
+    cpu->msg_ready[0] = false;
   }
   /*
    * TODO: Find a better place to put this loop; Probably the best
