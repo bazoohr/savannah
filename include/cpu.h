@@ -123,32 +123,76 @@ struct regs {
 	register_t cr3;
 }__packed;
 
-struct cpu_info {
-  uint8_t lapic_id; // Local APIC ID
-  uint8_t cpuid;  // Kernel CPU ID
-  volatile uint8_t booted;  // Has the CPU completed booting?
-  volatile uint8_t ready;   // Is the CPU ready to launch the VM?
-  virt_addr_t vmm_vstack;       // CPU stack (Will be VMM's stack)
-  phys_addr_t vmm_page_tables;  // CPU page tables (VMM page tables
-  phys_addr_t vmm_start_paddr; // VMM's physical start address
-  phys_addr_t vmm_end_paddr;   // VMM's physical end address
-  virt_addr_t vmm_start_vaddr; // VMM's virtual start address
-  virt_addr_t vmm_end_vaddr;   // VMM's virtual end address
-
-  virt_addr_t vm_vstack;       // CPU stack (Will be VMM's stack)
+struct vm_proc {
   phys_addr_t vm_start_paddr; // VM's physical start address
-  phys_addr_t vm_page_tables;  // CPU page tables (VM page tables
-  phys_addr_t vm_ept_tables;   // CPU EPT page tables
   phys_addr_t vm_end_paddr;   // VM's physical end address
+
   virt_addr_t vm_start_vaddr; // VM's virtual start address
   virt_addr_t vm_end_vaddr;   // VM's virtual end address
 
+  phys_addr_t vm_code_paddr;
+  phys_addr_t vm_data_paddr;
+  phys_addr_t vm_rodata_paddr;
+  phys_addr_t vm_bss_paddr;
+  phys_addr_t vm_stack_paddr;
+
+  virt_addr_t vm_code_vaddr;
+  virt_addr_t vm_data_vaddr;
+  virt_addr_t vm_rodata_vaddr;
+  virt_addr_t vm_bss_vaddr;
+  virt_addr_t vm_stack_vaddr;
+
+  size_t vm_code_size;
+  size_t vm_data_size;
+  size_t vm_rodata_size;
+  size_t vm_bss_size;
+  size_t vm_stack_size;
+
+  phys_addr_t vm_page_tables;
+  phys_addr_t vm_ept;
+
   phys_addr_t vm_vmcs_ptr;   // VMX VMC Pointer (must be 4KB aligned)
   phys_addr_t vm_vmxon_ptr;  // VMXON pointer   (must be 4KB aligned)
+};
+
+struct vmm_proc {
+  phys_addr_t vmm_start_paddr; // VMM's physical start address
+  phys_addr_t vmm_end_paddr;   // VMM's physical end address
+
+  virt_addr_t vmm_start_vaddr; // VMM's virtual start address
+  virt_addr_t vmm_end_vaddr;   // VMM's virtual end address
+
+  phys_addr_t vmm_code_paddr;
+  phys_addr_t vmm_data_paddr;
+  phys_addr_t vmm_rodata_paddr;
+  phys_addr_t vmm_bss_paddr;
+  phys_addr_t vmm_stack_paddr;
+
+  virt_addr_t vmm_code_vaddr;
+  virt_addr_t vmm_data_vaddr;
+  virt_addr_t vmm_rodata_vaddr;
+  virt_addr_t vmm_bss_vaddr;
+  virt_addr_t vmm_stack_vaddr;
+
+  size_t vmm_code_size;
+  size_t vmm_data_size;
+  size_t vmm_rodata_size;
+  size_t vmm_bss_size;
+  size_t vmm_stack_size;
+
+  phys_addr_t vmm_page_tables;
+};
+
+struct cpu_info {
+  uint8_t lapic_id; // Local APIC ID
+  uint8_t cpuid;  // Kernel CPU ID
+  volatile uint8_t ready;   // Is the CPU ready to launch the VM?
+  struct vm_proc vm_info;
+  struct vmm_proc vmm_info;
 
   struct message *msg_input;
   struct message *msg_output;
-  bool *msg_ready;
+  bool * volatile msg_ready;
 
   struct system_descriptor gdt[NGDT] __aligned (16);
 };

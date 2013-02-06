@@ -25,7 +25,7 @@ endif
 # Because of some strange reason, in gcc version 4.6.3
 # in optimization level 3 (O3), gcc parallelizes some addition
 # operations using mmx instructions, which cause #GP. It does not
-# seem to be a problem of gcc, because the same code was 
+# seem to be a problem of gcc, because the same code was
 # working before, and moreover we checked the manual of AMD64 and
 # we do all what we have to do. Therefore we prefer to disable this
 # feature for gcc at the moment. We try to enable it later, probably
@@ -37,7 +37,7 @@ endif
 MYDIR =
 
 silent_command = $(if $(2), @echo $2 && $1, @$(1))
-define make_depend 
+define make_depend
 	$(CC) $(CFLAGS) -MM -MP -MT $2 $1 > $3
 endef
 

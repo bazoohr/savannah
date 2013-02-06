@@ -8,6 +8,7 @@
 #include <asm_boot_stage2_args_const.h>
 #include <asm_cpu_const.h>
 #include <const.h>
+#include <config.h>
 .code32
 .section .text
 .align 0x10
@@ -18,7 +19,7 @@ _start:
 	.byte 0xEA       /* Long jumpi. Flush pipeline */
 	.long cont       /* Address to continue after long jump */
 	.word bootcode - GDT       /* Code selector */
-cont:              
+cont:
 
   /* Zero out the page tables */
   cld
@@ -29,8 +30,8 @@ cont:
 
 	movl $0x3000, %edi
 	movl $0, %ecx
-1:	
-  movl $KNL_PAGE_SIZE, %eax
+1:
+  movl $BSP_PAGE_SIZE, %eax
 	mull %ecx
 	addl $(PAGE_PRESENT | PAGE_RW | PAGE_PSE), %eax
 	movl %eax, (%edi)
@@ -60,7 +61,7 @@ cont:
 
   /*
    * TODO:
-   *  Do a cpuid to check whether CPU supports NotExecutable 
+   *  Do a cpuid to check whether CPU supports NotExecutable
    *  pages or not?!
    */
  	movl $0xC0000080, %ecx

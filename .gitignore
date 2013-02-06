@@ -12,6 +12,8 @@ vms/fs/fs
 vms/fs/include/asm_frame_const.h
 vms/pm/include/asm_frame_const.h
 vms/pm/pm
+vms/init/init
+vms/init/include/asm_frame_const.h
 
 boot/loader.bin
 boot/boot_aps
@@ -23,7 +25,6 @@ etc/gen_asm_cpu_const_h
 etc/gen_asm_boot_stage2_args_const_h
 vuos.iso
 anarchix.iso
-init/init
 kernel/include/asm_frame_const.h
 kernel/include/asm_kernel_args_const.h
 kernel/include/asm_proc_const.h

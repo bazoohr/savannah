@@ -4,7 +4,7 @@
 
 void wait_ready(void)
 {
-  cpuinfo->booted = 1;
+  cpuinfo->msg_ready[0] = true;
   while(! cpuinfo->ready)
     /* Wait */;
 }

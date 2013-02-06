@@ -14,6 +14,7 @@ boot_stage2="stage2"
 vmm="vmm"
 pm="pm"
 fs="fs"
+init="init"
 usrlib="libos.a"
 bootaps="boot_aps"
 image_name="anarchix.iso"
@@ -24,26 +25,33 @@ for opt do
   case $opt in
   --help|-h) show_help="yes"
   ;;
-  --vmm-name=*) 
+  --vmm-name=*)
     if test "$optarg" = ""; then
       echo "vmm name can not be empty string!";
       exit 1;
     fi
     vmm="$optarg"
   ;;
-  --pm-name=*) 
+  --pm-name=*)
     if test "$optarg" = ""; then
       echo "pm name can not be empty string!";
       exit 1;
     fi
     pm="$optarg"
   ;;
-  --fs-name=*) 
+  --fs-name=*)
     if test "$optarg" = ""; then
       echo "fs name can not be empty string!";
       exit 1;
     fi
     fs="$optarg"
+  ;;
+  --init-name=*)
+    if test "$optarg" = ""; then
+      echo "init name can not be empty string!";
+      exit 1;
+    fi
+    init="$optarg"
   ;;
   --boot_stage1-name=*)
     if test "$optarg" = ""; then
@@ -95,6 +103,7 @@ if test "$show_help" = "yes"; then
   echo "--vmm-name          Change default vmm name. Default vmm name is \"vmm.bin\"."
   echo "--pm-name           Change default pm name. Default pm name is \"pm\"."
   echo "--fs-name           Change default fs name. Default fs name is \"fs\"."
+  echo "--init-name         Change default init name. Default fs name is \"init\"."
   echo "--boot_stage1-name  Change default loader name. Default loader name is \"stage1.bin\"."
   echo "--boot_stage2-name  Change default loader name. Default loader name is \"stage2.bin\"."
   echo "--image-name        Change default image name. Default image name is \"anarchix.iso\"."
@@ -131,7 +140,7 @@ if test "$gcc" = "yes" && test "$clang" = "yes"; then
   echo -n "Which one do you prefer to use to compile the code?[GCC/clang] "
   while read ans; do
     case $ans in
-      ""|gcc) 
+      ""|gcc)
         compiler="gcc"
         break;
       ;;
@@ -144,13 +153,13 @@ if test "$gcc" = "yes" && test "$clang" = "yes"; then
         echo -n "Which one do you prefer to use to compile the code?[GCC/clang] "
       ;;
     esac
- done 
+ done
 fi
 
 if test "$compiler" = "none"; then
   if test "$gcc" = "yes"; then
     compiler="gcc";
-  else 
+  else
     if test "$clang" = "yes"; then
       compiler="clang"
     else
@@ -169,6 +178,7 @@ echo "export BOOT_STAGE2 = $boot_stage2"     >> $output
 echo "export VMM         = $vmm"     >> $output
 echo "export PM          = $pm"     >> $output
 echo "export FS          = $fs"     >> $output
+echo "export INIT        = $init"     >> $output
 echo "export IMAGE       = $image_name" >> $output
 echo "export USRLIB      = $usrlib"     >> $output
 echo "export CC          = $compiler"   >> $output

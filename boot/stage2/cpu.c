@@ -137,6 +137,10 @@ allocate_cpuinfo_pool (void)
 {
   uint64_t max_pool_size = MAX_CPUS * _4KB_;
 
+  if (sizeof (struct cpu_info) > _4KB_) {
+    panic ("CPU info structure is too big. 4KB structure is accepted but the size is %d!\n", sizeof (struct cpu_info));
+  }
+
   if (max_pool_size > _2MB_) {
     panic ("Second Boot Stage: Max CPU information Pool is bigger than 2MB\n");
   }

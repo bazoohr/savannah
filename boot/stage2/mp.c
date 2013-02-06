@@ -103,8 +103,10 @@ mp_bootothers (void)
 
     lapic_startaps (cpu->lapic_id);
 
-    while (!cpu->booted)
+    while (!cpu->msg_ready[0])
       /* Wait*/;
+
+    cpu->msg_ready[0] = false;
   }
   /*
    * TODO: Find a better place to put this loop; Probably the best
@@ -131,11 +133,11 @@ mp_bootothers (void)
                         "movq %2, %%rdi\n\t"
                         "movq %4, %%rax\n\t"
                         "jmp *%%rax\n\t"::
-                        "r"(get_cpu_info (0)->vmm_page_tables),
-                        "r"(get_cpu_info(0)->vmm_vstack),
+                        "r"(get_cpu_info (0)->vmm_info.vmm_page_tables),
+                        "r"(get_cpu_info(0)->vmm_info.vmm_stack_vaddr),
                         "r"(get_cpu_info (0)),
                         "r"(CPU_INFO_PTR_ADDR),
-                        "r"(get_cpu_info (0)->vm_start_vaddr)
+                        "r"(get_cpu_info (0)->vm_info.vm_start_vaddr)
                         );
   /* We MUST NOT get to this point */
   panic ("Failed to run VMM on BootStrap Processor");

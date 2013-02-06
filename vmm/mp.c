@@ -104,7 +104,7 @@ mp_bootothers (void)
   cli ();
   for (i = 1; i < 2; i++) {
     lapic_startaps (cpus[i].lapic_id);
-    while (!cpus[i].booted)
+    while (!cpus[i].msg_ready[0])
       /* Wait*/;
   }
 }

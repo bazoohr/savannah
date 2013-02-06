@@ -20,7 +20,7 @@ config.mak:
 	@exit 1
 endif
 
-build-all: 
+build-all:
 	$(call silent_command, $(MAKE) -s --no-print-directory -C etc   )
 	$(call silent_command, $(MAKE) -s --no-print-directory -C boot  )
 	$(call silent_command, $(MAKE) -s --no-print-directory -C lib   )
@@ -40,7 +40,8 @@ install: build-all
 		module /boot/grub/$(BOOT_APS)\n\
 		module /boot/grub/$(VMM)\n\
 		module /boot/grub/$(PM)\n\
-		module /boot/grub/$(FS)\n" > /tmp/menu.lst
+		module /boot/grub/$(FS)\n\
+		module /boot/grub/$(INIT)\n" > /tmp/menu.lst
 	@rm -rf /tmp/iso
 	@rm -f $(IMAGE)
 	@mkdir -p /tmp/iso/boot/grub
@@ -53,6 +54,7 @@ install: build-all
 	@cp vmm/$(VMM) /tmp/iso/boot/grub
 	@cp vms/pm/$(PM) /tmp/iso/boot/grub
 	@cp vms/fs/$(FS) /tmp/iso/boot/grub
+	@cp vms/init/$(INIT) /tmp/iso/boot/grub
 	@genisoimage -quiet -input-charset ascii -R -b boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4 \
              -boot-info-table -o $(IMAGE) /tmp/iso
 	@echo "    Installing... OK"

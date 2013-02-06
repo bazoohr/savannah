@@ -140,5 +140,5 @@ vm_main (void)
     }
   }
 
-  while (1) {__asm__ __volatile__ ("cli;pause;\n\t");}
+  while (1) {__asm__ __volatile__ ("cli;hlt;\n\t");}
 }

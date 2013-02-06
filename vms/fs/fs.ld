@@ -22,21 +22,24 @@ PHDRS
 SECTIONS
 {
 	. = 0x40000000;
-	.text : 
+	.text :
 		{
 			*(.text)
 			_etext = .;
 		}:text
+  . = ALIGN (0x200000);
 	.data :
 		{
 			*(.data)
 			_edata = .;
 		}:data
+  . = ALIGN (0x200000);
 	.rodata :
 		{
 			*(.rodata)
 			_erodata = .;
 		}:rodata
+  . = ALIGN (0x200000);
 	.bss :
 		{
 			*(.bss)

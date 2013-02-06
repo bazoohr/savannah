@@ -265,7 +265,7 @@ static void setup_vmcs(struct cpu_info *cpuinfo)
 	vmx_vmwrite(GUEST_SYSENTER_CS, u64);
 
 	vmx_vmwrite(GUEST_CR0, rcr0());
-	vmx_vmwrite(GUEST_CR3, cpuinfo->vm_page_tables);
+	vmx_vmwrite(GUEST_CR3, cpuinfo->vm_info.vm_page_tables);
 	vmx_vmwrite(GUEST_CR4, rcr4());
 
 	vmx_vmwrite(GUEST_ES_BASE, 0);
@@ -280,7 +280,7 @@ static void setup_vmcs(struct cpu_info *cpuinfo)
 	vmx_vmwrite(GUEST_GDTR_BASE, gdtr->dr_base);
 	vmx_vmwrite(GUEST_IDTR_BASE, idtr->dr_base);
 
-	vmx_vmwrite(EPT_POINTER, cpuinfo->vm_ept_tables | 0x6 | (3 << 3));
+	vmx_vmwrite(EPT_POINTER, cpuinfo->vm_info.vm_ept | 0x6 | (3 << 3));
 
 	flags = rflags();
 	vmx_vmwrite(GUEST_RFLAGS, flags);
@@ -301,10 +301,10 @@ static void setup_vmcs(struct cpu_info *cpuinfo)
 	vmx_vmwrite(HOST_GDTR_BASE, gdtr->dr_base);
 	vmx_vmwrite(HOST_IDTR_BASE, idtr->dr_base);
 
-	vmx_vmwrite(GUEST_RSP, cpuinfo->vm_vstack);
-	vmx_vmwrite(GUEST_RIP, (uint64_t)cpuinfo->vm_start_vaddr);
+	vmx_vmwrite(GUEST_RSP, cpuinfo->vm_info.vm_stack_vaddr);
+	vmx_vmwrite(GUEST_RIP, (uint64_t)cpuinfo->vm_info.vm_start_vaddr);
 
-	vmx_vmwrite(HOST_RSP, cpuinfo->vmm_vstack);
+	vmx_vmwrite(HOST_RSP, cpuinfo->vmm_info.vmm_stack_vaddr);
 	vmx_vmwrite(HOST_RIP, (uint64_t)host_entry);
 }
 
@@ -317,7 +317,7 @@ void host_entry()
 {
 	cprintk("HOOOOOOOOOSSSSSSSSSTTTTTTTTT!!!!!!!!!!!!!\n", 0xA);
 	uint64_t reason = vmx_vmread (VM_EXIT_REASON);
-	cprintk ("Exited because of %x\n", 0xF, reason);
+	cprintk ("Exited because of %d\n", 0xF, reason);
 	//vmresume();
 	while(1);
 }
@@ -346,11 +346,11 @@ void vmx_init(struct cpu_info *cpuinfo)
 
 	msr_lock();
 
-	vmxon(cpuinfo->vm_vmcs_ptr, cpuinfo->vm_vmxon_ptr);
+	vmxon(cpuinfo->vm_info.vm_vmcs_ptr, cpuinfo->vm_info.vm_vmxon_ptr);
 
-	clear_vmcs (cpuinfo->vm_vmcs_ptr);
+	clear_vmcs (cpuinfo->vm_info.vm_vmcs_ptr);
 
-	load_vmcs (cpuinfo->vm_vmcs_ptr);
+	load_vmcs (cpuinfo->vm_info.vm_vmcs_ptr);
 
 	setup_vmcs (cpuinfo);
 
