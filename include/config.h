@@ -12,7 +12,11 @@
 
 #define NUMBER_SERVERS 2 /* Number of servers to run at booting time */
 #define NUMBER_USER_VMS 1
-#define NUMBER_MODULES 6
+#define NUMBER_MODULES 7
+
+#define PM	0
+#define FS	1
+#define INIT    2
 
 #define BSP_PAGE_SIZE  _2MB_
 #define SRVR_VMS_PAGE_SIZE _2MB_

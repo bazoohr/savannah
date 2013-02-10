@@ -15,6 +15,7 @@ vmm="vmm"
 pm="pm"
 fs="fs"
 init="init"
+initrd="initrd.img"
 usrlib="libos.a"
 bootaps="boot_aps"
 image_name="anarchix.iso"
@@ -52,6 +53,13 @@ for opt do
       exit 1;
     fi
     init="$optarg"
+  ;;
+  --initrd-name=*)
+    if test "$optarg" = ""; then
+      echo "initrd name can not be empty string!";
+      exit 1;
+    fi
+    initrd="$optarg"
   ;;
   --boot_stage1-name=*)
     if test "$optarg" = ""; then
@@ -104,6 +112,7 @@ if test "$show_help" = "yes"; then
   echo "--pm-name           Change default pm name. Default pm name is \"pm\"."
   echo "--fs-name           Change default fs name. Default fs name is \"fs\"."
   echo "--init-name         Change default init name. Default fs name is \"init\"."
+  echo "--initrd-name       Change default initrd name. Default fs name is \"initrd.img\"."
   echo "--boot_stage1-name  Change default loader name. Default loader name is \"stage1.bin\"."
   echo "--boot_stage2-name  Change default loader name. Default loader name is \"stage2.bin\"."
   echo "--image-name        Change default image name. Default image name is \"anarchix.iso\"."
@@ -179,6 +188,7 @@ echo "export VMM         = $vmm"     >> $output
 echo "export PM          = $pm"     >> $output
 echo "export FS          = $fs"     >> $output
 echo "export INIT        = $init"     >> $output
+echo "export INITRD      = $initrd"     >> $output
 echo "export IMAGE       = $image_name" >> $output
 echo "export USRLIB      = $usrlib"     >> $output
 echo "export CC          = $compiler"   >> $output

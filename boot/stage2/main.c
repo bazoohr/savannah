@@ -20,6 +20,7 @@
 #include <message.h>
 #include <memory.h>
 #include <macro.h>
+#include <pm_args.h>
 #include <config.h>
 /* ========================================== */
 struct message *msg_input;
@@ -660,6 +661,17 @@ load_all_vms (phys_addr_t *vms_array, phys_addr_t boot_stage2_end_addr)
 
   }
 }
+static void
+set_vm_args (struct boot_stage2_args *boot_args)
+{
+  static struct pm_args pm_arguments;
+
+  pm_arguments.memory_size = get_mem_size ();
+  pm_arguments.last_used_addr = get_last_used_addr ();
+  get_cpu_info (PM)->vm_args = &pm_arguments;
+
+  get_cpu_info(FS)->vm_args = (void *)boot_args->initrd_elf_addr;
+}
 /* ========================================== */
 void
 boot_stage2_main (struct boot_stage2_args *boot_args)
@@ -700,6 +712,12 @@ boot_stage2_main (struct boot_stage2_args *boot_args)
   kbd_init ();
   load_all_vmms (boot_args->vmm_elf_addr, boot_args->boot_stage2_end_addr);
   load_all_vms (vms_array, boot_args->boot_stage2_end_addr);
+  /* NOTE:
+   *  Since we are setting the PM->last_used_addr, no one after this function
+   *  call should allocate any more memory before PM is booted.
+   */
+  set_vm_args (boot_args);
+
   mp_bootothers ();
   __asm__ __volatile__ ("sti\n");
 

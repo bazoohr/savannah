@@ -3,6 +3,8 @@
 #include <string.h>
 #include <memory.h>
 #include <printk.h>
+#include <config.h>
+
 int
 fork_internal (virt_addr_t register_array_vaddr)
 {

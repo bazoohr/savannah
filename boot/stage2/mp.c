@@ -8,7 +8,6 @@
 #include <mp.h>
 #include <printk.h>
 #include <cpu.h>
-#include <pm_args.h>
 #include <memory.h>
 
 #define IOAPICPA   0xFEC00000	// Default physical address of IO APIC
@@ -99,7 +98,6 @@ mp_bootothers (void)
 {
   cpuid_t i;
   struct cpu_info *cpu;
-  struct pm_args pm_arguments;
 
   cli ();
 
@@ -124,9 +122,6 @@ mp_bootothers (void)
   for (i = 0 ; i < get_ncpus () ; i++) {
     get_cpu_info (i)->ready = 1;
   }
-  pm_arguments.memory_size = get_mem_size ();
-  pm_arguments.last_used_addr = get_last_used_addr ();
-  get_cpu_info (0)->vm_args = &pm_arguments;
   /*
    * XXX:
    *     Here, the BSP switchs to become process manager PM.

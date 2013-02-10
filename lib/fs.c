@@ -1,6 +1,7 @@
 #include <fs.h>
 #include <ipc.h>
 #include <string.h>
+#include <config.h>
 
 int open(const char *pathname, int flags)
 {

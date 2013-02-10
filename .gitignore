@@ -7,6 +7,7 @@
 tags
 config.mak
 output.log
+initrd.img
 
 vms/fs/fs
 vms/fs/include/asm_frame_const.h
@@ -14,6 +15,7 @@ vms/pm/include/asm_frame_const.h
 vms/pm/pm
 vms/init/init
 vms/init/include/asm_frame_const.h
+lib/include/asm_cpu_const.h
 
 boot/loader.bin
 boot/boot_aps
