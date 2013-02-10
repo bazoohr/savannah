@@ -57,6 +57,7 @@ install: build-all
 	@cp vms/pm/$(PM) /tmp/iso/boot/grub
 	@cp vms/fs/$(FS) /tmp/iso/boot/grub
 	@cp vms/init/$(INIT) /tmp/iso/boot/grub
+	@tools/create_initrd tools/1.txt tools/2.txt bin/login
 	@cp $(INITRD) /tmp/iso/boot/grub
 	@genisoimage -quiet -input-charset ascii -R -b boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4 \
              -boot-info-table -o $(IMAGE) /tmp/iso

@@ -19,6 +19,8 @@ lib/include/asm_cpu_const.h
 
 bin/login
 
+tools/create_initrd
+
 boot/loader.bin
 boot/boot_aps
 boot/boot_aps.out
