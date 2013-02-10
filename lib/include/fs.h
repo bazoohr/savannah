@@ -8,6 +8,7 @@
 #define OPEN_IPC	1
 #define READ_IPC	2
 #define CLOSE_IPC       3
+#define LOAD_IPC        4
 
 #define MAX_PATHNAME    32
 #define MAX_BUFFER      32

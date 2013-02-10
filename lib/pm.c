@@ -21,3 +21,20 @@ fork_internal (virt_addr_t register_array_vaddr)
 
   return result;
 }
+
+void
+exec (char *path, int argc, char **argv)
+{
+  struct exec_ipc exec_args;
+  size_t len;
+
+  len = strlen(path) > MAX_PATH ? MAX_PATH : strlen(path);
+
+  strncpy(exec_args.path, path, len);
+  exec_args.path[len] = '\0';
+  exec_args.argc = argc;
+  exec_args.argv = argv;
+
+  msg_send (PM, EXEC_IPC, &exec_args, sizeof (struct exec_ipc));
+  asm volatile ("vmcall;");
+}

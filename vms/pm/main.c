@@ -15,9 +15,12 @@
 #include <string.h>
 #include <ipc.h>
 #include <pm.h>
+#include <fs.h>
 #include <pm_args.h>
 #include <config.h>
 #include <pmap.h>
+#include <elf.h>
+#include <panic.h>
 /* ================================================= */
 #define ALWAYS_BUSY (NUMBER_SERVERS + NUMBER_USER_VMS)
 /* ================================================= */
@@ -66,7 +69,7 @@ get_cpu_info (cpuid_t cpuid)
   return (struct cpu_info *)((phys_addr_t)cpuinfo + cpuid * _4KB_);
 }
 /* ================================================= */
-/*static*/ void
+static void
 ept_pmap (struct cpu_info *child_cpu_info)
 {
   map_memory (&child_cpu_info->vm_info.vm_page_tables,
@@ -213,6 +216,143 @@ local_fork (struct cpu_info *info, struct fork_ipc *fork_args)
   return child_vm;
 }
 /* ================================================= */
+static void
+parse_elf (struct cpu_info *curr_cpu_info, phys_addr_t elf)
+{
+  size_t vm_size;     /* VMM's Code + data + rodata + bss + stack */
+  int ph_num;          /* VMM's number of program headers */
+  int i;
+  Elf64_Ehdr *elf_hdr;  /* Start address of executable */
+  Elf64_Phdr *s;
+
+  /*
+   * stage2 ELF header contains 4 sections. (look at stage2/link64.ld).
+   * These sections are respectively
+   *   1. text
+   *   2. data
+   *   3. rodata
+   *   4. bss
+   * If we first check to make sure we have exactly four sections in the
+   * ELF file loaded by grub.
+   * TODO:
+   * Its also best if we check to make sure that each of these sections
+   * contains exactly the content we expect. Checking only the number of
+   * program headers is SO trivial and unsafe check.
+   */
+  elf_hdr = (Elf64_Ehdr*)elf;  /* Start address of executable */
+
+  ph_num = elf_hdr->e_phnum;    /* Number of program headers in ELF executable */
+  if (ph_num != 4) {
+    cprintk ("ELF executable contains %d sections!\n", 0x4, ph_num);
+    panic ("Unexpected VM Header!\n");
+  }
+
+  s = (Elf64_Phdr*)((uint8_t*)elf + elf_hdr->e_phoff);
+  curr_cpu_info->vm_info.vm_start_vaddr = (virt_addr_t)s->p_vaddr;
+  /* Why Upper bound is ph_num - 1?
+   * Because in the VM ELF executable, last section is .bss which does not have any byes.
+   * So we don't need to copy any bytes from this section into memory. But we do need to allocate
+   * enough memory for this section when we load the executable, and we
+   * also need to zero out allocated memory. That's why we put .bss section at the
+   * end of executable.
+   */
+  for (i = 0; i < ph_num - 1; i++) {
+    phys_addr_t section_src_paddr = 0;
+    phys_addr_t section_dst_paddr = 0;
+    size_t section_size;
+
+    section_src_paddr = elf + s->p_offset;  /* Address of section in executable */
+    section_size = (size_t)s->p_memsz;               /* Section size */
+    if (section_size > 0) {
+      /* Address of section when loaded in ram */
+      section_dst_paddr = (phys_addr_t)malloc_align (section_size, USER_VMS_PAGE_SIZE);
+    }
+
+    switch (i) {
+      case 0:  /* Code */
+        if (section_size == 0) {
+          panic ("VM without code section!");
+        }
+        curr_cpu_info->vm_info.vm_start_paddr = section_dst_paddr;
+        curr_cpu_info->vm_info.vm_code_vaddr = s->p_vaddr;
+        curr_cpu_info->vm_info.vm_code_paddr = section_dst_paddr;
+        curr_cpu_info->vm_info.vm_code_size = section_size;
+        curr_cpu_info->vm_info.vm_regs.rip = curr_cpu_info->vm_info.vm_start_vaddr;
+        break;
+      case 1:  /* Data */
+        curr_cpu_info->vm_info.vm_data_vaddr = s->p_vaddr;
+        curr_cpu_info->vm_info.vm_data_paddr = section_size > 0 ? section_dst_paddr : 0;
+        curr_cpu_info->vm_info.vm_data_size = section_size;
+        break;
+      case 2:  /* Rodata */
+        curr_cpu_info->vm_info.vm_rodata_vaddr = s->p_vaddr;
+        curr_cpu_info->vm_info.vm_rodata_paddr = section_size > 0 ? section_dst_paddr : 0;
+        curr_cpu_info->vm_info.vm_rodata_size = section_size;
+        break;
+      default:
+        panic ("Unexpected VM ELF Header!");
+    }
+
+    if (section_size > 0) {
+      memcpy ((void*)section_dst_paddr, (void*)section_src_paddr, section_size);
+    }
+    s++;    /* Go to next section */
+  }
+
+  /* Last section is bss. We zero out this section */
+  curr_cpu_info->vm_info.vm_bss_vaddr = s->p_vaddr;
+
+  if (s->p_memsz > 0) {
+    curr_cpu_info->vm_info.vm_bss_paddr = (phys_addr_t)malloc_align (_2MB_, USER_VMS_PAGE_SIZE);
+    curr_cpu_info->vm_info.vm_bss_size = s->p_memsz;
+    memset ((void*)curr_cpu_info->vm_info.vm_bss_paddr, 0, s->p_memsz);
+  }
+  /*
+   * Here we want to reserve some space for the stack. Stack should be
+   * 16 byte aligned!
+   */
+  curr_cpu_info->vm_info.vm_stack_vaddr = ALIGN ((virt_addr_t)s->p_vaddr + s->p_memsz, USER_VMS_PAGE_SIZE);
+  curr_cpu_info->vm_info.vm_stack_size = _2MB_;
+  curr_cpu_info->vm_info.vm_stack_paddr = (phys_addr_t)malloc_align (_2MB_, USER_VMS_PAGE_SIZE);
+  curr_cpu_info->vm_info.vm_regs.rsp = curr_cpu_info->vm_info.vm_stack_vaddr + curr_cpu_info->vm_info.vm_stack_size;
+
+  vm_size = (curr_cpu_info->vm_info.vm_stack_paddr + curr_cpu_info->vm_info.vm_stack_size) - curr_cpu_info->vm_info.vm_start_paddr;
+
+  curr_cpu_info->vm_info.vm_end_vaddr = curr_cpu_info->vm_info.vm_start_vaddr + vm_size;
+  curr_cpu_info->vm_info.vm_end_paddr = curr_cpu_info->vm_info.vm_start_paddr + vm_size;
+
+  if (curr_cpu_info->vm_info.vm_end_paddr != curr_cpu_info->vm_info.vm_start_paddr + vm_size) {
+    panic ("PM: Computed two different VM end addresses %x & %x\n", curr_cpu_info->vm_info.vm_end_paddr, curr_cpu_info->vm_info.vm_start_paddr + vm_size);
+  }
+
+  cprintk ("code p = %x v = %x\ndata p = %x v = %x\nrodata p = %x v = %x\nbss p = %x v = %x\nstack p = %x v = %x\n", 0xF, curr_cpu_info->vm_info.vm_code_paddr, curr_cpu_info->vm_info.vm_code_vaddr,
+      curr_cpu_info->vm_info.vm_data_paddr, curr_cpu_info->vm_info.vm_data_vaddr,
+      curr_cpu_info->vm_info.vm_rodata_paddr, curr_cpu_info->vm_info.vm_rodata_vaddr,
+      curr_cpu_info->vm_info.vm_bss_paddr, curr_cpu_info->vm_info.vm_bss_vaddr,
+      curr_cpu_info->vm_info.vm_stack_paddr, curr_cpu_info->vm_info.vm_stack_vaddr);
+  cprintk ("========================\n", 0xF);
+}
+static pid_t
+local_exec (struct cpu_info *info, struct exec_ipc *exec_args)
+{
+  msg_send (FS, LOAD_IPC, exec_args->path, sizeof(char*));
+  msg_receive ();
+
+  phys_addr_t elf = *(phys_addr_t *)cpuinfo->msg_input->data;
+
+  if (elf == 0) {
+    return -1;
+  }
+
+  cprintk("%c %c %c %c\n", 0xF, ((char*)elf)[0], ((char*)elf)[1], ((char*)elf)[2], ((char*)elf)[3]);
+
+  parse_elf(info, elf);
+
+  ept_pmap (info);
+
+  return 0;
+}
+/* ================================================= */
 void
 vm_main (void)
 {
@@ -227,19 +367,23 @@ vm_main (void)
 
   while (1) {
     struct message *m = msg_check();
-    struct fork_ipc fork_args;
     pid_t r;
 
-    memcpy (&fork_args, m->data, sizeof (struct fork_ipc));
 
     switch(m->number) {
       case FORK_IPC:
-          r = local_fork (get_cpu_info (m->from), &fork_args);
-          if (r < MAX_CPUS) {
-            msg_reply (r, FORK_IPC, &r, sizeof (pid_t));
-          }
-          msg_reply(m->from, FORK_IPC, &r, sizeof(int));
+          r = local_fork (get_cpu_info (m->from), (struct fork_ipc *)m->data);
+	  /* Reply to the child */
+	  if (r != -1) {
+		  msg_reply (r, FORK_IPC, &r, sizeof (pid_t));
+	  }
+	  /* Reply to the parent */
+	  msg_reply(m->from, FORK_IPC, &r, sizeof(pid_t));
           break;
+      case EXEC_IPC:
+	  r = local_exec (get_cpu_info (m->from), (struct exec_ipc *)m->data);
+	  msg_reply (m->from, EXEC_IPC, &r, sizeof (pid_t));
+	  break;
       default:
         cprintk("PM: Warning, unknown request %d from %d\n", 0xD, m->number, m->from);
     }

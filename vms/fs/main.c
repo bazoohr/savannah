@@ -97,6 +97,26 @@ local_close(int fd)
   return 0;
 }
 
+phys_addr_t
+local_load(char *path)
+{
+  int i;
+  struct header *tmp;
+  int num_files;
+
+  // Search if the file exists
+  num_files = (int)*filesystem;
+  for (i = 0 ; i < num_files ; i++) {
+    tmp = (struct header *)(filesystem + sizeof(int) + (i * sizeof(struct header)));
+    if (strcmp(tmp->name, path) == 0)
+      break;
+  }
+  if (i >= num_files)
+    return 0;
+
+  return (phys_addr_t)(filesystem + tmp->offset);
+}
+
 void
 vm_main (void)
 {
@@ -115,6 +135,7 @@ vm_main (void)
     struct read_ipc readtmp;
     struct close_ipc closetmp;
     int r;
+    phys_addr_t f;
 
     switch(m->number) {
     case OPEN_IPC:
@@ -132,6 +153,10 @@ vm_main (void)
       memcpy(&closetmp, &m->data, sizeof(struct close_ipc));
       r = local_close(closetmp.fd);
       msg_reply(m->from, CLOSE_IPC, &r, sizeof(int));
+      break;
+    case LOAD_IPC:
+      f = local_load(m->data);
+      msg_reply(m->from, LOAD_IPC, &f, sizeof(phys_addr_t));
       break;
     default:
       cprintk("FS: Warning, unknown request %d\n", 0xD, m->number);

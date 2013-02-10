@@ -7,6 +7,7 @@
 #include <cpu.h>
 #include <string.h>
 #include <cpuinfo.h>
+#include <ipc.h>
 
 static int cpu_has_vmx()
 {
@@ -314,15 +315,6 @@ void vmresume()
 	__asm__ volatile (ASM_VMX_VMRESUME);
 }
 
-void host_entry()
-{
-	cprintk("HOOOOOOOOOSSSSSSSSSTTTTTTTTT!!!!!!!!!!!!!\n", 0xA);
-	uint64_t reason = vmx_vmread (VM_EXIT_REASON);
-	cprintk ("Exited because of %d\n", 0xF, reason);
-	//vmresume();
-	while(1);
-}
-
 void vmlaunch()
 {
   __asm__ __volatile__ (
@@ -361,6 +353,35 @@ void vmlaunch()
       [VM_REGS_R15_IDX]"i"(offsetof (struct cpu_info, vm_info.vm_regs.r15)),
       [VM_REGS_RDI_IDX]"i"(offsetof (struct cpu_info, vm_info.vm_regs.rdi))
   );
+}
+
+void host_entry()
+{
+	uint64_t reason = vmx_vmread (VM_EXIT_REASON);
+
+	/* If the reason is because of a VMCALL */
+	if (reason == 18) {
+		msg_receive();
+
+		int r = *(int*)cpuinfo->msg_input->data;
+		if (r == -1) {
+			cprintk("Exec FAILED!: %d\n", 0x4, *(int*)cpuinfo->msg_input->data);
+			while(1);
+		}
+
+		clear_vmcs (cpuinfo->vm_info.vm_vmcs_ptr);
+
+		load_vmcs (cpuinfo->vm_info.vm_vmcs_ptr);
+
+		setup_vmcs ();
+
+		vmlaunch ();
+	} else {
+		cprintk("HOOOOOOOOOSSSSSSSSSTTTTTTTTT!!!!!!!!!!!!!\n", 0xA);
+		cprintk ("Exited because of %d\n", 0xF, reason);
+		//vmresume();
+		while(1);
+	}
 }
 
 void vmx_init(void)
