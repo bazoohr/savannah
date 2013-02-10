@@ -9,9 +9,10 @@
 #include <mp.h>
 #include <cpu.h>
 #include <vmx.h>
+#include <ipc.h>
 /* ========================================== */
 void
-vmm_main (struct cpu_info *cpuinfo)
+vmm_main (void)
 {
   int i;
   con_init ();
@@ -31,10 +32,13 @@ vmm_main (struct cpu_info *cpuinfo)
      * TODO:
      *      Wait for a message
      */
-    halt ();
+    msg_receive ();
+
+    cprintk ("Going to launch rip = %x stack = %x\n", 0x2, cpuinfo->vm_info.vm_regs.rip, cpuinfo->vm_info.vm_regs.rsp);
+    cprintk ("VM_INPUT %x VM_OUTPUT %x VM_READY = %x\n", 0x2, cpuinfo->msg_input, cpuinfo->msg_output, &cpuinfo->msg_ready[0]);
   }
   /* ================================== */
-  vmx_init (cpuinfo);
+  vmx_init ();
   /* ================================== */
   cprintk ("We should NEVER get here!\n", 0x4);
   halt ();

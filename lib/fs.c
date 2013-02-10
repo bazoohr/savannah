@@ -5,16 +5,18 @@
 int open(const char *pathname, int flags)
 {
   struct open_ipc tmp;
+  int r;
+  size_t len;
 
-  int len = strlen(pathname) > MAX_PATHNAME ? MAX_PATHNAME : strlen(pathname);
+  len = strlen(pathname) > MAX_PATHNAME ? MAX_PATHNAME : strlen(pathname);
 
   strncpy(tmp.pathname, pathname, len);
+  tmp.pathname[len] = '\0';
   tmp.flags = flags;
 
   msg_send(FS, OPEN_IPC, &tmp, sizeof(struct open_ipc));
   msg_receive();
 
-  int r;
   memcpy(&r, &cpuinfo->msg_input->data, sizeof(int));
 
   return r;

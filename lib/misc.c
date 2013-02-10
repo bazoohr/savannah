@@ -4,6 +4,9 @@
 
 void wait_ready(void)
 {
+  if (cpuinfo->cpuid == 0)
+    return;
+
   cpuinfo->msg_ready[0] = true;
   while(! cpuinfo->ready)
     /* Wait */;

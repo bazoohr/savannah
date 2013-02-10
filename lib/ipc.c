@@ -29,7 +29,7 @@ msg_send(const int to, const int number, const void *data, const int size)
 
   cpuinfo->msg_output->from = id;
   cpuinfo->msg_output->number = number;
-  memcpy(&cpuinfo->msg_output->data, data, size);
+  memcpy(cpuinfo->msg_output->data, data, size);
 
   cpuinfo->msg_ready[to] = true;
 }

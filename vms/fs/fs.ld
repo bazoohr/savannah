@@ -21,25 +21,25 @@ PHDRS
 /* ======================================== */
 SECTIONS
 {
-	. = 0x40000000;
+	. = 0x2E00000;
 	.text :
 		{
 			*(.text)
 			_etext = .;
 		}:text
-  . = ALIGN (0x200000);
+  . = ALIGN (0x10);
 	.data :
 		{
 			*(.data)
 			_edata = .;
 		}:data
-  . = ALIGN (0x200000);
+  . = ALIGN (0x10);
 	.rodata :
 		{
 			*(.rodata)
 			_erodata = .;
 		}:rodata
-  . = ALIGN (0x200000);
+  . = ALIGN (0x10);
 	.bss :
 		{
 			*(.bss)

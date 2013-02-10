@@ -6,6 +6,7 @@
 #include <printk.h>
 #include <cpu.h>
 #include <string.h>
+#include <cpuinfo.h>
 
 static int cpu_has_vmx()
 {
@@ -133,7 +134,7 @@ static void vmx_vmwrite(uint64_t field, uint64_t value)
 
 void host_entry();
 
-static void setup_vmcs(struct cpu_info *cpuinfo)
+static void setup_vmcs(void)
 {
 	struct descriptor_register *gdtr = NULL;
 	sgdt(gdtr);
@@ -301,10 +302,10 @@ static void setup_vmcs(struct cpu_info *cpuinfo)
 	vmx_vmwrite(HOST_GDTR_BASE, gdtr->dr_base);
 	vmx_vmwrite(HOST_IDTR_BASE, idtr->dr_base);
 
-	vmx_vmwrite(GUEST_RSP, cpuinfo->vm_info.vm_stack_vaddr);
-	vmx_vmwrite(GUEST_RIP, (uint64_t)cpuinfo->vm_info.vm_start_vaddr);
+	vmx_vmwrite(GUEST_RSP, cpuinfo->vm_info.vm_regs.rsp);
+	vmx_vmwrite(GUEST_RIP, (uint64_t)cpuinfo->vm_info.vm_regs.rip);
 
-	vmx_vmwrite(HOST_RSP, cpuinfo->vmm_info.vmm_stack_vaddr);
+	vmx_vmwrite(HOST_RSP, cpuinfo->vmm_info.vmm_regs.rsp);
 	vmx_vmwrite(HOST_RIP, (uint64_t)host_entry);
 }
 
@@ -324,10 +325,45 @@ void host_entry()
 
 void vmlaunch()
 {
-	__asm__ volatile (ASM_VMX_VMLAUNCH);
+  __asm__ __volatile__ (
+      "movq %c[VM_REGS_RAX_IDX](%0), %%rax\n\t"
+      "movq %c[VM_REGS_RBX_IDX](%0), %%rbx\n\t"
+      "movq %c[VM_REGS_RCX_IDX](%0), %%rcx\n\t"
+      "movq %c[VM_REGS_RDX_IDX](%0), %%rdx\n\t"
+      "movq %c[VM_REGS_RSI_IDX](%0), %%rsi\n\t"
+      "movq %c[VM_REGS_RBP_IDX](%0), %%rbp\n\t"
+      "movq %c[VM_REGS_R8_IDX](%0), %%r8\n\t"
+      "movq %c[VM_REGS_R9_IDX](%0), %%r9\n\t"
+      "movq %c[VM_REGS_R10_IDX](%0), %%r10\n\t"
+      "movq %c[VM_REGS_R11_IDX](%0), %%r11\n\t"
+      "movq %c[VM_REGS_R12_IDX](%0), %%r12\n\t"
+      "movq %c[VM_REGS_R13_IDX](%0), %%r13\n\t"
+      "movq %c[VM_REGS_R14_IDX](%0), %%r14\n\t"
+      "movq %c[VM_REGS_R15_IDX](%0), %%r15\n\t"
+      "movq %c[VM_REGS_RDI_IDX](%0), %%rdi\n\t"
+      ASM_VMX_VMLAUNCH
+      :
+      :
+      "D"(cpuinfo),
+      [VM_REGS_RAX_IDX]"i"(offsetof (struct cpu_info, vm_info.vm_regs.rax)),
+      [VM_REGS_RBX_IDX]"i"(offsetof (struct cpu_info, vm_info.vm_regs.rbx)),
+      [VM_REGS_RCX_IDX]"i"(offsetof (struct cpu_info, vm_info.vm_regs.rcx)),
+      [VM_REGS_RDX_IDX]"i"(offsetof (struct cpu_info, vm_info.vm_regs.rdx)),
+      [VM_REGS_RSI_IDX]"i"(offsetof (struct cpu_info, vm_info.vm_regs.rsi)),
+      [VM_REGS_RBP_IDX]"i"(offsetof (struct cpu_info, vm_info.vm_regs.rbp)),
+      [VM_REGS_R8_IDX]"i"(offsetof (struct cpu_info, vm_info.vm_regs.r8)),
+      [VM_REGS_R9_IDX]"i"(offsetof (struct cpu_info, vm_info.vm_regs.r9)),
+      [VM_REGS_R10_IDX]"i"(offsetof (struct cpu_info, vm_info.vm_regs.r10)),
+      [VM_REGS_R11_IDX]"i"(offsetof (struct cpu_info, vm_info.vm_regs.r11)),
+      [VM_REGS_R12_IDX]"i"(offsetof (struct cpu_info, vm_info.vm_regs.r12)),
+      [VM_REGS_R13_IDX]"i"(offsetof (struct cpu_info, vm_info.vm_regs.r13)),
+      [VM_REGS_R14_IDX]"i"(offsetof (struct cpu_info, vm_info.vm_regs.r14)),
+      [VM_REGS_R15_IDX]"i"(offsetof (struct cpu_info, vm_info.vm_regs.r15)),
+      [VM_REGS_RDI_IDX]"i"(offsetof (struct cpu_info, vm_info.vm_regs.rdi))
+  );
 }
 
-void vmx_init(struct cpu_info *cpuinfo)
+void vmx_init(void)
 {
 	/* TODO:
 	 * Make Sure A20 line is disabled here
@@ -352,7 +388,7 @@ void vmx_init(struct cpu_info *cpuinfo)
 
 	load_vmcs (cpuinfo->vm_info.vm_vmcs_ptr);
 
-	setup_vmcs (cpuinfo);
+	setup_vmcs ();
 
 	vmlaunch ();
 

@@ -9,6 +9,18 @@
 static size_t memory_size;
 static phys_addr_t first_free_addr;
 /* ============================================== */
+size_t
+get_mem_size (void)
+{
+  return memory_size;
+}
+/* ============================================== */
+phys_addr_t
+get_last_used_addr (void)
+{
+  return first_free_addr;
+}
+/* ============================================== */
 void *
 malloc (size_t size)
 {

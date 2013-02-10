@@ -120,10 +120,13 @@ struct regs {
 	register_t r13;
 	register_t r14;
 	register_t r15;
+  register_t cr0;
 	register_t cr3;
+	register_t cr4;
 }__packed;
 
 struct vm_proc {
+  struct regs vm_regs;
   phys_addr_t vm_start_paddr; // VM's physical start address
   phys_addr_t vm_end_paddr;   // VM's physical end address
 
@@ -156,6 +159,7 @@ struct vm_proc {
 };
 
 struct vmm_proc {
+  struct regs vmm_regs;
   phys_addr_t vmm_start_paddr; // VMM's physical start address
   phys_addr_t vmm_end_paddr;   // VMM's physical end address
 
@@ -188,6 +192,7 @@ struct cpu_info {
   uint8_t cpuid;  // Kernel CPU ID
   volatile uint8_t ready;   // Is the CPU ready to launch the VM?
   struct vm_proc vm_info;
+  void *vm_args;
   struct vmm_proc vmm_info;
 
   struct message *msg_input;

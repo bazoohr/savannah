@@ -55,5 +55,6 @@ typedef uint64_t   register_t;
 #endif
 
 typedef uint64_t cpuid_t;
+typedef uint32_t pid_t;
 
 #endif  /* types.h */

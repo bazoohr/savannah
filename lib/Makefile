@@ -4,19 +4,19 @@ include $(ROOT)/rules.mak
 
 MYDIR = lib/
 
-CFLAGS  += -I ./include/ -I $(ROOT)/include/ 
+CFLAGS  += -I ./include/ -I $(ROOT)/include/ -I $(ROOT)/vms/pm/include/
 ASFLAGS += -I ./include/ -I $(ROOT)/include/
 
 AR=ar
 ARFLAGS=cr
 
-SRC = ipc.c misc.c string.c fs.c
+SRC = ipc.c misc.c string.c fs.c pm.c asm_lib.S lib_mem.c
 
 OBJ = $(subst .S,.o,$(filter %.S,$(SRC))) $(subst .c,.o,$(filter %.c,$(SRC)))
 
 $(USRLIB): $(OBJ)
 	$(call silent_command, $(AR) $(ARFLAGS) $@ $(OBJ), "    ARCH  $(MYDIR)$@")
- 
+
 -include $(subst .c,.d,$(filter %.c,$(SRC)))
 
 .PHONY: clean

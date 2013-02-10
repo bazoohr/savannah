@@ -8,6 +8,8 @@
 #include <mp.h>
 #include <printk.h>
 #include <cpu.h>
+#include <pm_args.h>
+#include <memory.h>
 
 #define IOAPICPA   0xFEC00000	// Default physical address of IO APIC
 
@@ -97,7 +99,10 @@ mp_bootothers (void)
 {
   cpuid_t i;
   struct cpu_info *cpu;
+  struct pm_args pm_arguments;
+
   cli ();
+
   for (i = 1; i < get_ncpus (); i++) {
     cpu = get_cpu_info (i);
 
@@ -119,6 +124,9 @@ mp_bootothers (void)
   for (i = 0 ; i < get_ncpus () ; i++) {
     get_cpu_info (i)->ready = 1;
   }
+  pm_arguments.memory_size = get_mem_size ();
+  pm_arguments.last_used_addr = get_last_used_addr ();
+  get_cpu_info (0)->vm_args = &pm_arguments;
   /*
    * XXX:
    *     Here, the BSP switchs to become process manager PM.
@@ -137,7 +145,7 @@ mp_bootothers (void)
                         "r"(get_cpu_info(0)->vmm_info.vmm_stack_vaddr),
                         "r"(get_cpu_info (0)),
                         "r"(CPU_INFO_PTR_ADDR),
-                        "r"(get_cpu_info (0)->vm_info.vm_start_vaddr)
+                        "r"(get_cpu_info (0)->vmm_info.vmm_start_vaddr)
                         );
   /* We MUST NOT get to this point */
   panic ("Failed to run VMM on BootStrap Processor");

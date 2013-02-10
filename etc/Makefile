@@ -29,6 +29,7 @@ gen_asm_boot_stage2_args_const_h: gen_asm_boot_stage2_args_const_h.c $(ROOT)/inc
 gen_asm_cpu_const_h: gen_asm_cpu_const_h.c $(ROOT)/include/cpu.h
 	$(CC) $(CFLAGS) -o $@ $@.c
 	$(call silent_command, ./$@ > $(ROOT)/boot/stage2/include/asm_cpu_const.h, "    GEN    $(CURDIR)/boot/stage2/include/asm_cpu_const.h")
+	$(call silent_command, ./$@ > $(ROOT)/lib/include/asm_cpu_const.h, "    GEN    $(CURDIR)/lib/include/asm_cpu_const.h")
 clean:
 	$(call silent_command, rm -f *.o *.d, "    CLEAN $(MYDIR)")
 	@rm -f `echo *.c | sed 's/ /\n/g' | sed 's/\(^.*\)\.c/\1/g'`
