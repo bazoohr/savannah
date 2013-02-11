@@ -21,9 +21,10 @@ config.mak:
 endif
 
 build-all:
-	$(call silent_command, $(MAKE) -s --no-print-directory -C lib   )
-	$(call silent_command, $(MAKE) -s --no-print-directory -C bin)
 	$(call silent_command, $(MAKE) -s --no-print-directory -C tools)
+	$(call silent_command, $(MAKE) -s --no-print-directory -C lib   )
+	$(call silent_command, $(MAKE) -s --no-print-directory -C drivers)
+	$(call silent_command, $(MAKE) -s --no-print-directory -C bin)
 	$(call silent_command, $(MAKE) -s --no-print-directory -C initrd)
 	$(call silent_command, $(MAKE) -s --no-print-directory -C boot  )
 	$(call silent_command, $(MAKE) -s --no-print-directory -C vmm)
@@ -67,9 +68,10 @@ run:
 clean:
 	$(call silent_command, rm -f *.o *.d *.bin, "    CLEAN")
 	$(call silent_command, rm -f $(IMAGE))
-	$(call silent_command, $(MAKE) clean --no-print-directory -C lib   )
-	$(call silent_command, $(MAKE) clean --no-print-directory -C bin)
 	$(call silent_command, $(MAKE) clean --no-print-directory -C tools)
+	$(call silent_command, $(MAKE) clean --no-print-directory -C lib   )
+	$(call silent_command, $(MAKE) clean --no-print-directory -C drivers)
+	$(call silent_command, $(MAKE) clean --no-print-directory -C bin)
 	$(call silent_command, $(MAKE) clean --no-print-directory -C initrd)
 	$(call silent_command, $(MAKE) clean --no-print-directory -C boot  )
 	$(call silent_command, $(MAKE) clean --no-print-directory -C vmm)
@@ -77,9 +79,10 @@ clean:
 distclean:
 	$(call silent_command, rm -f *.o *.d *.bin, "    CLEAN ALL")
 	$(call silent_command, rm -f $(IMAGE))
-	$(call silent_command, $(MAKE) distclean --no-print-directory -C lib     )
-	$(call silent_command, $(MAKE) distclean --no-print-directory -C bin  )
 	$(call silent_command, $(MAKE) distclean --no-print-directory -C tools)
+	$(call silent_command, $(MAKE) distclean --no-print-directory -C lib     )
+	$(call silent_command, $(MAKE) distclean --no-print-directory -C drivers  )
+	$(call silent_command, $(MAKE) distclean --no-print-directory -C bin  )
 	$(call silent_command, $(MAKE) distclean --no-print-directory -C initrd)
 	$(call silent_command, $(MAKE) distclean --no-print-directory -C boot    )
 	$(call silent_command, $(MAKE) distclean --no-print-directory -C vmm  )

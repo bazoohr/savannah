@@ -28,6 +28,8 @@
 #define FREE false
 /* ================================================= */
 static bool vm_table[MAX_CPUS];
+static char arg_vector[MAX_ARGV][MAX_ARGV_LEN];
+static virt_addr_t argv_ptr[MAX_ARGV];
 /* ================================================= */
 static pid_t
 find_free_vm (void)
@@ -167,6 +169,12 @@ local_fork (struct cpu_info *info, struct fork_ipc *fork_args)
 
   child_cpu_info = get_cpu_info (child_vm);
   parent_cpu_info = get_cpu_info (parent_id);
+
+  child_cpu_info->vm_info.vm_start_vaddr = parent_cpu_info->vm_info.vm_start_vaddr;
+  child_cpu_info->vm_info.vm_start_paddr = parent_cpu_info->vm_info.vm_start_paddr;
+
+  child_cpu_info->vm_info.vm_end_vaddr = parent_cpu_info->vm_info.vm_end_vaddr;
+  child_cpu_info->vm_info.vm_end_paddr = parent_cpu_info->vm_info.vm_end_paddr;
 
   child_cpu_info->vm_info.vm_code_paddr = (phys_addr_t)malloc_align (parent_cpu_info->vm_info.vm_code_size, USER_VMS_PAGE_SIZE);
   child_cpu_info->vm_info.vm_code_vaddr = parent_cpu_info->vm_info.vm_code_vaddr;
@@ -337,7 +345,6 @@ static pid_t
 local_exec (struct cpu_info *info, struct exec_ipc *exec_args)
 {
   phys_addr_t *msg_data;
-
   msg_send (FS, LOAD_IPC, exec_args->path, sizeof(char*));
   msg_receive ();
 
@@ -350,11 +357,50 @@ local_exec (struct cpu_info *info, struct exec_ipc *exec_args)
   }
 
   cprintk("%c %c %c %c\n", 0xF, ((char*)elf)[0], ((char*)elf)[1], ((char*)elf)[2], ((char*)elf)[3]);
+  int i;
+
+  int argc;
+  strcpy (arg_vector[0], exec_args->path);
+  for (i = 1; i < MAX_ARGV; i++) {
+    char *curr_arg;
+
+    if (exec_args->argv[i - 1] == NULL) {
+      break;
+    }
+
+    curr_arg  = (char *)virt2phys (info, (virt_addr_t)exec_args->argv[i - 1]);
+
+    strcpy (arg_vector[i], curr_arg);
+  }
+
+  argc = i;
 
   parse_elf(info, elf);
 
   ept_pmap (info);
 
+  phys_addr_t stack_phys_off = virt2phys (info, (virt_addr_t)info->vm_info.vm_regs.rsp);
+  virt_addr_t stack_virt_off = (virt_addr_t)info->vm_info.vm_regs.rsp;
+  for (i = 0; i < argc; i++) {
+    stack_phys_off -= (strlen (arg_vector[i]) + 1);
+    stack_virt_off -= (strlen (arg_vector[i]) + 1);
+    argv_ptr[i] = stack_virt_off;
+    strcpy ((char *)stack_phys_off, arg_vector[i]);
+    cprintk ("stack_phys_off = %x content = %s\n", 0xE, stack_phys_off, stack_phys_off);
+  }
+
+  virt_addr_t argv_virt_ptr = stack_virt_off - argc * sizeof (virt_addr_t *);
+  virt_addr_t *argv_phys_ptr = (phys_addr_t *)(stack_phys_off - argc * sizeof (virt_addr_t *));
+  for (i = 0; i < argc; i++) {
+    argv_phys_ptr[i] = (virt_addr_t)argv_ptr[i];
+    cprintk ("argv_ptr[%d] = %x ---> %x\n", 0xE, i, &argv_phys_ptr[i], argv_phys_ptr[i]);
+  }
+
+  info->vm_info.vm_regs.rsp = (virt_addr_t)(argv_virt_ptr - sizeof (uint64_t));
+
+  info->vm_info.vm_regs.rdx = (phys_addr_t)info;
+  info->vm_info.vm_regs.rdi = argc;
+  info->vm_info.vm_regs.rsi = argv_virt_ptr;//info->vm_info.vm_stack_vaddr;
   return 0;
 }
 /* ================================================= */

@@ -22,4 +22,6 @@
 #define SRVR_VMS_PAGE_SIZE _2MB_
 #define USER_VMS_PAGE_SIZE _4KB_
 
+#define MAX_ARGV 16
+#define MAX_ARGV_LEN 256
 #endif /* __CONFIG_H__ */

@@ -55,13 +55,14 @@ vm_main (void)
   cprintk("INIT: Fd1 = %d\n", 0xD, fd);
   cprintk("INIT: Fd2 = %d\n", 0xD, fd2);
 
+  char *string[] = {"Hamid", "Francesco", NULL};
   int pid = fork ();
   if (pid == -1) {
     cprintk ("Failed to fork!\n", 0x4);
   } else if (pid == 0) {
     for (i = 0 ; i < cpuinfo->cpuid ; i++) printk("\n");
     cprintk ("I am a child pid = %d fd2 = %d fd1 = %d test = %x\n", 0xD, pid, fd2, fd, test);
-    exec("login", '@', NULL);
+    exec("login", 3, string);
   } else {
     for (i = 0 ; i < cpuinfo->cpuid ; i++) printk("\n");
     cprintk ("parent: child's PID = %d fd2 = %d fd = %d test = %x\n", 0xE, pid, fd2, fd, test);

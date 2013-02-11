@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <libgen.h>
+#include <stdlib.h>
 
 /*
  * This small C code creates an initrd image with the following structure.
@@ -23,8 +24,9 @@ struct header {
 };
 
 /* Maximum size for one file */
-#define MAX    (8192)
+#define MAX    (0x400000)
 
+char buffer[MAX];
 int main(int argc, char *argv[])
 {
 	FILE *initrd, *f_tmp;
@@ -33,7 +35,6 @@ int main(int argc, char *argv[])
 	struct header h_tmp;
 
 	int off = (sizeof(struct header) * num_files) + sizeof(int);
-	char buffer[MAX];
 
 	if (argc == 1) {
 		printf("Usage: %s <files>\n", argv[0]);
@@ -48,12 +49,16 @@ int main(int argc, char *argv[])
 	/* Write all the headers */
 	for (i = 0 ; i < num_files ; i++) {
 		f_tmp = fopen(argv[1 + i], "r");
+    if (f_tmp == NULL) {
+      fprintf (stderr, "File %s not found!\n", argv[1 + i]);
+      exit (1);
+    }
 
 		fseek(f_tmp, 0L, SEEK_END);
 		len = ftell(f_tmp);
 		if (len > MAX) {
 			printf("File %s is bigger than %d\n", argv[1 + i], MAX);
-			continue;
+      exit (1);
 		}
 
 		strcpy(h_tmp.name, basename(argv[1 + i]));
@@ -72,8 +77,7 @@ int main(int argc, char *argv[])
 
 		fseek(f_tmp, 0L, SEEK_END);
 		len = ftell(f_tmp);
-		if (len > MAX)
-			continue;
+
 		rewind(f_tmp);
 
 		fread(&buffer, 1, len, f_tmp);
