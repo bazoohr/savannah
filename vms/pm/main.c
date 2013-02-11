@@ -332,13 +332,18 @@ parse_elf (struct cpu_info *curr_cpu_info, phys_addr_t elf)
       curr_cpu_info->vm_info.vm_stack_paddr, curr_cpu_info->vm_info.vm_stack_vaddr);
   cprintk ("========================\n", 0xF);
 }
+/* ================================================= */
 static pid_t
 local_exec (struct cpu_info *info, struct exec_ipc *exec_args)
 {
+  phys_addr_t *msg_data;
+
   msg_send (FS, LOAD_IPC, exec_args->path, sizeof(char*));
   msg_receive ();
 
-  phys_addr_t elf = *(phys_addr_t *)cpuinfo->msg_input->data;
+  msg_data = (phys_addr_t*)cpuinfo->msg_input->data;
+
+  phys_addr_t elf = *msg_data;
 
   if (elf == 0) {
     return -1;
@@ -369,21 +374,20 @@ vm_main (void)
     struct message *m = msg_check();
     pid_t r;
 
-
     switch(m->number) {
       case FORK_IPC:
-          r = local_fork (get_cpu_info (m->from), (struct fork_ipc *)m->data);
-	  /* Reply to the child */
-	  if (r != -1) {
-		  msg_reply (r, FORK_IPC, &r, sizeof (pid_t));
-	  }
-	  /* Reply to the parent */
-	  msg_reply(m->from, FORK_IPC, &r, sizeof(pid_t));
-          break;
+        r = local_fork (get_cpu_info (m->from), (struct fork_ipc *)m->data);
+        /* Reply to the child */
+        if (r != -1) {
+          msg_reply (r, FORK_IPC, &r, sizeof (pid_t));
+        }
+        /* Reply to the parent */
+        msg_reply(m->from, FORK_IPC, &r, sizeof(pid_t));
+        break;
       case EXEC_IPC:
-	  r = local_exec (get_cpu_info (m->from), (struct exec_ipc *)m->data);
-	  msg_reply (m->from, EXEC_IPC, &r, sizeof (pid_t));
-	  break;
+        r = local_exec (get_cpu_info (m->from), (struct exec_ipc *)m->data);
+        msg_reply (m->from, EXEC_IPC, &r, sizeof (pid_t));
+        break;
       default:
         cprintk("PM: Warning, unknown request %d from %d\n", 0xD, m->number, m->from);
     }

@@ -1,5 +1,4 @@
 #include <ipc.h>
-#include <fs.h>
 #include <string.h>
 #include <misc.h>
 
@@ -85,7 +84,8 @@ msg_check()
   }
 
   int id = cpuinfo->cpuid;
-  int i;
+  /* Volatile is because of preventing GCC of doing cazy (WRONG)optimizations in O3 */
+  volatile int i;
   int from = -1;
 
   bool *base_r = (bool*)((phys_addr_t)cpuinfo->msg_ready - (_4KB_ * id));
@@ -93,7 +93,7 @@ msg_check()
     for (i = 0 ; i < 8/*get_ncpus()*/ ; i++) {
       if (*(bool*)((phys_addr_t)base_r + (_4KB_ * i) + id)) {
         from = i;
-	break;
+        break;
       }
     }
     if (from != -1)

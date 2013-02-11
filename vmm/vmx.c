@@ -358,14 +358,17 @@ void vmlaunch()
 void host_entry()
 {
 	uint64_t reason = vmx_vmread (VM_EXIT_REASON);
+  phys_addr_t msg_data;
 
 	/* If the reason is because of a VMCALL */
 	if (reason == 18) {
 		msg_receive();
 
-		int r = *(int*)cpuinfo->msg_input->data;
+    msg_data = (phys_addr_t)cpuinfo->msg_input->data;
+
+		int r = *(int*)msg_data;
 		if (r == -1) {
-			cprintk("Exec FAILED!: %d\n", 0x4, *(int*)cpuinfo->msg_input->data);
+			cprintk("Exec FAILED!: %d\n", 0x4, *(int *)msg_data);
 			while(1);
 		}
 

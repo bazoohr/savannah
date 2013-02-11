@@ -21,12 +21,13 @@ config.mak:
 endif
 
 build-all:
-	$(call silent_command, $(MAKE) -s --no-print-directory -C etc   )
-	$(call silent_command, $(MAKE) -s --no-print-directory -C boot  )
 	$(call silent_command, $(MAKE) -s --no-print-directory -C lib   )
+	$(call silent_command, $(MAKE) -s --no-print-directory -C bin)
+	$(call silent_command, $(MAKE) -s --no-print-directory -C tools)
+	$(call silent_command, $(MAKE) -s --no-print-directory -C initrd)
+	$(call silent_command, $(MAKE) -s --no-print-directory -C boot  )
 	$(call silent_command, $(MAKE) -s --no-print-directory -C vmm)
 	$(call silent_command, $(MAKE) -s --no-print-directory -C vms)
-	$(call silent_command, $(MAKE) -s --no-print-directory -C bin)
 	@echo "    Built Successfully!"
 
 install: build-all
@@ -47,7 +48,7 @@ install: build-all
 	@rm -rf /tmp/iso
 	@rm -f $(IMAGE)
 	@mkdir -p /tmp/iso/boot/grub
-	@cp etc/stage2_eltorito /tmp/iso/boot/grub
+	@cp tools/stage2_eltorito /tmp/iso/boot/grub
 	@cp /tmp/menu.lst /tmp/iso/boot/grub
 	@rm -f /tmp/menu.lst
 	@cp boot/stage1/$(BOOT_STAGE1) /tmp/iso/boot/grub
@@ -57,8 +58,7 @@ install: build-all
 	@cp vms/pm/$(PM) /tmp/iso/boot/grub
 	@cp vms/fs/$(FS) /tmp/iso/boot/grub
 	@cp vms/init/$(INIT) /tmp/iso/boot/grub
-	@tools/create_initrd tools/1.txt tools/2.txt bin/login
-	@cp $(INITRD) /tmp/iso/boot/grub
+	@cp initrd/$(INITRD) /tmp/iso/boot/grub
 	@genisoimage -quiet -input-charset ascii -R -b boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4 \
              -boot-info-table -o $(IMAGE) /tmp/iso
 	@echo "    Installing... OK"
@@ -67,19 +67,21 @@ run:
 clean:
 	$(call silent_command, rm -f *.o *.d *.bin, "    CLEAN")
 	$(call silent_command, rm -f $(IMAGE))
-	$(call silent_command, $(MAKE) clean --no-print-directory -C etc   )
-	$(call silent_command, $(MAKE) clean --no-print-directory -C boot  )
 	$(call silent_command, $(MAKE) clean --no-print-directory -C lib   )
+	$(call silent_command, $(MAKE) clean --no-print-directory -C bin)
+	$(call silent_command, $(MAKE) clean --no-print-directory -C tools)
+	$(call silent_command, $(MAKE) clean --no-print-directory -C initrd)
+	$(call silent_command, $(MAKE) clean --no-print-directory -C boot  )
 	$(call silent_command, $(MAKE) clean --no-print-directory -C vmm)
 	$(call silent_command, $(MAKE) clean --no-print-directory -C vms)
-	$(call silent_command, $(MAKE) clean --no-print-directory -C bin)
 distclean:
 	$(call silent_command, rm -f *.o *.d *.bin, "    CLEAN ALL")
 	$(call silent_command, rm -f $(IMAGE))
-	$(call silent_command, $(MAKE) distclean --no-print-directory -C etc     )
-	$(call silent_command, $(MAKE) distclean --no-print-directory -C boot    )
 	$(call silent_command, $(MAKE) distclean --no-print-directory -C lib     )
+	$(call silent_command, $(MAKE) distclean --no-print-directory -C bin  )
+	$(call silent_command, $(MAKE) distclean --no-print-directory -C tools)
+	$(call silent_command, $(MAKE) distclean --no-print-directory -C initrd)
+	$(call silent_command, $(MAKE) distclean --no-print-directory -C boot    )
 	$(call silent_command, $(MAKE) distclean --no-print-directory -C vmm  )
 	$(call silent_command, $(MAKE) distclean --no-print-directory -C vms  )
-	$(call silent_command, $(MAKE) distclean --no-print-directory -C bin  )
 	$(call silent_command, rm -f $(CONFIG-MAK))

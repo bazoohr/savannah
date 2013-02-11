@@ -17,6 +17,11 @@ vms/init/init
 vms/init/include/asm_frame_const.h
 lib/include/asm_cpu_const.h
 
+initrd/create_initrd
+tools/gen_asm_boot_stage2_args_const_h
+tools/gen_asm_cpu_const_h
+tools/gen_asm_frame_const_h
+
 bin/login
 
 tools/create_initrd
