@@ -97,6 +97,7 @@ load_all_vmms (phys_addr_t vmm_elf_addr, phys_addr_t boot_stage2_end_addr)
     }
 
     curr_cpu_info = get_cpu_info (curr_cpu);
+    curr_cpu_info->ncpus = get_ncpus ();
 
     /*
      * For servers, we are going to use 2MB pages (for performance and security reasons).

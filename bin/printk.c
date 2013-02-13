@@ -4,16 +4,16 @@
 
 static void put_hex (uint64_t num, int color)
 {
-	int i;
-	char digits[] = "0123456789ABCDEF";
-  char buffer[16];
+	aint i;
+	char digits[] __aligned (0x10)= "0123456789ABCDEF";
+  char buffer[16] __aligned (0x10);
 
   memset (buffer, 0, sizeof buffer);
 
 	for (i = sizeof (uint64_t) * 2 - 1; i >= 0; i--) {
 		buffer[i] = digits[num >> (i << 2) & 0xF];
   }
-  
+
   i = 15;
   while (buffer[i] == '0') i--;
   if (i == -1) {
@@ -26,10 +26,10 @@ static void put_hex (uint64_t num, int color)
 
 static void put_decimal (int num, int color)
 {
-  char buffer[20];
-  bool negative = false;
-  int pos = 0;
-  int i;
+  char buffer[20] __aligned (0x10);
+  abool negative = false;
+  aint pos = 0;
+  aint i;
 
   if (num < 0) {
     num = -num;
@@ -51,8 +51,8 @@ static void put_decimal (int num, int color)
 }
 void printk (const char* fmt, ...)
 {
-	va_list p;
-	char ch;
+	va_list p __aligned (0x10);
+	char ch __aligned (0x10);
 
 	va_start (p, fmt);
 
@@ -66,7 +66,7 @@ void printk (const char* fmt, ...)
 		switch (*fmt++){
 			case 'c':
 				kputc (va_arg (p, int), TEXT_COLOR_WHITE);
-				break; 
+				break;
 			case 'x':
 				put_hex (va_arg (p, long), TEXT_COLOR_WHITE);
 				break;
@@ -101,7 +101,7 @@ void cprintk (const char* fmt, int color, ...)
 		switch (*fmt++){
 			case 'c':
 				kputc (va_arg (p, int), color);
-				break; 
+				break;
 			case 'x':
 				put_hex (va_arg (p, long), color);
 				break;

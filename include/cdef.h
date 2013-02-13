@@ -1,7 +1,6 @@
 #ifndef __CDEF_H__
 #define __CDEF_H__
 
-#include <types.h>
 /* =========================================== */
 #if __GNUC__
 
@@ -11,7 +10,7 @@
 
 #else   /* __GNUC__ */
 
-#define	__offsetof(type, field)	((size_t)(&((type *)0)->field))
+#define	__offsetof(type, field)	(&((type *)0)->field)
 
 #endif   /* __GNUC__ */
 /* =========================================== */

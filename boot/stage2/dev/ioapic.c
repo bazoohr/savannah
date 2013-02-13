@@ -18,7 +18,7 @@ uint32_t ioapicid;
 #define REG_TABLE  0x10  // Redirection table base
 
 // The redirection table starts at REG_TABLE and uses
-// two registers to configure each interrupt.  
+// two registers to configure each interrupt.
 // The first (low) register in a pair contains configuration bits.
 // The second (high) register contains a bitmask telling which
 // CPUs can serve that interrupt.
@@ -56,7 +56,7 @@ ioapic_enable(uint32_t irq, cpuid_t cpunum)
 {
   /*
    * TODO:
-   *  Check that IRQ does not exceed the maximum number of 
+   *  Check that IRQ does not exceed the maximum number of
    *  supported hw interrupts
    */
   ioapic_write(REG_TABLE+2*irq, IRQ_OFFSET + irq);
@@ -68,7 +68,7 @@ ioapic_disable(uint32_t irq, cpuid_t cpunum)
 {
   /*
    * TODO:
-   *  Check that IRQ does not exceed the maximum number of 
+   *  Check that IRQ does not exceed the maximum number of
    *  supported hw interrupts
    */
   /* XXX:

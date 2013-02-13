@@ -27,14 +27,14 @@
 #define BUSY true
 #define FREE false
 /* ================================================= */
-static bool vm_table[MAX_CPUS];
-static char arg_vector[MAX_ARGV][MAX_ARGV_LEN];
-static virt_addr_t argv_ptr[MAX_ARGV];
+static bool vm_table[MAX_CPUS] __aligned (0x10);
+static char arg_vector[MAX_ARGV][MAX_ARGV_LEN] __aligned (0x10);  /* store exec arguments */
+static virt_addr_t argv_ptr[MAX_ARGV] __aligned (0x10); /* virtual addresses of exec arguments*/
 /* ================================================= */
 static pid_t
 find_free_vm (void)
 {
-  int i;
+  aint i;
   for (i = ALWAYS_BUSY; i < MAX_CPUS; i++) {
     if (vm_table[i] == FREE) {
       return i;
@@ -46,8 +46,8 @@ find_free_vm (void)
 static void
 pm_init (void)
 {
-  int i;
-  struct pm_args *pm_arguments;
+  aint i;
+  struct pm_args *pm_arguments __aligned (0x10);
 
   for (i = 0; i < ALWAYS_BUSY; i++) {
     vm_table[i] = BUSY;
@@ -151,10 +151,12 @@ ept_pmap (struct cpu_info *child_cpu_info)
 static pid_t
 local_fork (struct cpu_info *info, struct fork_ipc *fork_args)
 {
-  pid_t child_vm;
-  cpuid_t parent_id;
-  struct cpu_info *child_cpu_info;
-  struct cpu_info *parent_cpu_info;
+  apid_t child_vm;
+  acpuid_t parent_id;
+  struct cpu_info *child_cpu_info __aligned (0x10);
+  struct cpu_info *parent_cpu_info __aligned (0x10);
+  struct cpu_info **child_cpu_info_ptr __aligned (0x10);
+  asize_t offset;
 
   if (info == NULL) {
     return -1;
@@ -215,8 +217,8 @@ local_fork (struct cpu_info *info, struct fork_ipc *fork_args)
    * exactly in which section cpuinfo is stored! At the present time, I just write the code for section BSS to get
    * the job done, but this is NOT the proper way to do this.
    */
-  size_t offset = virt2phys (parent_cpu_info, fork_args->cpuinfo_vaddr) - parent_cpu_info->vm_info.vm_bss_paddr;
-  struct cpu_info **child_cpu_info_ptr = (struct cpu_info **)((phys_addr_t)child_cpu_info->vm_info.vm_bss_paddr + offset);
+  offset = virt2phys (parent_cpu_info, fork_args->cpuinfo_vaddr) - parent_cpu_info->vm_info.vm_bss_paddr;
+  child_cpu_info_ptr = (struct cpu_info **)((phys_addr_t)child_cpu_info->vm_info.vm_bss_paddr + offset);
   *child_cpu_info_ptr = child_cpu_info;
 
   child_cpu_info->vm_info.vm_regs.rax = 0;
@@ -227,11 +229,11 @@ local_fork (struct cpu_info *info, struct fork_ipc *fork_args)
 static void
 parse_elf (struct cpu_info *curr_cpu_info, phys_addr_t elf)
 {
-  size_t vm_size;     /* VMM's Code + data + rodata + bss + stack */
-  int ph_num;          /* VMM's number of program headers */
-  int i;
-  Elf64_Ehdr *elf_hdr;  /* Start address of executable */
-  Elf64_Phdr *s;
+  asize_t vm_size;     /* VMM's Code + data + rodata + bss + stack */
+  aint ph_num;          /* VMM's number of program headers */
+  aint i;
+  Elf64_Ehdr *elf_hdr __aligned (0x10);  /* Start address of executable */
+  Elf64_Phdr *s __aligned (0x10);
 
   /*
    * stage2 ELF header contains 4 sections. (look at stage2/link64.ld).
@@ -265,9 +267,9 @@ parse_elf (struct cpu_info *curr_cpu_info, phys_addr_t elf)
    * end of executable.
    */
   for (i = 0; i < ph_num - 1; i++) {
-    phys_addr_t section_src_paddr = 0;
-    phys_addr_t section_dst_paddr = 0;
-    size_t section_size;
+    aphys_addr_t section_src_paddr = 0;
+    aphys_addr_t section_dst_paddr = 0;
+    asize_t section_size;
 
     section_src_paddr = elf + s->p_offset;  /* Address of section in executable */
     section_size = (size_t)s->p_memsz;               /* Section size */
@@ -344,70 +346,87 @@ parse_elf (struct cpu_info *curr_cpu_info, phys_addr_t elf)
 static pid_t
 local_exec (struct cpu_info *info, struct exec_ipc *exec_args)
 {
-  phys_addr_t *msg_data;
+  aint i;
+  aint argc;
+  aphys_addr_t *msg_data;
+  aphys_addr_t stack_phys_off;
+  avirt_addr_t stack_virt_off;
+  avirt_addr_t argv_virt_ptr;
+  avirt_addr_t *argv_phys_ptr;
+  aphys_addr_t elf;
+
+  /* Ask FS to read the ELF executable file */
   msg_send (FS, LOAD_IPC, exec_args->path, sizeof(char*));
   msg_receive ();
 
   msg_data = (phys_addr_t*)cpuinfo->msg_input->data;
-
-  phys_addr_t elf = *msg_data;
+  elf = *msg_data;
 
   if (elf == 0) {
     return -1;
   }
 
-  cprintk("%c %c %c %c\n", 0xF, ((char*)elf)[0], ((char*)elf)[1], ((char*)elf)[2], ((char*)elf)[3]);
-  int i;
-
-  int argc;
-  strcpy (arg_vector[0], exec_args->path);
+  /*
+   * Arguments are currently on the address space of calling process. Since after
+   * exec, this process would disappear, we have to temporarily save these arguments
+   * in a buffer. Since they are saved in a virtualized address space, w have to use
+   * physical addresses to save them.
+   */
+  strcpy (arg_vector[0], exec_args->path);  /* Name of program, the first argument */
   for (i = 1; i < MAX_ARGV; i++) {
-    char *curr_arg;
-
+    char *curr_phys_arg __aligned (0x10);
+    /* Check for the end of arguments */
     if (exec_args->argv[i - 1] == NULL) {
       break;
     }
 
-    curr_arg  = (char *)virt2phys (info, (virt_addr_t)exec_args->argv[i - 1]);
+    curr_phys_arg  = (char *)virt2phys (info, (virt_addr_t)exec_args->argv[i - 1]);
 
-    strcpy (arg_vector[i], curr_arg);
+    strcpy (arg_vector[i], curr_phys_arg);
   }
 
-  argc = i;
-
+  argc = i;  /* Number of arguments */
+  /* Parse ELF executable, and load the processes */
   parse_elf(info, elf);
-
+  /* Map memory for the new processes */
   ept_pmap (info);
-
-  phys_addr_t stack_phys_off = virt2phys (info, (virt_addr_t)info->vm_info.vm_regs.rsp);
-  virt_addr_t stack_virt_off = (virt_addr_t)info->vm_info.vm_regs.rsp;
+  /* Pass arguments. We use stack to store arguments */
+  stack_phys_off = virt2phys (info, (virt_addr_t)info->vm_info.vm_regs.rsp);
+  stack_virt_off = (virt_addr_t)info->vm_info.vm_regs.rsp;
   for (i = 0; i < argc; i++) {
     stack_phys_off -= (strlen (arg_vector[i]) + 1);
     stack_virt_off -= (strlen (arg_vector[i]) + 1);
     argv_ptr[i] = stack_virt_off;
     strcpy ((char *)stack_phys_off, arg_vector[i]);
-    cprintk ("stack_phys_off = %x content = %s\n", 0xE, stack_phys_off, stack_phys_off);
   }
 
-  virt_addr_t argv_virt_ptr = stack_virt_off - argc * sizeof (virt_addr_t *);
-  virt_addr_t *argv_phys_ptr = (phys_addr_t *)(stack_phys_off - argc * sizeof (virt_addr_t *));
+  /*
+   * Here we allocate an array of virtual addresses. This would be identical with
+   * argv[*]. Namely an array of "char *". We need to versions of this, one with
+   * virtual addresses, which is passed to the new process, and one with physical
+   * address which is used here by PM to store the values in physical memory.
+   */
+  /* virtual starting address of argv */
+  argv_virt_ptr = stack_virt_off - argc * sizeof (virt_addr_t *);
+  /* physical starting address of argv */
+  argv_phys_ptr = (phys_addr_t *)(stack_phys_off - argc * sizeof (virt_addr_t *));
+  /* put all already saved virtual addresses of argv entries on stack */
   for (i = 0; i < argc; i++) {
     argv_phys_ptr[i] = (virt_addr_t)argv_ptr[i];
-    cprintk ("argv_ptr[%d] = %x ---> %x\n", 0xE, i, &argv_phys_ptr[i], argv_phys_ptr[i]);
   }
 
+  /* Process stack starts after the address argv is saved */
   info->vm_info.vm_regs.rsp = (virt_addr_t)(argv_virt_ptr - sizeof (uint64_t));
-
   info->vm_info.vm_regs.rdx = (phys_addr_t)info;
   info->vm_info.vm_regs.rdi = argc;
-  info->vm_info.vm_regs.rsi = argv_virt_ptr;//info->vm_info.vm_stack_vaddr;
+  info->vm_info.vm_regs.rsi = argv_virt_ptr;
   return 0;
 }
 /* ================================================= */
 void
 vm_main (void)
 {
-  int i;
+  aint i;
   con_init ();
 
   pm_init ();
@@ -417,7 +436,7 @@ vm_main (void)
   cprintk ("PM: My info is in addr = %d\n", 0xD, cpuinfo->cpuid);
 
   while (1) {
-    struct message *m = msg_check();
+    struct message *m __aligned (0x10) = msg_check();
     pid_t r;
 
     switch(m->number) {
@@ -431,6 +450,7 @@ vm_main (void)
         msg_reply(m->from, FORK_IPC, &r, sizeof(pid_t));
         break;
       case EXEC_IPC:
+
         r = local_exec (get_cpu_info (m->from), (struct exec_ipc *)m->data);
         msg_reply (m->from, EXEC_IPC, &r, sizeof (pid_t));
         break;

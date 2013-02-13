@@ -122,7 +122,8 @@ boot_loader (unsigned long magic, unsigned long addr)
     halt ();
   }
   if (has_1GBpage () == false) {
-    /* Then use 1GB pages to map all the memory */
+    printf ("ERROR: Your processor does not support 1GB pages!\n");
+    halt ();
   }
   /* Are mem_* valid? */
   if (CHECK_FLAG (mbi->flags, 0)) {

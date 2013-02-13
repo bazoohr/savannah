@@ -6,11 +6,13 @@ virt2phys (struct cpu_info *cpuinfo, virt_addr_t vaddr)
   phys_addr_t paddr;
   size_t offset;
 
+#if 0
   cprintk ("vm_start = %x vm_end = %x\n", 0x2, cpuinfo->vm_info.vm_start_vaddr,
       cpuinfo->vm_info.vm_end_vaddr);
   cprintk ("vm_start = %x vm_end = %x\n", 0x2, cpuinfo->vm_info.vm_start_paddr,
       cpuinfo->vm_info.vm_end_paddr);
   cprintk ("vaddr = %x\n", 0x2, vaddr);
+#endif
   if (vaddr >= cpuinfo->vm_info.vm_code_vaddr &&
       vaddr < cpuinfo->vm_info.vm_data_vaddr) {
     offset = vaddr - cpuinfo->vm_info.vm_code_vaddr;

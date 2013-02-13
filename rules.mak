@@ -4,11 +4,11 @@
 # Hamid R. Bazoobandi
 # Sat. 14 July 2012 Amsterdam
 # ==================================
-OPTLVL = -O0
+OPTLVL = -O3
 AS = $(CC)
 LD = ld
 
-CFLAGS  := -m64 -fno-stack-protector -fno-builtin -nostdinc -mno-red-zone -Wall -Werror $(OPTLVL)
+CFLAGS  := -m64 -fno-stack-protector -fno-builtin -nostdinc -mno-red-zone -Wall -msse2 -Werror $(OPTLVL)
 ASFLAGS := -m64 -Wall -D__ASSEMBLY__
 LDFLAGS :=
 
@@ -22,18 +22,11 @@ LDFLAGS :=
 ifeq ($(CC),clang)
 ASFLAGS += -no-integrated-as
 endif
-# Because of some strange reason, in gcc version 4.6.3
-# in optimization level 3 (O3), gcc parallelizes some addition
-# operations using mmx instructions, which cause #GP. It does not
-# seem to be a problem of gcc, because the same code was
-# working before, and moreover we checked the manual of AMD64 and
-# we do all what we have to do. Therefore we prefer to disable this
-# feature for gcc at the moment. We try to enable it later, probably
-# when this bug is fixed.
-#ifeq ($(CC), gcc)
-#CFLAGS += -mno-sse
-#endif
-
+# ===================================
+ifeq ($(CC),gcc)
+CFLAGS  += -ftree-vectorize #-ftree-vectorizer-verbose=5
+endif
+# ===================================
 MYDIR =
 
 silent_command = $(if $(2), @echo $2 && $1, @$(1))

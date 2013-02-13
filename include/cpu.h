@@ -192,8 +192,9 @@ struct cpu_info {
   uint8_t cpuid;  // Kernel CPU ID
   volatile uint8_t ready;   // Is the CPU ready to launch the VM?
   struct vm_proc vm_info;
-  void *vm_args;
   struct vmm_proc vmm_info;
+  void *vm_args;
+  uint64_t ncpus;
 
   struct message *msg_input;
   struct message *msg_output;

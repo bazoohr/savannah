@@ -19,10 +19,14 @@ main (void)
 
   interrupt_init ();
 
+  /*
   pic_init ();
   ioapic_init ();
   lapic_init();
   kbd_init ();
+  */
+
+  cprintk ("This is driver!!\n", 0xE);
   __asm__ __volatile__ ("sti\n");
 
   for (;;);

@@ -49,7 +49,7 @@ static void msr_lock()
 
 static void __vmxon(phys_addr_t vmxon_ptr)
 {
-	asm volatile (ASM_VMX_VMXON_RAX /* VMXON %0 */
+	__asm__ __volatile__ (ASM_VMX_VMXON_RAX /* VMXON %0 */
 			: : "a"(&vmxon_ptr), "m"(vmxon_ptr)
 			: "memory", "cc");
 }
@@ -90,7 +90,7 @@ static void clear_vmcs(phys_addr_t vmcs_ptr)
 {
 	uint8_t error;
 
-	asm volatile (ASM_VMX_VMCLEAR_RAX "; setna %0"
+	__asm__ __volatile__ (ASM_VMX_VMCLEAR_RAX "; setna %0"
 			: "=qm"(error) : "a"(&vmcs_ptr), "m"(vmcs_ptr)
 			: "cc", "memory");
 
@@ -102,7 +102,7 @@ static void load_vmcs(phys_addr_t vmcs_ptr)
 {
 	uint8_t error;
 
-	asm volatile (ASM_VMX_VMPTRLD_RAX "; setna %0"
+	__asm__ __volatile__ (ASM_VMX_VMPTRLD_RAX "; setna %0"
 			: "=qm"(error) : "a"(&vmcs_ptr), "m"(vmcs_ptr)
 			: "cc", "memory");
 
@@ -124,7 +124,7 @@ static void vmx_vmwrite(uint64_t field, uint64_t value)
 {
 	uint8_t error;
 
-	asm volatile (ASM_VMX_VMWRITE_RAX_RDX "; setna %0"
+	__asm__ __volatile__ (ASM_VMX_VMWRITE_RAX_RDX "; setna %0"
 			: "=q"(error) : "a"(value), "d"(field) : "cc");
 
 	if (error) {
@@ -148,13 +148,13 @@ static void setup_vmcs(void)
 	uint64_t flags = 0;
 
 	// 16-Bit Host-State Fields
-	asm("mov %%es, %0" : "=m" (u16));	vmx_vmwrite(HOST_ES_SELECTOR, u16);
-	asm("mov %%cs, %0" : "=m" (u16));	vmx_vmwrite(HOST_CS_SELECTOR, u16);
-	asm("mov %%ss, %0" : "=m" (u16));	vmx_vmwrite(HOST_SS_SELECTOR, u16);
-	asm("mov %%ds, %0" : "=m" (u16));	vmx_vmwrite(HOST_DS_SELECTOR, u16);
-	asm("mov %%fs, %0" : "=m" (u16));	vmx_vmwrite(HOST_FS_SELECTOR, u16);
-	asm("mov %%gs, %0" : "=m" (u16));	vmx_vmwrite(HOST_GS_SELECTOR, u16);
-	/*asm("str %0" : "=m" (u16));*/		vmx_vmwrite(HOST_TR_SELECTOR, 0x18);
+	__asm__ __volatile__("mov %%es, %0" : "=m" (u16));	vmx_vmwrite(HOST_ES_SELECTOR, u16);
+	__asm__ __volatile__("mov %%cs, %0" : "=m" (u16));	vmx_vmwrite(HOST_CS_SELECTOR, u16);
+	__asm__ __volatile__("mov %%ss, %0" : "=m" (u16));	vmx_vmwrite(HOST_SS_SELECTOR, u16);
+	__asm__ __volatile__("mov %%ds, %0" : "=m" (u16));	vmx_vmwrite(HOST_DS_SELECTOR, u16);
+	__asm__ __volatile__("mov %%fs, %0" : "=m" (u16));	vmx_vmwrite(HOST_FS_SELECTOR, u16);
+	__asm__ __volatile__("mov %%gs, %0" : "=m" (u16));	vmx_vmwrite(HOST_GS_SELECTOR, u16);
+	/*__asm__ __volatile__("str %0" : "=m" (u16));*/		vmx_vmwrite(HOST_TR_SELECTOR, 0x18);
 
 	// 64-Bit Guest-State Fields
 	vmx_vmwrite(VMCS_LINK_POINTER, 0xFFFFFFFF);
@@ -223,13 +223,13 @@ static void setup_vmcs(void)
 	vmx_vmwrite(CR3_TARGET_VALUE3, 0);
 
 	// 16-Bit Guest-State Fields
-	asm("mov %%es, %0" : "=m" (u16));	vmx_vmwrite(GUEST_ES_SELECTOR, u16);
-	asm("mov %%cs, %0" : "=m" (u16));	vmx_vmwrite(GUEST_CS_SELECTOR, u16);
-	asm("mov %%ss, %0" : "=m" (u16));	vmx_vmwrite(GUEST_SS_SELECTOR, u16);
-	asm("mov %%ds, %0" : "=m" (u16));	vmx_vmwrite(GUEST_DS_SELECTOR, u16);
-	asm("mov %%fs, %0" : "=m" (u16));	vmx_vmwrite(GUEST_FS_SELECTOR, u16);
-	asm("mov %%gs, %0" : "=m" (u16));	vmx_vmwrite(GUEST_GS_SELECTOR, u16);
-	asm("sldt %0" : "=m" (u16));		vmx_vmwrite(GUEST_LDTR_SELECTOR, u16);
+	__asm__ __volatile__ ("mov %%es, %0" : "=m" (u16));	vmx_vmwrite(GUEST_ES_SELECTOR, u16);
+	__asm__ __volatile__ ("mov %%cs, %0" : "=m" (u16));	vmx_vmwrite(GUEST_CS_SELECTOR, u16);
+	__asm__ __volatile__ ("mov %%ss, %0" : "=m" (u16));	vmx_vmwrite(GUEST_SS_SELECTOR, u16);
+	__asm__ __volatile__ ("mov %%ds, %0" : "=m" (u16));	vmx_vmwrite(GUEST_DS_SELECTOR, u16);
+	__asm__ __volatile__ ("mov %%fs, %0" : "=m" (u16));	vmx_vmwrite(GUEST_FS_SELECTOR, u16);
+	__asm__ __volatile__ ("mov %%gs, %0" : "=m" (u16));	vmx_vmwrite(GUEST_GS_SELECTOR, u16);
+	__asm__ __volatile__ ("sldt %0" : "=m" (u16));		vmx_vmwrite(GUEST_LDTR_SELECTOR, u16);
 	/*asm("str %0" : "=m" (u16));*/		vmx_vmwrite(GUEST_TR_SELECTOR, 0x18);
 
 	// 32-Bit Guest-State Fields
@@ -360,8 +360,8 @@ void host_entry()
 	uint64_t reason = vmx_vmread (VM_EXIT_REASON);
   phys_addr_t msg_data;
 
-	/* If the reason is because of a VMCALL */
 	if (reason == 18) {
+    cprintk ("VM_ENTRY:::Waiting for message!\n", 0x10);
 		msg_receive();
 
     msg_data = (phys_addr_t)cpuinfo->msg_input->data;

@@ -36,5 +36,5 @@ exec (char *path, int argc, char **argv)
   exec_args.argv = (char **)virt2phys (cpuinfo, (virt_addr_t)argv);
 
   msg_send (PM, EXEC_IPC, &exec_args, sizeof (struct exec_ipc));
-  asm volatile ("vmcall;");
+  __asm__ __volatile__ ("vmcall;");
 }

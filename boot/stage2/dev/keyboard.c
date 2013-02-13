@@ -132,7 +132,7 @@ kbd_proc_data (void)
   }
 
   scan_code = inb (KBD_DATA_PORT);
-  
+
   if (scan_code == 0xE0)
 	  goto eoi;
 
@@ -167,7 +167,7 @@ kbd_proc_data (void)
 
   if (scan_code & 0x80)
 	  goto eoi;
-      
+
   asci_code = keymap[scan_code][(ctrl_pressed<<1) | (shift_pressed) | (alt_pressed<<2)];
   kbd_add_buf (asci_code);
 

@@ -1,6 +1,7 @@
 #include <ipc.h>
 #include <string.h>
 #include <misc.h>
+#include <printk.h>
 
 /*
  * msg_send() - Send a message to another process.
@@ -79,18 +80,22 @@ msg_receive()
 struct message *
 msg_check()
 {
+  int id = cpuinfo->cpuid;
+  /* Volatile is because of preventing GCC of doing cazy (WRONG)optimizations in O3 */
+  volatile int i;
+  int from;
+  bool *base_r;
+  uint64_t ncpus;
+
   if (! check_server()) {
     return cpuinfo->msg_input;;
   }
 
-  int id = cpuinfo->cpuid;
-  /* Volatile is because of preventing GCC of doing cazy (WRONG)optimizations in O3 */
-  volatile int i;
-  int from = -1;
-
-  bool *base_r = (bool*)((phys_addr_t)cpuinfo->msg_ready - (_4KB_ * id));
+  ncpus = cpuinfo->ncpus;
+  from = -1;
+  base_r = (bool*)((phys_addr_t)cpuinfo->msg_ready - (_4KB_ * id));
   while (1) {
-    for (i = 0 ; i < 8/*get_ncpus()*/ ; i++) {
+    for (i = 0 ; i < ncpus ; i++) {
       if (*(bool*)((phys_addr_t)base_r + (_4KB_ * i) + id)) {
         from = i;
         break;
@@ -104,6 +109,9 @@ msg_check()
 
   struct message *base_m = (struct message *)((phys_addr_t)cpuinfo->msg_output - (_4KB_ * id));
 
+  if (cpuinfo->cpuid == 1) {
+    cprintk ("\n\n\nmsg_check()\n", 0xF);
+  }
   return (struct message *)((phys_addr_t)base_m + (_4KB_ * from));
 }
 

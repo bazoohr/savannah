@@ -2,12 +2,12 @@
 # ==================================
 # install.sh
 #
-# Hamid R. Bazoobandi 
+# Hamid R. Bazoobandi
 # Fri 13.7.2012 Amsterdam
 # ===================================
 loader=./boot/loader.bin    # Our loader that loads kernel into memory
 kernel=./kernel/kernel.bin  # Our actual kernel
-grub_stage_loc=./etc        # Location of Grub stage files! 
+grub_stage_loc=./etc        # Location of Grub stage files!
 iso_tmp_dir=/tmp/iso        # temp location for iso directory
 # ===================================
 kernel_title="My Kernel"  # Title of our kernel in Grub menu
@@ -27,7 +27,7 @@ for opt do
   case $opt in
   --help|-h) show_help="yes"
   ;;
-  --compiler=*) 
+  --compiler=*)
     if test "$optarg" != "gcc" && test "$optarg" != "clang"; then
       echo "Compiler must be either \"gcc\" or \"clang\".";
       exit 1;
