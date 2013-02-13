@@ -95,7 +95,7 @@ ept_pmap (struct cpu_info *child_cpu_info)
       (phys_addr_t)child_cpu_info, (phys_addr_t)child_cpu_info + _4KB_,
       (phys_addr_t)child_cpu_info,
       USER_VMS_PAGE_SIZE,
-      EPT_PAGE_READ, MAP_UPDATE);
+      EPT_PAGE_READ | EPT_PAGE_WRITE, MAP_UPDATE);
   EPT_map_memory (&child_cpu_info->vm_info.vm_ept,
       (phys_addr_t)child_cpu_info->msg_input, (phys_addr_t)child_cpu_info->msg_input + _4KB_,
       (phys_addr_t)child_cpu_info->msg_input,

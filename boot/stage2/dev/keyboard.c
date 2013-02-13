@@ -5,6 +5,7 @@
 #include <dev/ioapic.h>
 #include <dev/lapic.h>
 #include <isr.h>
+#include <config.h>
 
 #define NOP 0
 #define KBD_DATA_PORT  0x60
@@ -179,5 +180,5 @@ eoi:
 
 void kbd_init (void)
 {
-  ioapic_enable(IRQ_KBD, 0);
+  ioapic_enable(IRQ_KBD, KBD);
 }

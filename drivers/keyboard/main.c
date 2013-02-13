@@ -17,6 +17,7 @@ main (void)
 {
   con_init ();
 
+  create_new_gdt();
   interrupt_init ();
 
   /*
