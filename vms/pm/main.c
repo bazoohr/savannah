@@ -85,7 +85,11 @@ ept_pmap (struct cpu_info *child_cpu_info)
       0,
       USER_VMS_PAGE_SIZE,
       EPT_PAGE_READ | EPT_PAGE_WRITE, MAP_NEW);  /* XXX: Why do we need write access here? */
-
+  EPT_map_memory (&child_cpu_info->vm_info.vm_ept,
+      0xFEC00000, ((phys_addr_t)0x100000000),
+      0xFEC00000,
+      USER_VMS_PAGE_SIZE,
+      EPT_PAGE_READ | EPT_PAGE_WRITE, MAP_UPDATE);  /* XXX: Why do we need write access here? */
   EPT_map_memory (&child_cpu_info->vm_info.vm_ept,
       child_cpu_info->vm_info.vm_page_tables, child_cpu_info->vm_info.vm_page_tables + 2 * PAGE_TABLE_SIZE,
       child_cpu_info->vm_info.vm_page_tables,
@@ -95,7 +99,7 @@ ept_pmap (struct cpu_info *child_cpu_info)
       (phys_addr_t)child_cpu_info, (phys_addr_t)child_cpu_info + _4KB_,
       (phys_addr_t)child_cpu_info,
       USER_VMS_PAGE_SIZE,
-      EPT_PAGE_READ | EPT_PAGE_WRITE, MAP_UPDATE);
+      EPT_PAGE_READ, MAP_UPDATE);
   EPT_map_memory (&child_cpu_info->vm_info.vm_ept,
       (phys_addr_t)child_cpu_info->msg_input, (phys_addr_t)child_cpu_info->msg_input + _4KB_,
       (phys_addr_t)child_cpu_info->msg_input,
