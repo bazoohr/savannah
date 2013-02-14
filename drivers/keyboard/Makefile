@@ -20,7 +20,7 @@ LDFLAGS += -n -T $(LINK_LD)
 
 SRC = start_off.S main.c console.c printk.c string.c trap.S trap_handler.c \
 			asmfunc.S \
-			timer.c isr.S segment.c interrupt.c cpu.c\
+			timer.c isr.S interrupt.c cpu.c\
 			dev/i8253.c dev/i8259.c dev/keyboard.c dev/pic.c dev/ioapic.c dev/lapic.c
 
 OBJ = $(subst .S,.o,$(filter %.S,$(SRC))) $(subst .c,.o,$(filter %.c,$(SRC)))

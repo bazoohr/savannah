@@ -10,13 +10,15 @@
 #include <cpu.h>
 #include <vmx.h>
 #include <ipc.h>
+#include <gdt.h>
+struct system_descriptor gdt[NGDT] __aligned (16);
 /* ========================================== */
 void
 vmm_main (void)
 {
   int i;
   con_init ();
-  create_new_gdt (cpuinfo->cpuid);
+  create_new_gdt (gdt, NGDT * sizeof (struct system_descriptor));
   interrupt_init ();
 
   if (cpuinfo->vm_info.vm_start_vaddr == 0) {

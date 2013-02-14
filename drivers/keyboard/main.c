@@ -11,13 +11,15 @@
 #include <dev/lapic.h>
 #include <panic.h>
 #include <config.h>
+#include <gdt.h>
+struct system_descriptor gdt[NGDT] __aligned (16);
 /* ========================================== */
 int
 main (void)
 {
   con_init ();
 
-  create_new_gdt();
+  create_new_gdt (gdt, NGDT * sizeof (struct system_descriptor));
   interrupt_init ();
 
   /*
