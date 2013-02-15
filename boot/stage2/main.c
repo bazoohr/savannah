@@ -156,6 +156,7 @@ load_all_vmms (phys_addr_t vmm_elf_addr, phys_addr_t boot_stage2_end_addr)
       s++;    /* Go to next section */
     }
     /* Last section is bss. We zero out this section */
+    //cprintk ("BSS ADDRESS = %x SIZE = %d\n", 0xA, s->p_vaddr, s->p_memsz);
     memset ((void*)VIRT2PHYS (s->p_vaddr), 0, s->p_memsz);
     /*
      * Here we want to reserve some space for the stack. Stack should be
@@ -175,6 +176,13 @@ load_all_vmms (phys_addr_t vmm_elf_addr, phys_addr_t boot_stage2_end_addr)
     }
 
     curr_cpu_info->vmm_info.vmm_end_paddr = curr_cpu_info->vmm_info.vmm_start_paddr + vmm_size;
+
+#if 0
+    cprintk ("BSS START = %x BSS_END = %x STACK_START = %x STACK_END = %x\n", 0x3, s->p_vaddr, s->p_vaddr + s->p_memsz,
+        curr_cpu_info->vmm_info.vmm_stack_vaddr, curr_cpu_info->vmm_info.vmm_regs.rsp);
+#endif
+    cprintk ("P: BSS START = %x BSS_END = %x STACK_START = %x STACK_END = %x\n", 0x3, VIRT2PHYS(s->p_vaddr), VIRT2PHYS((s->p_vaddr + s->p_memsz)),
+        curr_cpu_info->vmm_info.vmm_stack_paddr, curr_cpu_info->vmm_info.vmm_end_paddr);
 
     /* Message Box */
     curr_cpu_info->msg_input  = get_msg_input(curr_cpu);

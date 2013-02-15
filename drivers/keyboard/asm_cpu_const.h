@@ -32,7 +32,7 @@
 #define CPU_STRUCT_SIZE       208
 #define CPU_LAPIC_ID          0
 #define CPU_CPUID             1
-#define CPU_STACK           728
+#define CPU_STACK           456
 #define CPU_CR3              776
 #define CPU_GDT              832
 #endif

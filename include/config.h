@@ -4,6 +4,9 @@
 #include <const.h>
 #include <macro.h>
 
+#define MIN_CPUS 4
+#define MAX_CPUS 255
+
 #define VMM_MAX_SIZE _2MB_
 #define VM_MAX_SIZE  _2MB_
 

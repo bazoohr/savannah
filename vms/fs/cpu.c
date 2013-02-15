@@ -1,6 +1,5 @@
 #include <types.h>
 #include <cpu.h>
-#include <page.h>
 
 uint64_t
 rdmsr (uint32_t reg)
@@ -14,7 +13,7 @@ void
 wrmsr (uint32_t reg, uint64_t val)
 {
 	__asm__ __volatile__ ("wrmsr" : : "d"((uint32_t)(val >> 32)),
-	                         "a"((uint32_t)(val & 0xFFFFFFFF)), 
+	                         "a"((uint32_t)(val & 0xFFFFFFFF)),
 	                         "c"(reg));
 }
 void
@@ -89,7 +88,7 @@ tlb_flush_global (void)
 	if (cr4 & CR4_PGE) {
 		lcr4(cr4 & ~CR4_PGE);
 		lcr4(cr4);
-	} else 
+	} else
 		lcr3(rcr3());
 }
 void
@@ -98,7 +97,7 @@ cpuid (uint32_t function, uint32_t *eaxp, uint32_t *ebxp,
 {
 	uint32_t eax, ebx, ecx, edx;
 
-	__asm__ __volatile__ ("cpuid" 
+	__asm__ __volatile__ ("cpuid"
 		: "=a" (eax), "=b" (ebx), "=c" (ecx), "=d" (edx)
 		: "a" (function));
 	if (eaxp)

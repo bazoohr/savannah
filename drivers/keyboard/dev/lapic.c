@@ -4,11 +4,8 @@
 #include <printk.h>
 #include <dev/apicreg.h>
 #include <timer.h>
-#include <isareg.h>
-#include <nvram.h>
 #include <panic.h>
 #include <cpu.h>
-#include <mp.h>
 #include <interrupt.h>
 #include <cpu.h>
 

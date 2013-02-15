@@ -7,7 +7,6 @@
 .code64
 .section .text
 #include <const.h>
-#include <dev/pic.h>
 #include <asmlink.h>
 /* ============================ */
 ENTRY (cli)

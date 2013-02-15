@@ -2,7 +2,6 @@
 #define __KLIB_H__
 
 #include <types.h>
-#include <segment.h>
 #include <cdef.h>
 
 void __always_inline cli (void);

@@ -2,7 +2,6 @@
 #include <asmfunc.h>
 #include <types.h>
 #include <panic.h>
-#include <debug.h>
 #include <dev/ioapic.h>
 #include <dev/lapic.h>
 #include <mp.h>
@@ -137,7 +136,7 @@ mp_bootothers (void)
                         "movq %4, %%rax\n\t"
                         "jmp *%%rax\n\t"::
                         "r"(get_cpu_info (0)->vmm_info.vmm_page_tables),
-                        "r"(get_cpu_info(0)->vmm_info.vmm_stack_vaddr),
+                        "r"(get_cpu_info(0)->vmm_info.vmm_regs.rsp),
                         "r"(get_cpu_info (0)),
                         "r"(CPU_INFO_PTR_ADDR),
                         "r"(get_cpu_info (0)->vmm_info.vmm_start_vaddr)
