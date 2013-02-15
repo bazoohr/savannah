@@ -11,6 +11,7 @@
 #include <panic.h>
 #include <config.h>
 #include <con.h>
+#include <misc.h>
 
 struct header {
 	char name[32];        /* File name */
@@ -24,19 +25,28 @@ char *filesystem;
 
 #define MAX_FD (64)
 
-struct header fds[MAX_FD];
+struct header fds[MAX_CPUS][MAX_FD];
 
 int
-local_open(const char *pathname, int flags)
+local_open_char(const char *pathname, int from)
+{
+  return -1;
+}
+
+int
+local_open(const char *pathname, int flags, int from)
 {
   int i;
   int fd;
   struct header *tmp;
   int num_files;
 
+  if (strcmp(pathname, "stdin") == 0 || strcmp(pathname, "stdout") == 0)
+    return local_open_char(pathname, from);
+
   // Find the lowest available fd
-  for (i = 0 ; i < MAX_FD ; i++)
-    if (fds[i].length == 0)
+  for (i = 2 ; i < MAX_FD ; i++)
+    if (fds[from][i].offset == 0)
       break;
 
   if (i >= MAX_FD)
@@ -59,17 +69,18 @@ local_open(const char *pathname, int flags)
     return -1;
 
   // Copy the structure
-  strcpy(fds[fd].name, tmp->name);
-  fds[fd].length = tmp->length;
-  fds[fd].offset = tmp->offset;
+  // NOTE: We are not copying name for performance reasons.
+  fds[from][fd].type = tmp->type;
+  fds[from][fd].length = tmp->length;
+  fds[from][fd].offset = tmp->offset;
 
   return fd;
 }
 
 int
-local_read(int fd, void *buf, int count)
+local_read(int fd, void *buf, int count, int from)
 {
-  struct header tmp = fds[fd];
+  struct header tmp = fds[from][fd];
 
   if (count > tmp.length)
     count = tmp.length;
@@ -82,14 +93,14 @@ local_read(int fd, void *buf, int count)
 }
 
 int
-local_close(int fd)
+local_close(int fd, int from)
 {
   if (fd > MAX_FD)
     return -1;
 
-  strcpy(fds[fd].name, "");
-  fds[fd].length = 0;
-  fds[fd].offset = 0;
+  fds[from][fd].type = 0;
+  fds[from][fd].length = 0;
+  fds[from][fd].offset = 0;
 
   return 0;
 }
@@ -136,22 +147,32 @@ vm_main (void)
 
     switch(m->number) {
     case OPEN_IPC:
+      if (is_driver(m->from)) {
+        r = -1;
+        msg_reply(m->from, OPEN_IPC, &r, sizeof(int));
+        break;
+      }
       memcpy(&opentmp, m->data, sizeof(struct open_ipc));
-      r = local_open(opentmp.pathname, opentmp.flags);
+      r = local_open(opentmp.pathname, opentmp.flags, m->from);
       msg_reply(m->from, OPEN_IPC, &r, sizeof(int));
       break;
     case READ_IPC:
       memcpy(&readtmp, m->data, sizeof(struct read_ipc));
-      r = local_read(readtmp.fd, &readtmp.buf, readtmp.count);
+      r = local_read(readtmp.fd, &readtmp.buf, readtmp.count, m->from);
       readtmp.count = r;
       msg_reply(m->from, READ_IPC, &readtmp, sizeof(struct read_ipc));
       break;
     case CLOSE_IPC:
       memcpy(&closetmp, m->data, sizeof(struct close_ipc));
-      r = local_close(closetmp.fd);
+      r = local_close(closetmp.fd, m->from);
       msg_reply(m->from, CLOSE_IPC, &r, sizeof(int));
       break;
     case LOAD_IPC:
+      if (m->from != PM) {
+        f = 0;
+        msg_reply(m->from, LOAD_IPC, &f, sizeof(phys_addr_t));
+        break;
+      }
       f = local_load(m->data);
       msg_reply(m->from, LOAD_IPC, &f, sizeof(phys_addr_t));
       break;

@@ -19,3 +19,8 @@ int check_server(void)
 
   return 1;
 }
+
+bool is_driver(cpuid_t id)
+{
+  return (id == KBD || id == CONSOLE) ? true : false;
+}

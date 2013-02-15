@@ -11,6 +11,9 @@
 #define LOAD_IPC        4
 #define PUTC_IPC        5
 
+#define TYPE_FILE 1
+#define TYPE_CHAR 2
+
 #define MAX_PATHNAME    32
 #define MAX_BUFFER      32
 
