@@ -10,6 +10,7 @@
 #include <cpu.h>
 #include <vmx.h>
 #include <ipc.h>
+#include <config.h>
 /* ========================================== */
 void
 vmm_main (void)
@@ -32,7 +33,7 @@ vmm_main (void)
      * TODO:
      *      Wait for a message
      */
-    msg_receive ();
+    msg_receive (PM);
 
     cprintk ("Going to launch rip = %x stack = %x\n", 0x2, cpuinfo->vm_info.vm_regs.rip, cpuinfo->vm_info.vm_regs.rsp);
     cprintk ("VM_INPUT %x VM_OUTPUT %x VM_READY = %x\n", 0x2, cpuinfo->msg_input, cpuinfo->msg_output, &cpuinfo->msg_ready[0]);

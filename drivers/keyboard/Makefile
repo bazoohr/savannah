@@ -18,7 +18,7 @@ CFLAGS  += -I ./include/ -I $(ROOT)/include/ -I $(ROOT)/lib/include
 ASFLAGS += -I ./include/ -I $(ROOT)/include/
 LDFLAGS += -n -T $(LINK_LD)
 
-SRC = start_off.S main.c console.c printk.c string.c trap.S trap_handler.c \
+SRC = start_off.S main.c console.c printk.c trap.S trap_handler.c \
 			asmfunc.S \
 			timer.c isr.S segment.c interrupt.c cpu.c\
 			dev/i8253.c dev/i8259.c dev/keyboard.c dev/pic.c dev/ioapic.c dev/lapic.c

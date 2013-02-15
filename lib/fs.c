@@ -16,9 +16,9 @@ int open(const char *pathname, int flags)
   tmp.flags = flags;
 
   msg_send(FS, OPEN_IPC, &tmp, sizeof(struct open_ipc));
-  msg_receive();
+  msg_receive(FS);
 
-  memcpy(&r, &cpuinfo->msg_input->data, sizeof(int));
+  memcpy(&r, &cpuinfo->msg_input[FS].data, sizeof(int));
 
   return r;
 }
@@ -31,9 +31,9 @@ int read(int fd, void *buf, int count)
   tmp.count = count > MAX_BUFFER ? MAX_BUFFER : count;
 
   msg_send(FS, READ_IPC, &tmp, sizeof(struct read_ipc));
-  msg_receive();
+  msg_receive(FS);
 
-  memcpy(&tmp, &cpuinfo->msg_input->data, sizeof(struct read_ipc));
+  memcpy(&tmp, &cpuinfo->msg_input[FS].data, sizeof(struct read_ipc));
 
   strncpy(buf, tmp.buf, tmp.count);
 
@@ -43,14 +43,14 @@ int read(int fd, void *buf, int count)
 int close(int fd)
 {
   struct close_ipc tmp;
+  int r;
 
   tmp.fd = fd;
 
   msg_send(FS, CLOSE_IPC, &tmp, sizeof(struct close_ipc));
-  msg_receive();
+  msg_receive(FS);
 
-  int r;
-  memcpy(&r, &cpuinfo->msg_input->data, sizeof(int));
+  memcpy(&r, &cpuinfo->msg_input[FS].data, sizeof(int));
 
   return r;
 }

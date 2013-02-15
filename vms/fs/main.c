@@ -16,6 +16,8 @@
 #include <fs.h>
 #include <string.h>
 #include <panic.h>
+#include <config.h>
+#include <con.h>
 
 struct header {
   char name[32];
@@ -139,24 +141,31 @@ vm_main (void)
 
     switch(m->number) {
     case OPEN_IPC:
-      memcpy(&opentmp, &m->data, sizeof(struct open_ipc));
+      memcpy(&opentmp, m->data, sizeof(struct open_ipc));
       r = local_open(opentmp.pathname, opentmp.flags);
       msg_reply(m->from, OPEN_IPC, &r, sizeof(int));
       break;
     case READ_IPC:
-      memcpy(&readtmp, &m->data, sizeof(struct read_ipc));
+      memcpy(&readtmp, m->data, sizeof(struct read_ipc));
       r = local_read(readtmp.fd, &readtmp.buf, readtmp.count);
       readtmp.count = r;
       msg_reply(m->from, READ_IPC, &readtmp, sizeof(struct read_ipc));
       break;
     case CLOSE_IPC:
-      memcpy(&closetmp, &m->data, sizeof(struct close_ipc));
+      memcpy(&closetmp, m->data, sizeof(struct close_ipc));
       r = local_close(closetmp.fd);
       msg_reply(m->from, CLOSE_IPC, &r, sizeof(int));
       break;
     case LOAD_IPC:
       f = local_load(m->data);
       msg_reply(m->from, LOAD_IPC, &f, sizeof(phys_addr_t));
+      break;
+    case PUTC_IPC:
+      if (m->from != CONSOLE) {
+        msg_reply(CONSOLE, PUTC_IPC, m->data, sizeof(struct putc_ipc));
+      } else {
+        msg_reply(m->from, PUTC_IPC, m->data, sizeof(int));
+      }
       break;
     default:
       cprintk("FS: Warning, unknown request %d\n", 0xD, m->number);

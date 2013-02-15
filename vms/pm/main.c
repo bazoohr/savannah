@@ -168,6 +168,7 @@ local_fork (struct cpu_info *info, struct fork_ipc *fork_args)
   if (child_vm > MAX_CPUS) {
     return -1;
   }
+  vm_table[child_vm] = BUSY;
 
   child_cpu_info = get_cpu_info (child_vm);
   parent_cpu_info = get_cpu_info (parent_id);
@@ -357,9 +358,9 @@ local_exec (struct cpu_info *info, struct exec_ipc *exec_args)
 
   /* Ask FS to read the ELF executable file */
   msg_send (FS, LOAD_IPC, exec_args->path, sizeof(char*));
-  msg_receive ();
+  msg_receive (FS);
 
-  msg_data = (phys_addr_t*)cpuinfo->msg_input->data;
+  msg_data = (phys_addr_t*)cpuinfo->msg_input[FS].data;
   elf = *msg_data;
 
   if (elf == 0) {
@@ -450,7 +451,6 @@ vm_main (void)
         msg_reply(m->from, FORK_IPC, &r, sizeof(pid_t));
         break;
       case EXEC_IPC:
-
         r = local_exec (get_cpu_info (m->from), (struct exec_ipc *)m->data);
         msg_reply (m->from, EXEC_IPC, &r, sizeof (pid_t));
         break;

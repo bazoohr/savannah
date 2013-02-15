@@ -9,6 +9,7 @@
 #define READ_IPC	2
 #define CLOSE_IPC       3
 #define LOAD_IPC        4
+#define PUTC_IPC        5
 
 #define MAX_PATHNAME    32
 #define MAX_BUFFER      32

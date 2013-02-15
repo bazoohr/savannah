@@ -15,9 +15,9 @@ fork_internal (virt_addr_t register_array_vaddr)
   fork_args.register_array_paddr = virt2phys (cpuinfo, register_array_vaddr);
 
   msg_send (PM, FORK_IPC, &fork_args, sizeof (struct fork_ipc));
-  msg_receive ();
+  msg_receive (PM);
 
-  memcpy (&result, &cpuinfo->msg_input->data, sizeof (int));
+  memcpy (&result, &cpuinfo->msg_input[PM].data, sizeof (int));
 
   return result;
 }

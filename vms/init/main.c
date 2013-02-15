@@ -16,6 +16,7 @@
 #include <ipc.h>
 #include <fs.h>
 #include <pm.h>
+#include <con.h>
 
 int test = 0x123;
 void
@@ -61,12 +62,23 @@ vm_main (void)
   } else if (pid == 0) {
     for (i = 0 ; i < cpuinfo->cpuid ; i++) printk("\n");
     char *string[] = {"Hamid", "Francesco", NULL};
-    cprintk ("I am a child pid = %d fd2 = %d fd1 = %d test = %x\n", 0xD, pid, fd2, fd, test);
+    cprintk ("I am the keyboard child pid = %d fd2 = %d fd1 = %d test = %x cpuid = %d\n", 0xD, pid, fd2, fd, test, cpuinfo->cpuid);
     exec("keyboard", 3, string);
-  } else {
-    for (i = 0 ; i < cpuinfo->cpuid ; i++) printk("\n");
-    cprintk ("parent: child's PID = %d fd2 = %d fd = %d test = %x\n", 0xE, pid, fd2, fd, test);
   }
+
+  pid = fork();
+  if (pid == -1) {
+    cprintk ("Failed to fork!\n", 0x4);
+  } else if (pid == 0) {
+    for (i = 0 ; i < cpuinfo->cpuid ; i++) printk("\n");
+    char *string[] = {"Hamid", "Francesco", NULL};
+    cprintk ("I am the console child pid = %d fd2 = %d fd1 = %d test = %x cpuid = %d\n", 0xD, pid, fd2, fd, test, cpuinfo->cpuid);
+    exec("console", 3, string);
+  }
+
+  for (i = 0 ; i < cpuinfo->cpuid ; i++) printk("\n");
+  cprintk ("parent: child's PID = %d fd2 = %d fd = %d test = %x cpuid = %d\n", 0xE, pid, fd2, fd, test, cpuinfo->cpuid);
+  putc('@');
 
   while (1) {__asm__ __volatile__ ("cli;pause;\n\t");}
 }

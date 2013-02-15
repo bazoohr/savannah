@@ -18,9 +18,8 @@
  * Usually it is use in the library to perform functions like fork() or exec()
  * or read(), the typical system calls.
  *
- * Implementation: It clean the msg_output and msg_input, then fill the
- * msg_input with the correct data (passed as parameters) and set the flag ready
- * to 'true' for the corresponding server.
+ * Implementation: Fill the msg_input with the correct data (passed as
+ * parameters) and set the flag ready to 'true' for the corresponding server.
  */
 void
 msg_send(const int to, const int number, const void *data, const int size)
@@ -37,21 +36,49 @@ msg_send(const int to, const int number, const void *data, const int size)
 /*
  * msg_receive() - Wait for a reply from a server.
  *
+ * from: The cpuid of the process from where you are waiting the message. In
+ *       some cases the special parameter ANY can be specified if you don't know
+ *       from which CPU the message come from.
+ *
  * This function it is usually called just after msg_send() and waits for the
  * reply from the server.
+ * It can be also used from the drivers to receive messages from the servers.
  *
  * Implementation: Check if there is any message in the msg_input "box". When
- * the message will fill the box with the reply it returns. It return a void
- * because when this function returns the message is already in msg_input.
+ * the message will fill the box with the reply it returns. It return an
+ * integer, which is the cpuid from where the message come from.
+ * In the current implementation we don't have just one input box, but as many
+ * as the number of CPUs in the system. This is to prevent race conditions
+ * between two messages sent at the same time. If the from parameter is a
+ * specific CPU, then this function will poll just that "box", otherwhise if the
+ * parameter is ANY it will loop all the boxes checking for some messages.
  */
-void
-msg_receive()
+int
+msg_receive(int from)
 {
-  while (1)
-    if (cpuinfo->msg_input->number) {
-      cpuinfo->msg_input->number = 0;
-      break;
+  int i;
+
+  while (1) {
+    if (from == ANY) {
+      for (i = 0 ; i < 8/*get_ncpus()*/ ; i++) {
+        if (cpuinfo->msg_input[i].number) {
+          cpuinfo->msg_input[i].number = 0;
+          from = i;
+          break;
+        }
+      }
+
+      if (from != ANY)
+        break;
+    } else {
+      if (cpuinfo->msg_input[from].number) {
+        cpuinfo->msg_input[from].number = 0;
+        break;
+      }
     }
+  }
+
+  return from;
 }
 
 /*
@@ -147,7 +174,7 @@ msg_reply(const int to, const int number, const void *data, const int size)
   struct message *base = (struct message *)(((phys_addr_t)cpuinfo->msg_input - (_4KB_ * id)));
   struct message *inbox = (struct message *)(((phys_addr_t)base + (_4KB_ * to)));
 
-  inbox->from = id;
-  memcpy(&inbox->data, data, size);
-  inbox->number = number;
+  inbox[id].from = id;
+  memcpy(inbox[id].data, data, size);
+  inbox[id].number = number;
 }

@@ -8,6 +8,7 @@
 #include <string.h>
 #include <cpuinfo.h>
 #include <ipc.h>
+#include <config.h>
 
 static int cpu_has_vmx()
 {
@@ -361,10 +362,10 @@ void host_entry()
   phys_addr_t msg_data;
 
 	if (reason == 18) {
-    cprintk ("VM_ENTRY:::Waiting for message!\n", 0x10);
-		msg_receive();
+		cprintk ("VM_ENTRY:::Waiting for message!\n", 0x10);
+		msg_receive(PM);
 
-    msg_data = (phys_addr_t)cpuinfo->msg_input->data;
+		msg_data = (phys_addr_t)cpuinfo->msg_input[PM].data;
 
 		int r = *(int*)msg_data;
 		if (r == -1) {

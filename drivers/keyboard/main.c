@@ -11,6 +11,7 @@
 #include <dev/lapic.h>
 #include <panic.h>
 #include <config.h>
+#include <cpuinfo.h>
 /* ========================================== */
 int
 main (void)
@@ -26,7 +27,9 @@ main (void)
   kbd_init ();
   */
 
-  cprintk ("This is driver!!\n", 0xE);
+  int i;
+  for (i = 0 ; i < cpuinfo->cpuid ; i++) printk("\n");
+  cprintk ("This is the keyboard driver!!\n", 0xE);
   __asm__ __volatile__ ("sti\n");
 
   for (;;);

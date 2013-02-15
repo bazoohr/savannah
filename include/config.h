@@ -18,6 +18,7 @@
 #define FS	1
 #define INIT  2
 #define KBD   3
+#define CONSOLE 4
 
 #define BSP_PAGE_SIZE  _2MB_
 #define SRVR_VMS_PAGE_SIZE _2MB_
