@@ -334,12 +334,14 @@ parse_elf (struct cpu_info *curr_cpu_info, phys_addr_t elf)
     panic ("PM: Computed two different VM end addresses %x & %x\n", curr_cpu_info->vm_info.vm_end_paddr, curr_cpu_info->vm_info.vm_start_paddr + vm_size);
   }
 
+#if 0
   cprintk ("code p = %x v = %x\ndata p = %x v = %x\nrodata p = %x v = %x\nbss p = %x v = %x\nstack p = %x v = %x\n", 0xF, curr_cpu_info->vm_info.vm_code_paddr, curr_cpu_info->vm_info.vm_code_vaddr,
       curr_cpu_info->vm_info.vm_data_paddr, curr_cpu_info->vm_info.vm_data_vaddr,
       curr_cpu_info->vm_info.vm_rodata_paddr, curr_cpu_info->vm_info.vm_rodata_vaddr,
       curr_cpu_info->vm_info.vm_bss_paddr, curr_cpu_info->vm_info.vm_bss_vaddr,
       curr_cpu_info->vm_info.vm_stack_paddr, curr_cpu_info->vm_info.vm_stack_vaddr);
   cprintk ("========================\n", 0xF);
+#endif
 }
 /* ================================================= */
 static pid_t
@@ -399,6 +401,7 @@ local_exec (struct cpu_info *info, struct exec_ipc *exec_args)
     strcpy ((char *)stack_phys_off, arg_vector[i]);
   }
 
+
   /*
    * Here we allocate an array of virtual addresses. This would be identical with
    * argv[*]. Namely an array of "char *". We need to versions of this, one with
@@ -422,6 +425,44 @@ local_exec (struct cpu_info *info, struct exec_ipc *exec_args)
   return 0;
 }
 /* ================================================= */
+static phys_addr_t
+local_channel (struct channel_ipc *req)
+{
+  struct cpu_info *vm1;
+  struct cpu_info *vm2;
+  phys_addr_t channel;
+
+  vm1 = get_cpu_info (req->end1);
+  vm2 = get_cpu_info (req->end2);
+
+  if (vm1->vm_info.vm_start_paddr == 0 || vm1->vm_info.vm_stack_paddr == 0) {
+    panic ("PM: creating channel failed! VM1 does not exist! VM1 = %d & VM2 = %d!\n", vm1->cpuid, vm2->cpuid);
+  }
+
+  if (vm2->vm_info.vm_start_paddr == 0 || vm2->vm_info.vm_stack_paddr == 0) {
+    panic ("PM: creating channel failed! VM2 does not exist! VM1 = %d & VM2 = %d!\n", vm1->cpuid, vm2->cpuid);
+  }
+
+  channel = (phys_addr_t)malloc_align (CHANNEL_SIZE, USER_VMS_PAGE_SIZE);
+  if (channel == 0) {
+    panic ("PM: Failed to alloced memory!");
+  }
+
+  EPT_map_memory (&vm1->vm_info.vm_ept,
+      channel,  channel + CHANNEL_SIZE,
+      channel,
+      USER_VMS_PAGE_SIZE,
+      EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
+
+  EPT_map_memory (&vm2->vm_info.vm_ept,
+      channel,  channel + CHANNEL_SIZE,
+      channel,
+      USER_VMS_PAGE_SIZE,
+      EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
+
+  return channel;
+}
+/* ================================================= */
 void
 vm_main (void)
 {
@@ -437,6 +478,7 @@ vm_main (void)
   while (1) {
     struct message *m __aligned (0x10) = msg_check();
     pid_t r;
+    phys_addr_t channel;
 
     switch(m->number) {
       case FORK_IPC:
@@ -452,6 +494,11 @@ vm_main (void)
         r = local_exec (get_cpu_info (m->from), (struct exec_ipc *)m->data);
         msg_reply (m->from, EXEC_IPC, &r, sizeof (pid_t));
         break;
+      case CHANNEL_IPC:
+        channel = local_channel ((struct channel_ipc *)m->data);
+        msg_reply (m->from, CHANNEL_IPC, &channel, sizeof (phys_addr_t));
+        break;
+
       default:
         cprintk("PM: Warning, unknown request %d from %d\n", 0xD, m->number, m->from);
     }

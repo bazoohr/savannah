@@ -4,6 +4,7 @@
 #include <const.h>
 #include <macro.h>
 
+
 #define MIN_CPUS 4
 #define MAX_CPUS 255
 
@@ -26,6 +27,8 @@
 #define BSP_PAGE_SIZE  _2MB_
 #define SRVR_VMS_PAGE_SIZE _2MB_
 #define USER_VMS_PAGE_SIZE _4KB_
+
+#define CHANNEL_SIZE USER_VMS_PAGE_SIZE
 
 #define MAX_ARGV 16
 #define MAX_ARGV_LEN 256

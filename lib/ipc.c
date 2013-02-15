@@ -1,7 +1,6 @@
 #include <ipc.h>
 #include <string.h>
 #include <misc.h>
-#include <printk.h>
 
 /*
  * msg_send() - Send a message to another process.
@@ -136,9 +135,6 @@ msg_check()
 
   struct message *base_m = (struct message *)((phys_addr_t)cpuinfo->msg_output - (_4KB_ * id));
 
-  if (cpuinfo->cpuid == 1) {
-    cprintk ("\n\n\nmsg_check()\n", 0xF);
-  }
   return (struct message *)((phys_addr_t)base_m + (_4KB_ * from));
 }
 

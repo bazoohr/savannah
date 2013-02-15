@@ -12,6 +12,7 @@
 #include <config.h>
 #include <con.h>
 #include <misc.h>
+#include <pm.h>
 
 struct header {
 	char name[32];        /* File name */
@@ -30,7 +31,47 @@ struct header fds[MAX_CPUS][MAX_FD];
 int
 local_open_char(const char *pathname, int from)
 {
-  return -1;
+  int fd;
+  struct channel_ipc msg;
+  struct message *pm_reply;
+
+  cprintk ("pathname = %s from %d\n", 0x6, pathname, from);
+
+  if (from > MAX_CPUS || from < 0) {
+    return -1;
+  }
+
+  if (strcmp (pathname, "stdin") == 0) {
+    fd = 0;
+  } else if (strcmp (pathname, "stdout") == 0) {
+    fd = 1;
+  } else {
+    fd = -1;  /* JUST to SHUT UP GCC */
+    cprintk ("FS: Unknown char file!", 0x4);
+    halt ();
+  }
+  /* If the file is already open! */
+  if (fds[from][fd].offset != 0) {
+    return -1;
+  }
+
+  msg.end1 = from;
+  msg.end2 = fd == 0 ? KBD : CONSOLE;
+
+  msg_send (PM, CHANNEL_IPC, &msg, sizeof (struct channel_ipc));
+
+  msg_receive (PM);
+
+  pm_reply = &cpuinfo->msg_input[PM];
+
+  memcpy (&fds[from][fd].offset, pm_reply->data, sizeof (phys_addr_t));
+  fds[from][fd].type = TYPE_CHAR;
+  fds[from][fd].length = 0;
+
+
+  cprintk ("channel created in address %x\n", 0x6, fds[from][fd].offset);
+
+  return fd;
 }
 
 int

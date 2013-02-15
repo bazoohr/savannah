@@ -71,7 +71,16 @@ vm_main (void)
 
   for (i = 0 ; i < cpuinfo->cpuid ; i++) printk("\n");
   cprintk ("parent: child's PID = %d fd2 = %d fd = %d test = %x cpuid = %d\n", 0xE, pid, fd2, fd, test, cpuinfo->cpuid);
-  putc('@');
+  //putc('@');
+
+  pid = fork();
+  if (pid == -1) {
+    cprintk ("Failed to fork!\n", 0x4);
+  } else if (pid == 0) {
+    for (i = 0 ; i < cpuinfo->cpuid ; i++) printk("\n");
+    cprintk ("I am the console child pid = %d fd2 = %d fd1 = %d test = %x cpuid = %d\n", 0xD, pid, fd2, fd, test, cpuinfo->cpuid);
+    exec("login", NULL);
+  }
 
   while (1) {__asm__ __volatile__ ("cli;pause;\n\t");}
 }

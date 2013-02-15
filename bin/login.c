@@ -1,14 +1,13 @@
-#include <printk.h>
-#include <console.h>
+#include <con.h>
+#include <fs.h>
 
 int main(int argc, char **argv)
 {
-  int i;
-  con_init();
-  for (i = 0; i < argc; i++) {
-    cprintk("Hello world! %s :-)\n", 0x3, argv[i]);
-  }
+  putc('%');
+  putc(' ');
+  putc('l');
+  putc('s');
 
-  while (1){};
+  while (1);
 }
 
