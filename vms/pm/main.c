@@ -377,7 +377,7 @@ local_exec (struct cpu_info *info, struct exec_ipc *exec_args)
   for (i = 1; i < MAX_ARGV; i++) {
     char *curr_phys_arg __aligned (0x10);
     /* Check for the end of arguments */
-    if (exec_args->argv[i - 1] == NULL) {
+    if (exec_args->argv == NULL || exec_args->argv[i - 1] == NULL) {
       break;
     }
 

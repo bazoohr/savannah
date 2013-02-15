@@ -14,7 +14,7 @@
 #include <cpuinfo.h>
 /* ========================================== */
 int
-main (void)
+main (int argc, char **argv)
 {
   con_init ();
 
@@ -29,7 +29,10 @@ main (void)
 
   int i;
   for (i = 0 ; i < cpuinfo->cpuid ; i++) printk("\n");
-  cprintk ("This is the keyboard driver!!\n", 0xE);
+  cprintk ("This is the keyboard driver!! %d\n", 0xE, argc);
+  for (i = 0 ; i < argc ; i++) {
+    cprintk ("argv[%d] = %s\n", 0xE, i, argv[i]);
+  }
   __asm__ __volatile__ ("sti\n");
 
   for (;;);

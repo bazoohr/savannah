@@ -17,7 +17,7 @@
 #include <cpuinfo.h>
 /* ========================================== */
 int
-main (void)
+main (int argc, char **argv)
 {
   con_init ();
 
@@ -26,6 +26,9 @@ main (void)
   int i;
   for (i = 0 ; i < cpuinfo->cpuid ; i++) printk("\n");
   cprintk ("This is the console driver!!\n", 0xE);
+  for (i = 0 ; i < argc ; i++) {
+    cprintk ("argv[%d] = %s\n", 0xE, i, argv[i]);
+  }
 
   while (1) {
     int from = msg_receive(ANY);

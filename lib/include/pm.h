@@ -15,11 +15,10 @@ struct fork_ipc {
 
 struct exec_ipc {
   char path[MAX_PATH];
-  int argc;
   char **argv;
 };
 
 int fork (void);
-void exec (char *path, int argc, char **argv);
+void exec (char *path, char **argv);
 
 #endif /* __PM_H__ */

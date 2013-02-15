@@ -63,7 +63,7 @@ vm_main (void)
     for (i = 0 ; i < cpuinfo->cpuid ; i++) printk("\n");
     char *string[] = {"Hamid", "Francesco", NULL};
     cprintk ("I am the keyboard child pid = %d fd2 = %d fd1 = %d test = %x cpuid = %d\n", 0xD, pid, fd2, fd, test, cpuinfo->cpuid);
-    exec("keyboard", 3, string);
+    exec("keyboard", string);
   }
 
   pid = fork();
@@ -71,9 +71,8 @@ vm_main (void)
     cprintk ("Failed to fork!\n", 0x4);
   } else if (pid == 0) {
     for (i = 0 ; i < cpuinfo->cpuid ; i++) printk("\n");
-    char *string[] = {"Hamid", "Francesco", NULL};
     cprintk ("I am the console child pid = %d fd2 = %d fd1 = %d test = %x cpuid = %d\n", 0xD, pid, fd2, fd, test, cpuinfo->cpuid);
-    exec("console", 3, string);
+    exec("console", NULL);
   }
 
   for (i = 0 ; i < cpuinfo->cpuid ; i++) printk("\n");
