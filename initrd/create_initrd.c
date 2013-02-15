@@ -2,6 +2,7 @@
 #include <string.h>
 #include <libgen.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 /*
  * This small C code creates an initrd image with the following structure.
@@ -13,13 +14,21 @@
  * o Then all the file contents is written
  */
 
+#define TYPE_FILE 1
+#define TYPE_CHAR 2
 /*
  * Main structure to understand the file
+ *
+ * XXX:
+ *    If you change the following structure, make sure you update the structure
+ *    in file vms/fs/main.c
+ *    These two MUST be exactly identical
  */
 struct header {
 	char name[32];        /* File name */
-	unsigned int length;  /* File length */
-	unsigned int offset;  /* Offset where the file is located starting from
+  uint32_t type;    /* Type of the file (normal file, char, block ...) */
+	uint32_t length;  /* File length */
+	uint64_t offset;  /* Offset where the file is located starting from
 			       * the beginning of the file */
 };
 
@@ -30,11 +39,13 @@ char buffer[MAX];
 int main(int argc, char *argv[])
 {
 	FILE *initrd, *f_tmp;
-	const int num_files = argc - 1;
+	const int normal_files = argc - 1;
+  const int char_files = 2;
+  const int total_files = normal_files + char_files;
 	int i, len;
 	struct header h_tmp;
 
-	int off = (sizeof(struct header) * num_files) + sizeof(int);
+	int off = (sizeof(struct header) * total_files) + sizeof(int);
 
 	if (argc == 1) {
 		printf("Usage: %s <files>\n", argv[0]);
@@ -44,10 +55,22 @@ int main(int argc, char *argv[])
 	initrd = fopen("initrd.img", "w");
 
 	/* Write the number of files */
-	fwrite(&num_files, sizeof(int), 1, initrd);
+	fwrite(&total_files, sizeof(int), 1, initrd);
+
+  /* Char files: stdin, stdout */
+  strcpy(h_tmp.name, "stdin");
+  h_tmp.type = TYPE_CHAR;
+  h_tmp.length = 0;
+  h_tmp.offset = 0;
+  fwrite(&h_tmp, sizeof(struct header), 1, initrd);
+  strcpy(h_tmp.name, "stdout");
+  h_tmp.type = TYPE_CHAR;
+  h_tmp.length = 0;
+  h_tmp.offset = 0;
+  fwrite(&h_tmp, sizeof(struct header), 1, initrd);
 
 	/* Write all the headers */
-	for (i = 0 ; i < num_files ; i++) {
+	for (i = 0 ; i < normal_files ; i++) {
 		f_tmp = fopen(argv[1 + i], "r");
     if (f_tmp == NULL) {
       fprintf (stderr, "File %s not found!\n", argv[1 + i]);
@@ -62,6 +85,7 @@ int main(int argc, char *argv[])
 		}
 
 		strcpy(h_tmp.name, basename(argv[1 + i]));
+    h_tmp.type = TYPE_FILE;
 		h_tmp.length = len;
 		h_tmp.offset = off;
 		off += h_tmp.length;
@@ -71,8 +95,8 @@ int main(int argc, char *argv[])
 		fclose(f_tmp);
 	}
 
-	/* Write all the files */
-	for (i = 0 ; i < num_files ; i++) {
+  /* Write all the files */
+	for (i = 0 ; i < normal_files ; i++) {
 		f_tmp = fopen(argv[1 + i], "r");
 
 		fseek(f_tmp, 0L, SEEK_END);

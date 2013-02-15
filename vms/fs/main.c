@@ -13,9 +13,11 @@
 #include <con.h>
 
 struct header {
-  char name[32];
-  unsigned int length;
-  unsigned int offset;
+	char name[32];        /* File name */
+  uint32_t type;    /* Type of the file (normal file, char, block ...) */
+	uint32_t length;  /* File length */
+	uint64_t offset;  /* Offset where the file is located starting from
+			       * the beginning of the file */
 };
 
 char *filesystem;
