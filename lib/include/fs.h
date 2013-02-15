@@ -1,6 +1,8 @@
 #ifndef __FS_H__
 #define __FS_H__
 
+#include <types.h>
+
 #define O_RDONLY        00000000
 #define O_WRONLY        00000001
 #define O_RDWR          00000002
@@ -10,12 +12,19 @@
 #define CLOSE_IPC       3
 #define LOAD_IPC        4
 #define PUTC_IPC        5
+#define READ_ACK        6
 
 #define TYPE_FILE 1
 #define TYPE_CHAR 2
 
 #define MAX_PATHNAME    32
 #define MAX_BUFFER      32
+
+struct keyboard_read {
+  cpuid_t from;
+  void *channel;
+  size_t count;
+};
 
 struct open_ipc {
 	char pathname[MAX_PATHNAME];

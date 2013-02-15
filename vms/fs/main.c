@@ -118,16 +118,52 @@ local_open(const char *pathname, int flags, int from)
   return fd;
 }
 
+static int
+local_read_char (int fd, int count, int from)
+{
+  struct keyboard_read kbd_rd;
+  void *channel_addr;
+  int to;
+
+  if (fd > MAX_FD) {
+    cprintk ("local_read_char: TOO big fd value %d!", 0x4, fd);
+    halt ();
+  }
+  if (from > MAX_CPUS || from < 0) {
+    cprintk ("local_read_char: \"from\" = %d not valid!", 0x4, from);
+    halt ();
+  }
+
+  to = (fd == 0) ? KBD : CONSOLE;
+
+  channel_addr = (void *)fds[from][fd].offset;
+
+  if (channel_addr == 0) {
+    cprintk ("local_read_char: No channle found!", 0x4);
+    halt ();
+  }
+
+  kbd_rd.from = from;
+  kbd_rd.channel = channel_addr;
+  kbd_rd.count = count;
+
+  msg_reply (KBD, READ_IPC, &kbd_rd, sizeof (struct keyboard_read));
+
+  return count;
+}
 int
 local_read(int fd, void *buf, int count, int from)
 {
   struct header tmp = fds[from][fd];
 
+  if (tmp.type == TYPE_CHAR) {
+    return local_read_char (fd, count, from);
+  }
+
   if (count > tmp.length)
     count = tmp.length;
   if (count > MAX_BUFFER)
     count = MAX_BUFFER;
-
   memcpy(buf, filesystem + tmp.offset, count);
 
   return count;
@@ -185,6 +221,7 @@ vm_main (void)
     struct close_ipc closetmp;
     int r;
     phys_addr_t f;
+    cpuid_t to;
 
     switch(m->number) {
     case OPEN_IPC:
@@ -199,9 +236,9 @@ vm_main (void)
       break;
     case READ_IPC:
       memcpy(&readtmp, m->data, sizeof(struct read_ipc));
-      r = local_read(readtmp.fd, &readtmp.buf, readtmp.count, m->from);
-      readtmp.count = r;
-      msg_reply(m->from, READ_IPC, &readtmp, sizeof(struct read_ipc));
+      local_read(readtmp.fd, readtmp.buf, readtmp.count, m->from);
+      //readtmp.count = r;
+      //msg_reply(m->from, READ_IPC, &readtmp, sizeof(struct read_ipc));
       break;
     case CLOSE_IPC:
       memcpy(&closetmp, m->data, sizeof(struct close_ipc));
@@ -223,6 +260,10 @@ vm_main (void)
       } else {
         msg_reply(m->from, PUTC_IPC, m->data, sizeof(int));
       }
+      break;
+    case READ_ACK:
+      to = (cpuid_t)*m->data;
+      msg_reply(to, READ_IPC, &(fds[to][0].offset), sizeof(phys_addr_t));
       break;
     default:
       cprintk("FS: Warning, unknown request %d\n", 0xD, m->number);

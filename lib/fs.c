@@ -3,6 +3,8 @@
 #include <string.h>
 #include <config.h>
 
+#include <printk.h>
+
 int open(const char *pathname, int flags)
 {
   struct open_ipc tmp;
@@ -26,6 +28,9 @@ int open(const char *pathname, int flags)
 int read(int fd, void *buf, int count)
 {
   struct read_ipc tmp;
+  struct message *fs_reply;
+  virt_addr_t *channel_ptr;
+  virt_addr_t channel;
 
   tmp.fd = fd;
   tmp.count = count > MAX_BUFFER ? MAX_BUFFER : count;
@@ -33,9 +38,12 @@ int read(int fd, void *buf, int count)
   msg_send(FS, READ_IPC, &tmp, sizeof(struct read_ipc));
   msg_receive(FS);
 
-  memcpy(&tmp, &cpuinfo->msg_input[FS].data, sizeof(struct read_ipc));
+  fs_reply = &cpuinfo->msg_input[FS];
 
-  strncpy(buf, tmp.buf, tmp.count);
+  channel_ptr = (virt_addr_t*)fs_reply->data;
+  channel = *channel_ptr;
+
+  memcpy(buf, (void*)channel, count);
 
   return tmp.count;
 }
