@@ -1,8 +1,5 @@
 #include <trap.h>
 #include <isr.h>
-#include <segment.h>
-#include <dev/ioapic.h>
-#include <dev/pic.h>
 #include <asmfunc.h>
 
 static struct gate_descriptor idt[NIDT] __aligned (16);
@@ -55,7 +52,6 @@ trap_init (void)
 static void
 irq_init (void)
 {
-	setgate (IRQ_OFFSET + IRQ_TIMER, (phys_addr_t)&timer_handler, IDT_INTR_GATE, KNL_PVL, IST);
 	setgate (IRQ_OFFSET + IRQ_KBD, (phys_addr_t)&kbd_handler, IDT_INTR_GATE, KNL_PVL, IST);
 }
 

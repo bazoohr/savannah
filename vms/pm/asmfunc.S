@@ -7,7 +7,6 @@
 .code64
 .section .text
 #include <const.h>
-#include <dev/pic.h>
 #include <asmlink.h>
 /* ============================ */
 ENTRY (cli)
@@ -27,23 +26,6 @@ ENTRY (outb)
 	outb %al, %dx
 	retq
 END(outb)
-/* ============================ */
-ENTRY (reload_gdt)
-  cli
-  lgdt (%rdi)
-
-  movl %edx, %ds
-  movl %edx, %es
-  movl %edx, %fs
-  movl %edx, %gs
-  movl %edx, %ss
-
-  pushq %rsi
-  pushq $1f
-  lretq
-1:
-  retq
-END (reload_gdt)
 /* ================================== */
 ENTRY (lidt)
   lidt (%rdi)

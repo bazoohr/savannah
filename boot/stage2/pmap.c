@@ -4,7 +4,6 @@
 #include <memory.h>
 #include <panic.h>
 #include <printk.h>
-#include <global.h>
 #include <macro.h>
 #include <pmap.h>
 /* ========================================== */

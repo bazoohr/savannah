@@ -1,8 +1,7 @@
 #ifndef __MP_H__
 #define __MP_H__
 
-#define MIN_CPUS 4
-#define MAX_CPUS 255
+#include <config.h>  /* For MAX & MIN number of cpus */
 
 void mp_init(void);
 void mp_bootothers (void);

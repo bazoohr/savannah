@@ -1,16 +1,10 @@
 #include <cdef.h>
-#include <dev/pic.h>
 #include <types.h>
 #include <printk.h>
 #include <console.h>
 #include <const.h>
-#include <interrupt.h>
 #include <asmfunc.h>
 #include <memory.h>
-#include <dev/keyboard.h>
-#include <mp.h>
-#include <dev/ioapic.h>
-#include <dev/lapic.h>
 #include <cpu.h>
 #include <string.h>
 #include <ipc.h>
@@ -85,7 +79,11 @@ ept_pmap (struct cpu_info *child_cpu_info)
       0,
       USER_VMS_PAGE_SIZE,
       EPT_PAGE_READ | EPT_PAGE_WRITE, MAP_NEW);  /* XXX: Why do we need write access here? */
-
+  EPT_map_memory (&child_cpu_info->vm_info.vm_ept,
+      0xFEC00000, ((phys_addr_t)0x100000000),
+      0xFEC00000,
+      USER_VMS_PAGE_SIZE,
+      EPT_PAGE_READ | EPT_PAGE_WRITE, MAP_UPDATE);  /* XXX: Why do we need write access here? */
   EPT_map_memory (&child_cpu_info->vm_info.vm_ept,
       child_cpu_info->vm_info.vm_page_tables, child_cpu_info->vm_info.vm_page_tables + 2 * PAGE_TABLE_SIZE,
       child_cpu_info->vm_info.vm_page_tables,

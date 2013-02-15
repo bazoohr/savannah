@@ -11,5 +11,4 @@ ISRENT(name)              \
   POP_FRAME(%rsp);        \
   iretq
 
-ISR(timer_handler, do_timer)
 ISR(kbd_handler, kbd_proc_data)

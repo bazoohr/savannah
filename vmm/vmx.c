@@ -177,7 +177,7 @@ static void setup_vmcs(void)
         uint64_t vmx_pinbase = rdmsr (MSR_IA32_VMX_PINBASED_CTLS);
 
 	u64 = (uint32_t)vmx_pinbase; /* Get just the first 32bit of the MSR, because those are the 0-settings */
-	u64 |= 1;                    /* If the bit 0 is set, external interrupts cause a VMEXIT */
+	//u64 |= 1;                    /* If the bit 0 is set, external interrupts cause a VMEXIT */
 	vmx_vmwrite(PIN_BASED_VM_EXEC_CONTROL, u64);
 
         // Section 24.6.2 Table 24-6
@@ -246,8 +246,8 @@ static void setup_vmcs(void)
 	vmx_vmwrite(GUEST_LDTR_LIMIT, 0xFFFF);
 	vmx_vmwrite(GUEST_TR_LIMIT, 0xFF);
 
-	vmx_vmwrite(GUEST_GDTR_LIMIT, gdtr->dr_limit);
-	vmx_vmwrite(GUEST_IDTR_LIMIT, idtr->dr_limit);
+	vmx_vmwrite(GUEST_GDTR_LIMIT, 0);
+	vmx_vmwrite(GUEST_IDTR_LIMIT, 0);
 
 	vmx_vmwrite(GUEST_DR7, 0);
 
@@ -280,8 +280,8 @@ static void setup_vmcs(void)
 	vmx_vmwrite(GUEST_LDTR_BASE, 0);
 	vmx_vmwrite(GUEST_TR_BASE, 0);
 
-	vmx_vmwrite(GUEST_GDTR_BASE, gdtr->dr_base);
-	vmx_vmwrite(GUEST_IDTR_BASE, idtr->dr_base);
+	vmx_vmwrite(GUEST_GDTR_BASE, 0);
+	vmx_vmwrite(GUEST_IDTR_BASE, 0);
 
 	vmx_vmwrite(EPT_POINTER, cpuinfo->vm_info.vm_ept | 0x6 | (3 << 3));
 

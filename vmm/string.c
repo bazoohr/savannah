@@ -1,37 +1,79 @@
 #include <string.h>
 
-void * 
-memcpy (void *dst, const void *src, size_t count)
+void *
+memcpy (void *dest,
+        const void *src,
+        asize_t count)
 {
-	char *tmp = dst;
-	const char *s = src;
+	char *tmp __aligned (0x10)= dest;
+	const char *s __aligned (0x10) = src;
 
 	while (count--)
 		*tmp++ = *s++;
-
-	return dst;
+	return dest;
 }
 
 void *
-memset (void *ptr, int c, size_t count)
+memset (void *s,
+        int c,
+        asize_t count)
 {
-	char *xs = ptr;
+	char *xs __aligned (0x10)= s;
 
 	while (count--)
 		*xs++ = c;
-
-	return ptr;
+	return s;
 }
 
-int
-memcmp(const void *cs, const void *ct, size_t count)
+char *
+strcpy (char *dest,
+        const char *src)
 {
-	const unsigned char *su1, *su2;
-	int res = 0;
+	char *tmp __aligned (0x10)= dest;
 
-	for (su1 = cs, su2 = ct; 0 < count; ++su1, ++su2, count--)
-		if ((res = *su1 - *su2) != 0)
+	while ((*dest++ = *src++) != '\0')
+		/* nothing */;
+	return tmp;
+}
+
+char *
+strncpy (char *dest,
+         const char *src,
+         asize_t count)
+{
+	char *tmp __aligned (0x10)= dest;
+
+	while (count) {
+		if ((*tmp = *src) != 0)
+			src++;
+		tmp++;
+		count--;
+	}
+	return dest;
+}
+
+int strlen (const char *s)
+{
+	const char *sc __aligned (0x10);
+
+	for (sc = s; *sc != '\0'; ++sc)
+		/* nothing */;
+	return sc - s;
+}
+
+int strcmp (const char *cs,
+           const char *ct)
+{
+	auint8_t c1, c2;
+
+	while (1) {
+		c1 = *cs++;
+		c2 = *ct++;
+		if (c1 != c2)
+			return c1 < c2 ? -1 : 1;
+		if (!c1)
 			break;
-	return res;
+	}
+	return 0;
 }
 

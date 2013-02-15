@@ -1,4 +1,3 @@
-#include <debug.h>
 #include <types.h>
 #include <dev/ioapic.h>
 #include <isr.h>

@@ -12,12 +12,15 @@
 #include <panic.h>
 #include <config.h>
 #include <cpuinfo.h>
+#include <gdt.h>
+struct system_descriptor gdt[NGDT] __aligned (16);
 /* ========================================== */
 int
 main (int argc, char **argv)
 {
   con_init ();
 
+  create_new_gdt (gdt, NGDT * sizeof (struct system_descriptor));
   interrupt_init ();
 
   /*
