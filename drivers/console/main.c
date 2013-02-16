@@ -14,6 +14,9 @@
 int
 main (int argc, char **argv)
 {
+  struct message *req;
+  struct console_write cwrite;
+  struct write_reply writereply;
   int i;
   con_init ();
 
@@ -24,13 +27,24 @@ main (int argc, char **argv)
   }
 
   while (1) {
-    int from = msg_receive(ANY);
+    msg_receive(FS);
 
-    struct putc_ipc tmp;
+    req = &cpuinfo->msg_input[FS];
+    memcpy (&cwrite, req->data, sizeof (struct console_write));
 
-    memcpy(&tmp, cpuinfo->msg_input[from].data, sizeof(struct putc_ipc));
+    for (i = 0 ; i < cwrite.count ; i++) {
+      kputc(((char*)cwrite.channel)[i], 0xF);
+    }
 
-    kputc(tmp.c, 0xF);
+    writereply.from = cwrite.from;
+    writereply.count = cwrite.count;
+
+    msg_send (FS, WRITE_ACK, &writereply, sizeof(struct write_reply));
+//    struct putc_ipc tmp;
+//
+//    memcpy(&tmp, cpuinfo->msg_input[from].data, sizeof(struct putc_ipc));
+//
+//    kputc(tmp.c, 0xF);
   }
 
   for (;;);

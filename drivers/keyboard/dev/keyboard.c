@@ -13,7 +13,7 @@
 #define	KBD_STAT_DATA_IN_BUF	0x01	/* kbd data in buffer */
 
 static char *buffer;
-static int bufpos = 0;
+static volatile int bufpos = 0;
 static int keymap[][8] = {
 /*                                                       alt
  scan                        cntrl          alt    alt   cntrl

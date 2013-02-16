@@ -10,11 +10,12 @@ int main(int argc, char **argv)
   int r = read (0, str, 5);
   str[r] = '\0';
   cprintk("\nr = %d Result: %s\n", 0xF, r, str);
-  putc(str[0]);
-  putc('%');
-  putc(' ');
-  putc('l');
-  putc('s');
+  write(1, str, 5);
+//  putc(str[0]);
+//  putc('%');
+//  putc(' ');
+//  putc('l');
+//  putc('s');
 
   while (1);
 }

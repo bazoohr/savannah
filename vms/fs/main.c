@@ -24,12 +24,10 @@ struct header {
 
 char *filesystem;
 
-#define MAX_FD (64)
-
 struct header fds[MAX_CPUS][MAX_FD];
 
-int
-local_open_char(const char *pathname, int from)
+void
+local_open_char(const char *pathname, int from, struct open_reply *openreply)
 {
   int fd;
   struct channel_ipc msg;
@@ -38,7 +36,8 @@ local_open_char(const char *pathname, int from)
   cprintk ("pathname = %s from %d\n", 0x6, pathname, from);
 
   if (from > MAX_CPUS || from < 0) {
-    return -1;
+    openreply->fd = -1;
+    return;
   }
 
   if (strcmp (pathname, "stdin") == 0) {
@@ -52,7 +51,8 @@ local_open_char(const char *pathname, int from)
   }
   /* If the file is already open! */
   if (fds[from][fd].offset != 0) {
-    return -1;
+    openreply->fd = -1;
+    return;
   }
 
   msg.end1 = from;
@@ -68,14 +68,14 @@ local_open_char(const char *pathname, int from)
   fds[from][fd].type = TYPE_CHAR;
   fds[from][fd].length = 0;
 
-
   cprintk ("channel created in address %x\n", 0x6, fds[from][fd].offset);
 
-  return fd;
+  openreply->fd = fd;
+  openreply->channel = (void *)fds[from][fd].offset;
 }
 
-int
-local_open(const char *pathname, int flags, int from)
+void
+local_open(const char *pathname, int flags, int from, struct open_reply *openreply)
 {
   int i;
   int fd;
@@ -83,21 +83,25 @@ local_open(const char *pathname, int flags, int from)
   int num_files;
 
   if (strcmp(pathname, "stdin") == 0 || strcmp(pathname, "stdout") == 0)
-    return local_open_char(pathname, from);
+    return local_open_char(pathname, from, openreply);
 
   // Find the lowest available fd
   for (i = 2 ; i < MAX_FD ; i++)
     if (fds[from][i].offset == 0)
       break;
 
-  if (i >= MAX_FD)
-    return -1;
+  if (i >= MAX_FD) {
+    openreply->fd = -1;
+    return;
+  }
 
   fd = i;
 
   // Only O_RDONLY is supported
-  if (flags != O_RDONLY)
-    return -1;
+  if (flags != O_RDONLY) {
+    openreply->fd = -1;
+    return;
+  }
 
   // Search if the file exists
   num_files = (int)*filesystem;
@@ -106,8 +110,10 @@ local_open(const char *pathname, int flags, int from)
     if (strcmp(tmp->name, pathname) == 0)
       break;
   }
-  if (i >= num_files)
-    return -1;
+  if (i >= num_files) {
+    openreply->fd = -1;
+    return;
+  }
 
   // Copy the structure
   // NOTE: We are not copying name for performance reasons.
@@ -115,7 +121,8 @@ local_open(const char *pathname, int flags, int from)
   fds[from][fd].length = tmp->length;
   fds[from][fd].offset = tmp->offset;
 
-  return fd;
+  openreply->fd = fd;
+  openreply->channel = NULL;
 }
 
 static int
@@ -201,6 +208,25 @@ local_read(int fd, void *buf, int count, int from)
   return -1;
 }
 
+void
+local_write(int fd, void *buf, int count, int from)
+{
+  struct console_write cwrite;
+  struct write_reply writereply;
+
+  if (get_type(fd, from) == TYPE_FILE || fd != 1) {
+    writereply.from = from;
+    writereply.count = -1;
+    msg_reply (from, WRITE_IPC, &writereply, sizeof(struct write_reply));
+  }
+
+  cwrite.from = from;
+  cwrite.channel = buf;
+  cwrite.count = count;
+
+  msg_reply (CONSOLE, WRITE_IPC, &cwrite, sizeof(struct console_write));
+}
+
 int
 local_close(int fd, int from)
 {
@@ -249,10 +275,13 @@ vm_main (void)
   while (1) {
     struct message *m = msg_check();
     struct open_ipc opentmp;
+    struct open_reply openreply;
     struct read_ipc readtmp;
     struct read_reply readreply;
     struct read_reply *reply;
     struct close_ipc closetmp;
+    struct write_ipc *writeipc;
+    struct write_reply *writereply;
     int r;
     phys_addr_t f;
 
@@ -264,8 +293,8 @@ vm_main (void)
         break;
       }
       memcpy(&opentmp, m->data, sizeof(struct open_ipc));
-      r = local_open(opentmp.pathname, opentmp.flags, m->from);
-      msg_reply(m->from, OPEN_IPC, &r, sizeof(int));
+      local_open(opentmp.pathname, opentmp.flags, m->from, &openreply);
+      msg_reply(m->from, OPEN_IPC, &openreply, sizeof(struct open_reply));
       break;
     case READ_IPC:
       memcpy(&readtmp, m->data, sizeof(struct read_ipc));
@@ -298,9 +327,16 @@ vm_main (void)
         msg_reply(m->from, PUTC_IPC, m->data, sizeof(int));
       }
       break;
+    case WRITE_IPC:
+      writeipc = (struct write_ipc*)m->data;
+      local_write(writeipc->fd, writeipc->buf, writeipc->count, m->from);
     case READ_ACK:
       reply = (struct read_reply *)m->data;
       msg_reply(reply->from, READ_IPC, reply, sizeof(struct read_reply));
+      break;
+    case WRITE_ACK:
+      writereply = (struct write_reply *)m->data;
+      msg_reply(writereply->from, WRITE_IPC, writereply, sizeof(struct write_reply));
       break;
     default:
       cprintk("FS: Warning, unknown request %d\n", 0xD, m->number);

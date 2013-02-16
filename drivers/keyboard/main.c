@@ -41,6 +41,8 @@ main (int argc, char **argv)
   for (i = 0 ; i < cpuinfo->cpuid ; i++) printk("\n");
   cprintk ("This is the keyboard driver!! %d\n", 0xE, argc);
 
+  asm volatile ("cli\n\r");
+
   while (1) {
     msg_receive (FS);
 
