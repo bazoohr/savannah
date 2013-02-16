@@ -18,7 +18,6 @@
 #define TYPE_CHAR 2
 
 #define MAX_PATHNAME    32
-#define MAX_BUFFER      32
 
 struct keyboard_read {
   cpuid_t from;
@@ -33,8 +32,15 @@ struct open_ipc {
 
 struct read_ipc {
 	int fd;
-	char buf[MAX_BUFFER]; // TODO Remove this and use a pointer once we have a PM/MM
+	char *buf;
 	int count;
+};
+
+struct read_reply {
+	int from;
+	int type;
+	int count;
+	void *channel;
 };
 
 struct close_ipc {

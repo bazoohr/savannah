@@ -4,6 +4,7 @@
 #include <config.h>
 
 #include <printk.h>
+#include <lib_mem.h>
 
 int open(const char *pathname, int flags)
 {
@@ -29,23 +30,24 @@ int read(int fd, void *buf, int count)
 {
   struct read_ipc tmp;
   struct message *fs_reply;
-  virt_addr_t *channel_ptr;
-  virt_addr_t channel;
+  struct read_reply *reply_data;
 
   tmp.fd = fd;
-  tmp.count = count > MAX_BUFFER ? MAX_BUFFER : count;
+  tmp.buf = (char*)virt2phys(cpuinfo, (virt_addr_t)buf);
+  tmp.count = count;
 
   msg_send(FS, READ_IPC, &tmp, sizeof(struct read_ipc));
   msg_receive(FS);
 
   fs_reply = &cpuinfo->msg_input[FS];
 
-  channel_ptr = (virt_addr_t*)fs_reply->data;
-  channel = *channel_ptr;
+  reply_data = (struct read_reply *)fs_reply->data;
 
-  memcpy(buf, (void*)channel, count);
+  if (reply_data->type == TYPE_CHAR) {
+    memcpy(buf, (void*)reply_data->channel, reply_data->count);
+  }
 
-  return tmp.count;
+  return reply_data->count;
 }
 
 int close(int fd)

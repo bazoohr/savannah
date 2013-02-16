@@ -1,11 +1,15 @@
 #include <con.h>
 #include <fs.h>
 
+#include <printk.h>
+
 int main(int argc, char **argv)
 {
   char str[16];
   open("stdin", O_RDWR);
-  read (0, str, 1);
+  int r = read (0, str, 5);
+  str[r] = '\0';
+  cprintk("\nr = %d Result: %s\n", 0xF, r, str);
   putc(str[0]);
   putc('%');
   putc(' ');

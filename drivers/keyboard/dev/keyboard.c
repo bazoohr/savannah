@@ -12,9 +12,7 @@
 #define	KBD_STAT_PORT		0x64	/* kbd controller status port(I) */
 #define	KBD_STAT_DATA_IN_BUF	0x01	/* kbd data in buffer */
 
-#define BUFMAX   64
-
-static int buffer[BUFMAX];
+static char *buffer;
 static int bufpos = 0;
 static int keymap[][8] = {
 /*                                                       alt
@@ -107,12 +105,22 @@ static int keymap[][8] = {
 /*53*/{0x5300,  '.',   '.',   '.',   '.',   '.',   NOP,   NOP, },/*  del   */
 };
 
+void
+wait_for_completed_request(char *channel, int count)
+{
+  buffer = channel;
+  while (1) {
+    asm volatile ("sti;hlt\n\t");
+    if (bufpos >= count) {
+      bufpos = 0;
+      break;
+    }
+  }
+}
+
 static void __inline
 kbd_add_buf (int data)
 {
-  if (bufpos >= BUFMAX) {
-    bufpos = 0;
-  }
   buffer[bufpos++] = data;
   cprintk ("Keyboard: %c\n", 0xE, data);
 }
@@ -132,7 +140,7 @@ kbd_proc_data (void)
   }
 
   scan_code = inb (KBD_DATA_PORT);
-  
+
   if (scan_code == 0xE0)
 	  goto eoi;
 
@@ -167,7 +175,7 @@ kbd_proc_data (void)
 
   if (scan_code & 0x80)
 	  goto eoi;
-      
+
   asci_code = keymap[scan_code][(ctrl_pressed<<1) | (shift_pressed) | (alt_pressed<<2)];
   kbd_add_buf (asci_code);
 
@@ -175,9 +183,4 @@ eoi:
   /* Set the EOI for local APIC */
   lapic_eoi();
   return;
-}
-
-void kbd_init (void)
-{
-  ioapic_enable(IRQ_KBD, 0);
 }

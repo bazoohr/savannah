@@ -151,22 +151,54 @@ local_read_char (int fd, int count, int from)
 
   return count;
 }
+
+static int
+local_read_file (int fd, void *buf, int count, int from)
+{
+  struct header tmp = fds[from][fd];
+
+  if (count > tmp.length)
+    count = tmp.length;
+
+  memcpy(buf, filesystem + tmp.offset, count);
+
+  return count;
+}
+
+static int
+get_type(int fd, int from)
+{
+  if (fd > MAX_FD || fd < 0)
+    return -1;
+
+  struct header tmp = fds[from][fd];
+
+  if (tmp.type == 0)
+    return -1;
+
+  return tmp.type;
+}
+
 int
 local_read(int fd, void *buf, int count, int from)
 {
   struct header tmp = fds[from][fd];
+  int type;
+
+  type = get_type(fd, from);
+  if (type < 0)
+    return -1;
 
   if (tmp.type == TYPE_CHAR) {
     return local_read_char (fd, count, from);
+  } else if (tmp.type == TYPE_FILE) {
+    return local_read_file (fd, buf, count, from);
   }
 
-  if (count > tmp.length)
-    count = tmp.length;
-  if (count > MAX_BUFFER)
-    count = MAX_BUFFER;
-  memcpy(buf, filesystem + tmp.offset, count);
+  cprintk("FS: local_read: File type (%d) is unknown!\n", 0x4, tmp.type);
+  halt();
 
-  return count;
+  return -1;
 }
 
 int
@@ -218,10 +250,11 @@ vm_main (void)
     struct message *m = msg_check();
     struct open_ipc opentmp;
     struct read_ipc readtmp;
+    struct read_reply readreply;
+    struct read_reply *reply;
     struct close_ipc closetmp;
     int r;
     phys_addr_t f;
-    cpuid_t to;
 
     switch(m->number) {
     case OPEN_IPC:
@@ -236,9 +269,13 @@ vm_main (void)
       break;
     case READ_IPC:
       memcpy(&readtmp, m->data, sizeof(struct read_ipc));
-      local_read(readtmp.fd, readtmp.buf, readtmp.count, m->from);
-      //readtmp.count = r;
-      //msg_reply(m->from, READ_IPC, &readtmp, sizeof(struct read_ipc));
+      r = local_read(readtmp.fd, readtmp.buf, readtmp.count, m->from);
+      if (get_type(readtmp.fd, m->from) == TYPE_FILE) {
+        readreply.type = TYPE_FILE;
+        readreply.count = r;
+	readreply.channel = NULL;
+        msg_reply(m->from, READ_IPC, &readreply, sizeof(struct read_reply));
+      }
       break;
     case CLOSE_IPC:
       memcpy(&closetmp, m->data, sizeof(struct close_ipc));
@@ -262,8 +299,8 @@ vm_main (void)
       }
       break;
     case READ_ACK:
-      to = (cpuid_t)*m->data;
-      msg_reply(to, READ_IPC, &(fds[to][0].offset), sizeof(phys_addr_t));
+      reply = (struct read_reply *)m->data;
+      msg_reply(reply->from, READ_IPC, reply, sizeof(struct read_reply));
       break;
     default:
       cprintk("FS: Warning, unknown request %d\n", 0xD, m->number);
