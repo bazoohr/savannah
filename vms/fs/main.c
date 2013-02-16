@@ -147,7 +147,7 @@ local_read_char (int fd, int count, int from)
   kbd_rd.channel = channel_addr;
   kbd_rd.count = count;
 
-  msg_reply (KBD, READ_IPC, &kbd_rd, sizeof (struct keyboard_read));
+  msg_reply (to, READ_IPC, &kbd_rd, sizeof (struct keyboard_read));
 
   return count;
 }
