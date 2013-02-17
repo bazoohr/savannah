@@ -12,12 +12,7 @@ int main(int argc, char **argv)
   str[r] = '\0';
   printf("r = %d Result: %s\n", r, str);
   write(1, str, 5);
-//  putc(str[0]);
-//  putc('%');
-//  putc(' ');
-//  putc('l');
-//  putc('s');
 
-  while (1);
+  return -1;
 }
 

@@ -154,6 +154,8 @@ struct vm_proc {
   phys_addr_t vm_page_tables;
   phys_addr_t vm_ept;
 
+  int vm_exit_status;
+
   phys_addr_t vm_vmcs_ptr;   // VMX VMC Pointer (must be 4KB aligned)
   phys_addr_t vm_vmxon_ptr;  // VMXON pointer   (must be 4KB aligned)
 };

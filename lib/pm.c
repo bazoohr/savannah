@@ -6,7 +6,7 @@
 #include <config.h>
 #include <fs.h>
 #include <misc.h>
-
+/* ========================================================= */
 int
 fork_internal (virt_addr_t register_array_vaddr)
 {
@@ -39,7 +39,7 @@ fork_internal (virt_addr_t register_array_vaddr)
 
   return result;
 }
-
+/* ========================================================= */
 void
 exec (char *path, char **argv)
 {
@@ -59,3 +59,14 @@ exec (char *path, char **argv)
   msg_send (PM, EXEC_IPC, &exec_args, sizeof (struct exec_ipc));
   __asm__ __volatile__ ("vmcall;");
 }
+/* ========================================================= */
+void exit (int status)
+{
+  struct exit_ipc exit_args;
+
+  exit_args.status = status;
+
+  msg_send (PM, EXIT_IPC, &exit_args, sizeof (struct exit_ipc));
+  __asm__ __volatile__ ("vmcall\n\t");
+}
+/* ========================================================= */

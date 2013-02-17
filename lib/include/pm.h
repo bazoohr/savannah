@@ -5,7 +5,8 @@
 
 #define FORK_IPC 1
 #define EXEC_IPC 2
-#define CHANNEL_IPC 3
+#define EXIT_IPC 3
+#define CHANNEL_IPC 4
 
 #define MAX_PATH 32
 
@@ -19,6 +20,9 @@ struct exec_ipc {
   char **argv;
 };
 
+struct exit_ipc {
+  int status;
+};
 struct channel_ipc {
   cpuid_t end1;
   cpuid_t end2;

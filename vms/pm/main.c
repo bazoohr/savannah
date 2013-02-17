@@ -228,11 +228,21 @@ local_fork (struct cpu_info *info, struct fork_ipc *fork_args)
 
   child_cpu_info->vm_info.vm_regs.rax = 0;
 
+#if 0
+  cprintk ("code p = %x v = %x\ndata p = %x v = %x\nrodata p = %x v = %x\nbss p = %x v = %x\nstack p = %x v = %x\n pgtb = %x ept = %x\n", 0xF, child_cpu_info->vm_info.vm_code_paddr, child_cpu_info->vm_info.vm_code_vaddr,
+      child_cpu_info->vm_info.vm_data_paddr, child_cpu_info->vm_info.vm_data_vaddr,
+      child_cpu_info->vm_info.vm_rodata_paddr, child_cpu_info->vm_info.vm_rodata_vaddr,
+      child_cpu_info->vm_info.vm_bss_paddr, child_cpu_info->vm_info.vm_bss_vaddr,
+      child_cpu_info->vm_info.vm_stack_paddr, child_cpu_info->vm_info.vm_stack_vaddr,
+      child_cpu_info->vm_info.vm_page_tables, child_cpu_info->vm_info.vm_ept);
+  cprintk ("========================\n", 0xF);
+  __asm__ __volatile__ ("cli;hlt\n\t");
+#endif
   return child_vm;
 }
 /* ================================================= */
 static void
-parse_elf (struct cpu_info *curr_cpu_info, phys_addr_t elf)
+load_elf (struct cpu_info *curr_cpu_info, phys_addr_t elf)
 {
   asize_t vm_size;     /* VMM's Code + data + rodata + bss + stack */
   aint ph_num;          /* VMM's number of program headers */
@@ -240,6 +250,13 @@ parse_elf (struct cpu_info *curr_cpu_info, phys_addr_t elf)
   Elf64_Ehdr *elf_hdr __aligned (0x10);  /* Start address of executable */
   Elf64_Phdr *s __aligned (0x10);
 
+  phys_addr_t old_pcode;
+  phys_addr_t old_pdata;
+  phys_addr_t old_prodata;
+  phys_addr_t old_pbss;
+  phys_addr_t old_pstack;
+  //phys_addr_t old_pgtb;
+  //phys_addr_t old_ept;
   /*
    * stage2 ELF header contains 4 sections. (look at stage2/link64.ld).
    * These sections are respectively
@@ -254,7 +271,21 @@ parse_elf (struct cpu_info *curr_cpu_info, phys_addr_t elf)
    * contains exactly the content we expect. Checking only the number of
    * program headers is SO trivial and unsafe check.
    */
+  /* ========================================= */
+  /* Save information of current VM so that
+   * we can free the memory occupied by it after
+   * creating the new VM.
+   * ========================================= */
+  old_pcode = curr_cpu_info->vm_info.vm_code_paddr;
+  old_pdata = curr_cpu_info->vm_info.vm_data_paddr;
+  old_prodata = curr_cpu_info->vm_info.vm_rodata_paddr;
+  old_pbss = curr_cpu_info->vm_info.vm_bss_paddr;
+  old_pstack = curr_cpu_info->vm_info.vm_stack_paddr;
+  //old_pgtb = curr_cpu_info->vm_info.vm_page_tables;
+  //old_ept  = curr_cpu_info->vm_info.vm_ept;
+  /* ========================================= */
   elf_hdr = (Elf64_Ehdr*)elf;  /* Start address of executable */
+  /* ========================================= */
 
   ph_num = elf_hdr->e_phnum;    /* Number of program headers in ELF executable */
   if (ph_num != 4) {
@@ -340,6 +371,13 @@ parse_elf (struct cpu_info *curr_cpu_info, phys_addr_t elf)
     panic ("PM: Computed two different VM end addresses %x & %x\n", curr_cpu_info->vm_info.vm_end_paddr, curr_cpu_info->vm_info.vm_start_paddr + vm_size);
   }
 
+  free_mem_pages (old_pcode);
+  free_mem_pages (old_pdata);
+  free_mem_pages (old_prodata);
+  free_mem_pages (old_pbss);
+  free_mem_pages (old_pstack);
+  //free_page_tables (old_pgtb);
+  //free_page_tables (old_ept);
 #if 0
   cprintk ("code p = %x v = %x\ndata p = %x v = %x\nrodata p = %x v = %x\nbss p = %x v = %x\nstack p = %x v = %x\n", 0xF, curr_cpu_info->vm_info.vm_code_paddr, curr_cpu_info->vm_info.vm_code_vaddr,
       curr_cpu_info->vm_info.vm_data_paddr, curr_cpu_info->vm_info.vm_data_vaddr,
@@ -394,7 +432,7 @@ local_exec (struct cpu_info *info, struct exec_ipc *exec_args)
 
   argc = i;  /* Number of arguments */
   /* Parse ELF executable, and load the processes */
-  parse_elf(info, elf);
+  load_elf(info, elf);
   /* Map memory for the new processes */
   ept_pmap (info);
   /* Pass arguments. We use stack to store arguments */
@@ -469,6 +507,28 @@ local_channel (struct channel_ipc *req)
   return channel;
 }
 /* ================================================= */
+static void
+local_exit (struct cpu_info *info, struct exit_ipc *exit_args)
+{
+  if (cpuinfo == NULL) {
+    cprintk ("Exit: Invalid cpuid!\n", 0x4);
+    halt ();
+  }
+
+  info->vm_info.vm_exit_status = exit_args->status;
+
+  free_mem_pages (info->vm_info.vm_code_paddr);
+  free_mem_pages (info->vm_info.vm_data_paddr);
+  free_mem_pages (info->vm_info.vm_rodata_paddr);
+  free_mem_pages (info->vm_info.vm_bss_paddr);
+  free_mem_pages (info->vm_info.vm_stack_paddr);
+  //free_page_tables (info->vm_info.vm_page_tables);
+  //free_page_tables (info->vm_info.vm_ept);
+
+  cprintk ("VM %d exited with status %d!\n", 0xE, info->cpuid, info->vm_info.vm_exit_status);
+  halt ();
+}
+/* ================================================= */
 void
 vm_main (void)
 {
@@ -499,6 +559,9 @@ vm_main (void)
       case EXEC_IPC:
         r = local_exec (get_cpu_info (m->from), (struct exec_ipc *)m->data);
         msg_reply (m->from, EXEC_IPC, &r, sizeof (pid_t));
+        break;
+      case EXIT_IPC:
+        local_exit (get_cpu_info (m->from), (struct exit_ipc *)m->data);
         break;
       case CHANNEL_IPC:
         channel = local_channel ((struct channel_ipc *)m->data);

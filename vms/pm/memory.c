@@ -153,7 +153,15 @@ alloc_clean_mem_pages (size_t n)
 phys_addr_t __warn_unused_result
 alloc_page_table (void)
 {
-  return alloc_clean_mem_pages (1);
+  phys_addr_t found_block;
+
+  found_block = alloc_mem_pages (1);
+
+  if (found_block > 0) {
+    memset ((void *)found_block, 0, PAGE_TABLE_SIZE);
+  }
+
+  return found_block;
 }
 #if 0
 void get_memory_status (void)

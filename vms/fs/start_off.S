@@ -6,4 +6,8 @@ _start:
   movq %rax, cpuinfo
 
   callq wait_ready
+
   callq vm_main
+
+  movq %rax, %rdi
+  callq exit

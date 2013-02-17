@@ -4,5 +4,10 @@
 _start:
   movq (CPU_INFO_PTR_ADDR), %rax
   movq %rax, cpuinfo
+
   callq wait_ready
+
   callq vm_main
+
+  movq %rax, %rdi
+  callq exit

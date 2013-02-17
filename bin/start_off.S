@@ -6,3 +6,6 @@ _start:
    * rsi contains argv
    */
   callq main
+
+  movq %rax, %rdi
+  call exit
