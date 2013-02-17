@@ -1,5 +1,5 @@
 #include <lib_mem.h>
-#include <printk.h>
+#include <printf.h>
 phys_addr_t
 virt2phys (struct cpu_info *cpuinfo, virt_addr_t vaddr)
 {
@@ -7,11 +7,11 @@ virt2phys (struct cpu_info *cpuinfo, virt_addr_t vaddr)
   size_t offset;
 
 #if 0
-  cprintk ("vm_start = %x vm_end = %x\n", 0x2, cpuinfo->vm_info.vm_start_vaddr,
+  printf ("vm_start = %x vm_end = %x\n", cpuinfo->vm_info.vm_start_vaddr,
       cpuinfo->vm_info.vm_end_vaddr);
-  cprintk ("vm_start = %x vm_end = %x\n", 0x2, cpuinfo->vm_info.vm_start_paddr,
+  printf ("vm_start = %x vm_end = %x\n", cpuinfo->vm_info.vm_start_paddr,
       cpuinfo->vm_info.vm_end_paddr);
-  cprintk ("vaddr = %x\n", 0x2, vaddr);
+  printf ("vaddr = %x\n", vaddr);
 #endif
   if (vaddr >= cpuinfo->vm_info.vm_code_vaddr &&
       vaddr < cpuinfo->vm_info.vm_data_vaddr) {
@@ -39,7 +39,7 @@ virt2phys (struct cpu_info *cpuinfo, virt_addr_t vaddr)
     paddr = cpuinfo->vm_info.vm_stack_paddr + offset;
     return paddr;
   } else {
-    cprintk ("%s: Virt2Phys: address out of range!", 0x4, __FILE__);
+    printf ("%s: Virt2Phys: address out of range!", __FILE__);
     for (;;);
   }
 }

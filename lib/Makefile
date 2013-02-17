@@ -4,13 +4,13 @@ include $(ROOT)/rules.mak
 
 MYDIR = lib/
 
-CFLAGS  += -I ./include/ -I $(ROOT)/include/ -I $(ROOT)/vms/pm/include/
+CFLAGS  += -I ./include/ -I $(ROOT)/include/
 ASFLAGS += -I ./include/ -I $(ROOT)/include/
 
 AR=ar
 ARFLAGS=cr
 
-SRC = ipc.c misc.c string.c fs.c pm.c asm_lib.S lib_mem.c gdt.c con.c
+SRC = ipc.c misc.c string.c fs.c pm.c asm_lib.S lib_mem.c gdt.c printf.c
 
 OBJ = $(subst .S,.o,$(filter %.S,$(SRC))) $(subst .c,.o,$(filter %.c,$(SRC)))
 

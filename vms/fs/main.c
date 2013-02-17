@@ -10,7 +10,6 @@
 #include <string.h>
 #include <panic.h>
 #include <config.h>
-#include <con.h>
 #include <misc.h>
 #include <pm.h>
 
@@ -319,13 +318,6 @@ vm_main (void)
       }
       f = local_load(m->data);
       msg_reply(m->from, LOAD_IPC, &f, sizeof(phys_addr_t));
-      break;
-    case PUTC_IPC:
-      if (m->from != CONSOLE) {
-        msg_reply(CONSOLE, PUTC_IPC, m->data, sizeof(struct putc_ipc));
-      } else {
-        msg_reply(m->from, PUTC_IPC, m->data, sizeof(int));
-      }
       break;
     case WRITE_IPC:
       writeipc = (struct write_ipc*)m->data;

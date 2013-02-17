@@ -9,7 +9,6 @@
 #include <ipc.h>
 #include <fs.h>
 #include <pm.h>
-#include <con.h>
 
 int test = 0x123;
 void

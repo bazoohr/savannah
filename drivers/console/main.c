@@ -7,9 +7,9 @@
 #include <panic.h>
 #include <config.h>
 #include <ipc.h>
-#include <con.h>
 #include <string.h>
 #include <cpuinfo.h>
+#include <fs.h>
 /* ========================================== */
 int
 main (int argc, char **argv)

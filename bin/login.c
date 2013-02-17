@@ -1,15 +1,16 @@
-#include <con.h>
 #include <fs.h>
-
-#include <printk.h>
+#include <printf.h>
 
 int main(int argc, char **argv)
 {
   char str[16];
+  int r;
+
   open("stdin", O_RDWR);
-  int r = read (0, str, 5);
+  printf("READY!\n");
+  r = read (0, str, 5);
   str[r] = '\0';
-  cprintk("\nr = %d Result: %s\n", 0xF, r, str);
+  printf("r = %d Result: %s\n", r, str);
   write(1, str, 5);
 //  putc(str[0]);
 //  putc('%');

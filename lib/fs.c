@@ -3,7 +3,6 @@
 #include <string.h>
 #include <config.h>
 
-#include <printk.h>
 #include <lib_mem.h>
 
 static struct open_reply fds[MAX_FD];

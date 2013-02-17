@@ -1,11 +1,10 @@
 #include <string.h>
 #include <const.h>
-#include <asmfunc.h>
 #include <cdef.h>
 #include <cpu.h>
-#include <printk.h>
 #include <cpuinfo.h>
 #include <gdt.h>
+
 void
 create_new_gdt (struct system_descriptor *gdt, size_t sizeof_gdt)
 {
