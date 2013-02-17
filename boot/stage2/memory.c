@@ -145,6 +145,6 @@ calloc_align (size_t nmemb, size_t size, size_t alignment)
 void
 memory_init (phys_addr_t last_allocated_byte, size_t mem_size)
 {
-  memory_size = mem_size * _1MB_;
+  memory_size = mem_size << 10;
   first_free_addr = ALIGN (last_allocated_byte, 16);
 }
