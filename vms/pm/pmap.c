@@ -70,7 +70,7 @@ map_memory (phys_addr_t *pml4_paddr,
   }
 
   if (flags == MAP_NEW) {
-    pml4 = (page_table_entry_t *)calloc_align (sizeof (uint8_t), PAGE_TABLE_SIZE, PAGE_TABLE_SIZE);
+    pml4 = (page_table_entry_t *)alloc_page_table ();
     if (pml4 == NULL) {
       panic ("BOOT STAGE2: Memory Allocation Failed line %d\n", __LINE__);
     }
@@ -115,7 +115,7 @@ map_memory (phys_addr_t *pml4_paddr,
 
 
     if (pml4[pml4_idx] == 0) {
-      pdpe = (page_table_entry_t *)calloc_align (sizeof (uint8_t), PAGE_TABLE_SIZE, 0x1000);
+      pdpe = (page_table_entry_t *)alloc_page_table ();
       if (pdpe == NULL) {
         panic ("BOOT STAGE2: Memory Allocation Failed line %d\n", __LINE__);
       }
@@ -125,7 +125,7 @@ map_memory (phys_addr_t *pml4_paddr,
 
     pdpe = (page_table_entry_t *)((phys_addr_t)pml4[pml4_idx] & ~0xFFF);
     if (pdpe[pdpe_idx] == 0 && page_size < _1GB_) {
-      pde = (page_table_entry_t *)calloc_align (sizeof (uint8_t), PAGE_TABLE_SIZE, 0x1000);
+      pde = (page_table_entry_t *)alloc_page_table ();
       if (pde == NULL) {
         panic ("BOOT STAGE2: Memory Allocation Failed line %d\n", __LINE__);
       }
@@ -136,7 +136,7 @@ map_memory (phys_addr_t *pml4_paddr,
       pde = (page_table_entry_t *)((phys_addr_t)pdpe[pdpe_idx] & ~0xFFF);
 
       if (pde[pde_idx] == 0 && page_size < _2MB_) {
-        pte = (page_table_entry_t *)calloc_align (sizeof (uint8_t), PAGE_TABLE_SIZE, 0x1000);
+        pte = (page_table_entry_t *)alloc_page_table ();
         if (pte == NULL) {
           panic ("BOOT STAGE2: Memory Allocation Failed line %d\n", __LINE__);
         }
@@ -222,7 +222,7 @@ EPT_map_memory (phys_addr_t *pml4_paddr,
   }
 
   if (flags == MAP_NEW) {
-    pml4 = (page_table_entry_t *)calloc_align (sizeof (uint8_t), PAGE_TABLE_SIZE, PAGE_TABLE_SIZE);
+    pml4 = (page_table_entry_t *)alloc_page_table ();
     if (pml4 == NULL) {
       panic ("BOOT STAGE2: Memory Allocation Failed line %d\n", __LINE__);
     }
@@ -263,7 +263,7 @@ EPT_map_memory (phys_addr_t *pml4_paddr,
 
 
     if (pml4[pml4_idx] == 0) {
-      pdpe = (page_table_entry_t *)calloc_align (sizeof (uint8_t), PAGE_TABLE_SIZE, 0x1000);
+      pdpe = (page_table_entry_t *)alloc_page_table ();
       if (pdpe == NULL) {
         panic ("BOOT STAGE2: Memory Allocation Failed line %d\n", __LINE__);
       }
@@ -273,7 +273,7 @@ EPT_map_memory (phys_addr_t *pml4_paddr,
 
     pdpe = (page_table_entry_t *)((phys_addr_t)pml4[pml4_idx] & ~0xFFF);
     if (pdpe[pdpe_idx] == 0 && page_size < _1GB_) {
-      pde = (page_table_entry_t *)calloc_align (sizeof (uint8_t), PAGE_TABLE_SIZE, 0x1000);
+      pde = (page_table_entry_t *)alloc_page_table ();
       if (pde == NULL) {
         panic ("BOOT STAGE2: Memory Allocation Failed line %d\n", __LINE__);
       }
@@ -284,7 +284,7 @@ EPT_map_memory (phys_addr_t *pml4_paddr,
       pde = (page_table_entry_t *)((phys_addr_t)pdpe[pdpe_idx] & ~0xFFF);
 
       if (pde[pde_idx] == 0 && page_size < _2MB_) {
-        pte = (page_table_entry_t *)calloc_align (sizeof (uint8_t), PAGE_TABLE_SIZE, 0x1000);
+        pte = (page_table_entry_t *)alloc_page_table ();
         if (pte == NULL) {
           panic ("BOOT STAGE2: Memory Allocation Failed line %d\n", __LINE__);
         }

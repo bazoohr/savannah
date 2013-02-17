@@ -25,6 +25,11 @@ static bool vm_table[MAX_CPUS] __aligned (0x10);
 static char arg_vector[MAX_ARGV][MAX_ARGV_LEN] __aligned (0x10);  /* store exec arguments */
 static virt_addr_t argv_ptr[MAX_ARGV] __aligned (0x10); /* virtual addresses of exec arguments*/
 /* ================================================= */
+static size_t pages (size_t sz, size_t pgsz)
+{
+  return (sz / pgsz + ((sz % pgsz > 0) ? 1 : 0));
+}
+/* ================================================= */
 static pid_t
 find_free_vm (void)
 {
@@ -52,6 +57,7 @@ pm_init (void)
   }
 
   pm_arguments = (struct pm_args*)cpuinfo->vm_args;
+  cprintk ("pm_arguments->memory_size = %d\n", 0xF, pm_arguments->memory_size);
   memory_init (pm_arguments->last_used_addr, pm_arguments->memory_size);
 }
 /* ================================================= */
@@ -177,27 +183,27 @@ local_fork (struct cpu_info *info, struct fork_ipc *fork_args)
   child_cpu_info->vm_info.vm_end_vaddr = parent_cpu_info->vm_info.vm_end_vaddr;
   child_cpu_info->vm_info.vm_end_paddr = parent_cpu_info->vm_info.vm_end_paddr;
 
-  child_cpu_info->vm_info.vm_code_paddr = (phys_addr_t)malloc_align (parent_cpu_info->vm_info.vm_code_size, USER_VMS_PAGE_SIZE);
+  child_cpu_info->vm_info.vm_code_paddr = (phys_addr_t)alloc_mem_pages (pages (parent_cpu_info->vm_info.vm_code_size, USER_VMS_PAGE_SIZE));
   child_cpu_info->vm_info.vm_code_vaddr = parent_cpu_info->vm_info.vm_code_vaddr;
   child_cpu_info->vm_info.vm_code_size  = parent_cpu_info->vm_info.vm_code_size;
   memcpy ((void*)child_cpu_info->vm_info.vm_code_paddr, (void*)parent_cpu_info->vm_info.vm_code_paddr, parent_cpu_info->vm_info.vm_code_size);
 
-  child_cpu_info->vm_info.vm_data_paddr = (phys_addr_t)malloc_align (parent_cpu_info->vm_info.vm_data_size, USER_VMS_PAGE_SIZE);
+  child_cpu_info->vm_info.vm_data_paddr = (phys_addr_t)alloc_mem_pages (pages (parent_cpu_info->vm_info.vm_data_size, USER_VMS_PAGE_SIZE));
   child_cpu_info->vm_info.vm_data_vaddr = parent_cpu_info->vm_info.vm_data_vaddr;
   child_cpu_info->vm_info.vm_data_size  = parent_cpu_info->vm_info.vm_data_size;
   memcpy ((void*)child_cpu_info->vm_info.vm_data_paddr, (void*)parent_cpu_info->vm_info.vm_data_paddr, parent_cpu_info->vm_info.vm_data_size);
 
-  child_cpu_info->vm_info.vm_rodata_paddr = (phys_addr_t)malloc_align (parent_cpu_info->vm_info.vm_rodata_size, USER_VMS_PAGE_SIZE);
+  child_cpu_info->vm_info.vm_rodata_paddr = (phys_addr_t)alloc_mem_pages (pages (parent_cpu_info->vm_info.vm_rodata_size, USER_VMS_PAGE_SIZE));
   child_cpu_info->vm_info.vm_rodata_vaddr = parent_cpu_info->vm_info.vm_rodata_vaddr;
   child_cpu_info->vm_info.vm_rodata_size  = parent_cpu_info->vm_info.vm_rodata_size;
   memcpy ((void*)child_cpu_info->vm_info.vm_rodata_paddr, (void*)parent_cpu_info->vm_info.vm_rodata_paddr, parent_cpu_info->vm_info.vm_rodata_size);
 
-  child_cpu_info->vm_info.vm_bss_paddr = (phys_addr_t)calloc_align (sizeof (uint8_t), parent_cpu_info->vm_info.vm_bss_size, USER_VMS_PAGE_SIZE);
+  child_cpu_info->vm_info.vm_bss_paddr = (phys_addr_t)alloc_clean_mem_pages (pages (parent_cpu_info->vm_info.vm_bss_size, USER_VMS_PAGE_SIZE));
   child_cpu_info->vm_info.vm_bss_vaddr = parent_cpu_info->vm_info.vm_bss_vaddr;
   child_cpu_info->vm_info.vm_bss_size  = parent_cpu_info->vm_info.vm_bss_size;
   memcpy ((void*)child_cpu_info->vm_info.vm_bss_paddr, (void*)parent_cpu_info->vm_info.vm_bss_paddr, parent_cpu_info->vm_info.vm_bss_size);
 
-  child_cpu_info->vm_info.vm_stack_paddr = (phys_addr_t)malloc_align (parent_cpu_info->vm_info.vm_stack_size, USER_VMS_PAGE_SIZE);
+  child_cpu_info->vm_info.vm_stack_paddr = (phys_addr_t)alloc_mem_pages (pages (parent_cpu_info->vm_info.vm_stack_size, USER_VMS_PAGE_SIZE));
   child_cpu_info->vm_info.vm_stack_vaddr = parent_cpu_info->vm_info.vm_stack_vaddr;
   child_cpu_info->vm_info.vm_stack_size  = parent_cpu_info->vm_info.vm_stack_size;
   memcpy ((void*)child_cpu_info->vm_info.vm_stack_paddr, (void*)parent_cpu_info->vm_info.vm_stack_paddr, parent_cpu_info->vm_info.vm_stack_size);
@@ -274,7 +280,7 @@ parse_elf (struct cpu_info *curr_cpu_info, phys_addr_t elf)
     section_size = (size_t)s->p_memsz;               /* Section size */
     if (section_size > 0) {
       /* Address of section when loaded in ram */
-      section_dst_paddr = (phys_addr_t)malloc_align (section_size, USER_VMS_PAGE_SIZE);
+      section_dst_paddr = (phys_addr_t)alloc_mem_pages (pages (section_size, USER_VMS_PAGE_SIZE));
     }
 
     switch (i) {
@@ -312,7 +318,7 @@ parse_elf (struct cpu_info *curr_cpu_info, phys_addr_t elf)
   curr_cpu_info->vm_info.vm_bss_vaddr = s->p_vaddr;
 
   if (s->p_memsz > 0) {
-    curr_cpu_info->vm_info.vm_bss_paddr = (phys_addr_t)malloc_align (_2MB_, USER_VMS_PAGE_SIZE);
+    curr_cpu_info->vm_info.vm_bss_paddr = (phys_addr_t)alloc_mem_pages (pages (_2MB_, USER_VMS_PAGE_SIZE));
     curr_cpu_info->vm_info.vm_bss_size = s->p_memsz;
     memset ((void*)curr_cpu_info->vm_info.vm_bss_paddr, 0, s->p_memsz);
   }
@@ -322,7 +328,7 @@ parse_elf (struct cpu_info *curr_cpu_info, phys_addr_t elf)
    */
   curr_cpu_info->vm_info.vm_stack_vaddr = ALIGN ((virt_addr_t)s->p_vaddr + s->p_memsz, USER_VMS_PAGE_SIZE);
   curr_cpu_info->vm_info.vm_stack_size = _2MB_;
-  curr_cpu_info->vm_info.vm_stack_paddr = (phys_addr_t)malloc_align (_2MB_, USER_VMS_PAGE_SIZE);
+  curr_cpu_info->vm_info.vm_stack_paddr = (phys_addr_t)alloc_mem_pages (pages (_2MB_, USER_VMS_PAGE_SIZE));
   curr_cpu_info->vm_info.vm_regs.rsp = curr_cpu_info->vm_info.vm_stack_vaddr + curr_cpu_info->vm_info.vm_stack_size;
 
   vm_size = (curr_cpu_info->vm_info.vm_stack_paddr + curr_cpu_info->vm_info.vm_stack_size) - curr_cpu_info->vm_info.vm_start_paddr;
@@ -443,7 +449,7 @@ local_channel (struct channel_ipc *req)
     panic ("PM: creating channel failed! VM2 does not exist! VM1 = %d & VM2 = %d!\n", vm1->cpuid, vm2->cpuid);
   }
 
-  channel = (phys_addr_t)malloc_align (CHANNEL_SIZE, USER_VMS_PAGE_SIZE);
+  channel = (phys_addr_t)alloc_mem_pages (pages (CHANNEL_SIZE, USER_VMS_PAGE_SIZE));
   if (channel == 0) {
     panic ("PM: Failed to alloced memory!");
   }
