@@ -21,8 +21,6 @@
 
 #define MAX_PATHNAME    32
 
-#define MAX_FD (64)
-
 // TODO Create just one structure for all the char devices
 struct keyboard_read {
   cpuid_t from;

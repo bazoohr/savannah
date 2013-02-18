@@ -13,17 +13,30 @@
 #include <misc.h>
 #include <pm.h>
 
-struct header {
-	char name[32];        /* File name */
-  uint32_t type;    /* Type of the file (normal file, char, block ...) */
-	uint32_t length;  /* File length */
-	uint64_t offset;  /* Offset where the file is located starting from
-			       * the beginning of the file */
-};
-
 char *filesystem;
 
-struct header fds[MAX_CPUS][MAX_FD];
+struct cpu_info *
+get_cpu_info (cpuid_t cpuid)
+{
+  if (cpuid > MAX_CPUS) {
+    return NULL;
+  }
+
+  struct cpu_info *base = (struct cpu_info *)((phys_addr_t)cpuinfo - (cpuinfo->cpuid * _4KB_));
+
+  return (struct cpu_info *)((phys_addr_t)base + cpuid * _4KB_);
+}
+
+struct header *
+get_fds (int from)
+{
+  if (from > MAX_CPUS)
+    return NULL;
+
+  struct cpu_info *cpuinfo = get_cpu_info(from);
+
+  return cpuinfo->vm_info.fds;
+}
 
 void
 local_open_char(const char *pathname, int from, struct open_reply *openreply)
@@ -31,6 +44,7 @@ local_open_char(const char *pathname, int from, struct open_reply *openreply)
   int fd;
   struct channel_ipc msg;
   struct message *pm_reply;
+  struct header *fds;
 
   cprintk ("pathname = %s from %d\n", 0x6, pathname, from);
 
@@ -48,8 +62,11 @@ local_open_char(const char *pathname, int from, struct open_reply *openreply)
     cprintk ("FS: Unknown char file!", 0x4);
     halt ();
   }
+
+  fds = get_fds(from);
+
   /* If the file is already open! */
-  if (fds[from][fd].offset != 0) {
+  if (fds[fd].offset != 0) {
     openreply->fd = -1;
     return;
   }
@@ -63,14 +80,14 @@ local_open_char(const char *pathname, int from, struct open_reply *openreply)
 
   pm_reply = &cpuinfo->msg_input[PM];
 
-  memcpy (&fds[from][fd].offset, pm_reply->data, sizeof (phys_addr_t));
-  fds[from][fd].type = TYPE_CHAR;
-  fds[from][fd].length = 0;
+  memcpy (&fds[fd].offset, pm_reply->data, sizeof (phys_addr_t));
+  fds[fd].type = TYPE_CHAR;
+  fds[fd].length = 0;
 
-  cprintk ("channel created in address %x\n", 0x6, fds[from][fd].offset);
+  cprintk ("channel created in address %x\n", 0x6, fds[fd].offset);
 
   openreply->fd = fd;
-  openreply->channel = (void *)fds[from][fd].offset;
+  openreply->channel = (void *)fds[fd].offset;
 }
 
 void
@@ -80,13 +97,16 @@ local_open(const char *pathname, int flags, int from, struct open_reply *openrep
   int fd;
   struct header *tmp;
   int num_files;
+  struct header *fds;
 
   if (strcmp(pathname, "stdin") == 0 || strcmp(pathname, "stdout") == 0)
     return local_open_char(pathname, from, openreply);
 
+  fds = get_fds(from);
+
   // Find the lowest available fd
   for (i = 2 ; i < MAX_FD ; i++)
-    if (fds[from][i].offset == 0)
+    if (fds[i].offset == 0)
       break;
 
   if (i >= MAX_FD) {
@@ -116,9 +136,9 @@ local_open(const char *pathname, int flags, int from, struct open_reply *openrep
 
   // Copy the structure
   // NOTE: We are not copying name for performance reasons.
-  fds[from][fd].type = tmp->type;
-  fds[from][fd].length = tmp->length;
-  fds[from][fd].offset = tmp->offset;
+  fds[fd].type = tmp->type;
+  fds[fd].length = tmp->length;
+  fds[fd].offset = tmp->offset;
 
   openreply->fd = fd;
   openreply->channel = NULL;
@@ -130,6 +150,7 @@ local_read_char (int fd, int count, int from)
   struct keyboard_read kbd_rd;
   void *channel_addr;
   int to;
+  struct header *fds;
 
   if (fd > MAX_FD) {
     cprintk ("local_read_char: TOO big fd value %d!", 0x4, fd);
@@ -142,7 +163,9 @@ local_read_char (int fd, int count, int from)
 
   to = (fd == 0) ? KBD : CONSOLE;
 
-  channel_addr = (void *)fds[from][fd].offset;
+  fds = get_fds(from);
+
+  channel_addr = (void *)fds[fd].offset;
 
   if (channel_addr == 0) {
     cprintk ("local_read_char: No channle found!", 0x4);
@@ -161,12 +184,14 @@ local_read_char (int fd, int count, int from)
 static int
 local_read_file (int fd, void *buf, int count, int from)
 {
-  struct header tmp = fds[from][fd];
+  struct header *fds;
 
-  if (count > tmp.length)
-    count = tmp.length;
+  fds = get_fds(from);
 
-  memcpy(buf, filesystem + tmp.offset, count);
+  if (count > fds[fd].length)
+    count = fds[fd].length;
+
+  memcpy(buf, filesystem + fds[fd].offset, count);
 
   return count;
 }
@@ -177,31 +202,35 @@ get_type(int fd, int from)
   if (fd > MAX_FD || fd < 0)
     return -1;
 
-  struct header tmp = fds[from][fd];
+  struct header *fds;
 
-  if (tmp.type == 0)
+  fds = get_fds(from);
+
+  if (fds[fd].type == 0)
     return -1;
 
-  return tmp.type;
+  return fds[fd].type;
 }
 
 int
 local_read(int fd, void *buf, int count, int from)
 {
-  struct header tmp = fds[from][fd];
+  struct header *fds;
   int type;
 
   type = get_type(fd, from);
   if (type < 0)
     return -1;
 
-  if (tmp.type == TYPE_CHAR) {
+  fds = get_fds(from);
+
+  if (fds[fd].type == TYPE_CHAR) {
     return local_read_char (fd, count, from);
-  } else if (tmp.type == TYPE_FILE) {
+  } else if (fds[fd].type == TYPE_FILE) {
     return local_read_file (fd, buf, count, from);
   }
 
-  cprintk("FS: local_read: File type (%d) is unknown!\n", 0x4, tmp.type);
+  cprintk("FS: local_read: File type (%d) is unknown!\n", 0x4, fds[fd].type);
   halt();
 
   return -1;
@@ -229,12 +258,15 @@ local_write(int fd, void *buf, int count, int from)
 int
 local_close(int fd, int from)
 {
+  struct header *fds;
   if (fd > MAX_FD)
     return -1;
 
-  fds[from][fd].type = 0;
-  fds[from][fd].length = 0;
-  fds[from][fd].offset = 0;
+  fds = get_fds(from);
+
+  fds[fd].type = 0;
+  fds[fd].length = 0;
+  fds[fd].offset = 0;
 
   return 0;
 }

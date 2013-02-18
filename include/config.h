@@ -2,8 +2,6 @@
 #define __CONFIG_H__
 
 #include <const.h>
-#include <macro.h>
-
 
 #define MIN_CPUS 4
 #define MAX_CPUS 255
@@ -29,6 +27,8 @@
 #define USER_VMS_PAGE_SIZE _4KB_
 
 #define CHANNEL_SIZE USER_VMS_PAGE_SIZE
+
+#define MAX_FD (64)
 
 #define MAX_ARGV 16
 #define MAX_ARGV_LEN 256
