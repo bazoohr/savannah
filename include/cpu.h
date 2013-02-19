@@ -201,8 +201,6 @@ struct cpu_info {
   struct message *msg_input;
   struct message *msg_output;
   bool * volatile msg_ready;
-
-  struct system_descriptor gdt[NGDT] __aligned (16);
 };
 struct cpu_info * add_cpu ();
 struct cpu_info * get_cpu_info (cpuid_t cpuid);

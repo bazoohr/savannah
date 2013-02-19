@@ -110,7 +110,6 @@ start_64:
   movq %rsp, %rbp
   /* Switch to kernel's new GDT */
   pushq %rdi      /* Save rdi (kernel Arguments) */
-  movq $0, %rdi   /* BSP cpuid */
   callq create_new_gdt
   popq %rdi       /* Reload rdi (kernel Arguments) */
   /* Now we call main () of kernel */
@@ -130,7 +129,7 @@ start_64:
 GDT:
 	.quad 0
 code64:
-	.quad 0x0020980000000000	
+	.quad 0x0020980000000000
 	/*.quad 0x00BF9B000000FFFF*/
 bootcode:
 	.quad 0x00CF9B000000FFFF

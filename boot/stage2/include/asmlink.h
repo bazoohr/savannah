@@ -23,7 +23,7 @@
   ALIGN_TEXT;             \
   .globl name;            \
   .type name, @function;  \
-name:                    
+name:
 
 #define END(name)     \
   .size name, .-name

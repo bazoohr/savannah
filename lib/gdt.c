@@ -8,7 +8,13 @@
 void
 create_new_gdt (struct system_descriptor *gdt, size_t sizeof_gdt)
 {
-  struct descriptor_register gdtr;
+  /*
+   * Since we only use gdtr in assembly code, without "volatile" GCC may
+   * remove all codes regarding gdtr assuming them as unused. So
+   * for the code to work perfectly is all optimization levels, we need
+   * to use volatile here.
+   */
+  volatile struct descriptor_register gdtr __aligned (0x10);
 
   struct code64_descriptor code64 __aligned (0x10) = {
     .cd_three  = 3,
@@ -38,6 +44,19 @@ create_new_gdt (struct system_descriptor *gdt, size_t sizeof_gdt)
    * memory space.
    */
   gdtr.dr_base  = (phys_addr_t)gdt;
-
-  reload_gdt (&gdtr, KNL_CSEL, KNL_DSEL);
+  /* Reloading GDT */
+  __asm__ __volatile__ (
+      "cli\n\t"
+      "lgdtq (%0)\n\t"
+      "movl %1, %%ds\n\t"
+      "movl %1, %%es\n\t"
+      "movl %1, %%fs\n\t"
+      "movl %1, %%gs\n\t"
+      "movl %1, %%ss\n\t"
+      "pushq %2\n\t"
+      "pushq $1f\n\t"
+      "lretq\n\t"
+      "1:\n\t"
+      ::"r"((virt_addr_t)&gdtr), "r"(KNL_DSEL), "I"(KNL_CSEL)
+  );
 }

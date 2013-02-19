@@ -1,4 +1,10 @@
 #include <asm_cpu_const.h>
+/*
+ * TODO:
+ *      We probably need to pass content of XMM registers to child as well.
+ *      Because, as we try to force GCC use verctorization, these registers
+ *      are extensively used!
+ */
 .section .text
 .align 0x10
 .globl fork
@@ -67,22 +73,4 @@ fork:
   popq %rcx  /* Pop the CR4 value */
   /* ================================== */
   retq
-
-/* ============================ */
-.align 0x10
-.globl reload_gdt
-reload_gdt:
-  cli
-  lgdt (%rdi)
-
-  movl %edx, %ds
-  movl %edx, %es
-  movl %edx, %fs
-  movl %edx, %gs
-  movl %edx, %ss
-
-  pushq %rsi
-  pushq $1f
-  lretq
-1:
-  retq
+.size fork, .-fork
