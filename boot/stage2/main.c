@@ -266,6 +266,8 @@ load_user_vms (phys_addr_t *vms_array)
 
   for (curr_cpu = NUMBER_SERVERS; curr_cpu < NUMBER_SERVERS + NUMBER_USER_VMS; curr_cpu++) {
     curr_cpu_info = get_cpu_info (curr_cpu);
+
+    curr_cpu_info->vmm_info.vmm_has_vm = true;   /* This VMM, has a VM to run */
     /*
      * stage2 ELF header contains 4 sections. (look at stage2/link64.ld).
      * These sections are respectively
@@ -411,6 +413,8 @@ load_server_vms (phys_addr_t *vms_array)
     }
 
     curr_cpu_info = get_cpu_info (curr_cpu);
+
+    curr_cpu_info->vmm_info.vmm_has_vm = true;  /* This VMM, has a VM to run */
 
     curr_cpu_info->vm_info.vm_start_paddr = curr_vm_phys_addr;
     /*

@@ -3,10 +3,11 @@
 
 #include <types.h>
 
-#define FORK_IPC 1
-#define EXEC_IPC 2
-#define EXIT_IPC 3
-#define CHANNEL_IPC 4
+#define FORK_IPC    1
+#define EXEC_IPC    2
+#define EXIT_IPC    3
+#define WAITPID_IPC 4
+#define CHANNEL_IPC 5
 
 #define MAX_PATH 32
 
@@ -23,6 +24,15 @@ struct exec_ipc {
 struct exit_ipc {
   int status;
 };
+
+struct waitpid_ipc {
+  pid_t wait_for;
+};
+struct waitpid_reply {
+  pid_t child_pid;
+  int status;
+};
+
 struct channel_ipc {
   cpuid_t end1;
   cpuid_t end2;
@@ -30,5 +40,6 @@ struct channel_ipc {
 
 int fork (void);
 void exec (char *path, char **argv);
+int waitpid (int pid, int *status_buf, int options);
 
 #endif /* __PM_H__ */

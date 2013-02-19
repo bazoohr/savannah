@@ -163,7 +163,15 @@ struct vm_proc {
   phys_addr_t vm_page_tables;
   phys_addr_t vm_ept;
 
+  pid_t vm_parent;
   int vm_exit_status;
+#define RUNNING   1
+#define WAIT_IO   2
+#define WAIT_CHLD 3
+#define ZOMBIE    4
+  int vm_state;
+
+  pid_t vm_waiting_for;         /* which child is it waiting for */
 
   phys_addr_t vm_vmcs_ptr;   // VMX VMC Pointer (must be 4KB aligned)
   phys_addr_t vm_vmxon_ptr;  // VMXON pointer   (must be 4KB aligned)
@@ -198,6 +206,8 @@ struct vmm_proc {
   size_t vmm_stack_size;
 
   phys_addr_t vmm_page_tables;
+
+  bool vmm_has_vm;   /* Does this VMM have any VM to run? */
 };
 
 struct cpu_info {

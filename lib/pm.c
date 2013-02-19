@@ -60,6 +60,25 @@ exec (char *path, char **argv)
   __asm__ __volatile__ ("vmcall;");
 }
 /* ========================================================= */
+int
+waitpid (int pid, int *status_buf, int options)
+{
+  struct waitpid_ipc waitpid_args;
+  struct waitpid_reply *reply;
+
+  waitpid_args.wait_for = pid;
+
+  msg_send (PM, WAITPID_IPC, &waitpid_args, sizeof (struct waitpid_ipc));
+  msg_receive (PM);
+
+  reply = (struct waitpid_reply *)cpuinfo->msg_input[PM].data;
+
+  *status_buf = reply->status;
+
+  return reply->child_pid;
+}
+
+/* ========================================================= */
 void exit (int status)
 {
   struct exit_ipc exit_args;

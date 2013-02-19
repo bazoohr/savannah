@@ -22,48 +22,17 @@
 #define BUSY true
 #define FREE false
 /* ================================================= */
-static bool vm_table[MAX_CPUS] __aligned (0x10);
 static char arg_vector[MAX_ARGV][MAX_ARGV_LEN] __aligned (0x10);  /* store exec arguments */
 static virt_addr_t argv_ptr[MAX_ARGV] __aligned (0x10); /* virtual addresses of exec arguments*/
 /* ================================================= */
-static size_t pages (size_t sz, size_t pgsz)
+static __inline size_t
+pages (size_t sz, size_t pgsz)
 {
   return (sz / pgsz + ((sz % pgsz > 0) ? 1 : 0));
 }
 /* ================================================= */
-static pid_t
-find_free_vm (void)
-{
-  aint i;
-  for (i = ALWAYS_BUSY; i < MAX_CPUS; i++) {
-    if (vm_table[i] == FREE) {
-      return i;
-    }
-  }
-  return MAX_CPUS + 1;
-}
-/* ================================================= */
-static void
-pm_init (void)
-{
-  aint i;
-  struct pm_args *pm_arguments __aligned (0x10);
-
-  for (i = 0; i < ALWAYS_BUSY; i++) {
-    vm_table[i] = BUSY;
-  }
-
-  for (i = ALWAYS_BUSY; i < MAX_CPUS; i++) {
-    vm_table[i] = FREE;
-  }
-
-  pm_arguments = (struct pm_args*)cpuinfo->vm_args;
-  cprintk ("pm_arguments->memory_size = %d\n", 0xF, pm_arguments->memory_size);
-  memory_init (pm_arguments->last_used_addr, pm_arguments->memory_size);
-}
-/* ================================================= */
 struct cpu_info *
-get_cpu_info (cpuid_t cpuid)
+get_cpu_info (const cpuid_t cpuid)
 {
   if (cpuid > MAX_CPUS) {
     return NULL;
@@ -72,8 +41,35 @@ get_cpu_info (cpuid_t cpuid)
   return (struct cpu_info *)((phys_addr_t)cpuinfo + cpuid * _4KB_);
 }
 /* ================================================= */
-static void
-ept_pmap (struct cpu_info *child_cpu_info)
+static __inline struct cpu_info *
+find_free_vm (void)
+{
+  struct cpu_info *cpu;
+  aint i;
+  for (i = ALWAYS_BUSY; i < MAX_CPUS; i++) {
+    cpu = get_cpu_info (i);
+    if (!cpu) {
+      panic ("pm (find_free_vm): could not get cpu information!");
+    }
+    if (!cpu->vmm_info.vmm_has_vm) {
+      return cpu;
+    }
+  }
+  return NULL;
+}
+/* ================================================= */
+static __inline void
+pm_init (void)
+{
+  struct pm_args *pm_arguments __aligned (0x10);
+
+  pm_arguments = (struct pm_args*)cpuinfo->vm_args;
+  cprintk ("pm_arguments->memory_size = %d\n", 0xF, pm_arguments->memory_size);
+  memory_init (pm_arguments->last_used_addr, pm_arguments->memory_size);
+}
+/* ================================================= */
+static __inline void
+ept_pmap (struct cpu_info * const child_cpu_info)
 {
   map_memory (&child_cpu_info->vm_info.vm_page_tables,
       0, (virt_addr_t)((virt_addr_t)_1GB_ * 4),
@@ -154,13 +150,12 @@ ept_pmap (struct cpu_info *child_cpu_info)
   }
 }
 static pid_t
-local_fork (struct cpu_info *info, struct fork_ipc *fork_args)
+local_fork (const struct cpu_info * const info, const struct fork_ipc * const fork_args)
 {
-  apid_t child_vm;
   acpuid_t parent_id;
-  struct cpu_info *child_cpu_info __aligned (0x10);
-  struct cpu_info *parent_cpu_info __aligned (0x10);
-  struct cpu_info **child_cpu_info_ptr __aligned (0x10);
+  struct cpu_info *child_cpu_info;
+  struct cpu_info *parent_cpu_info;
+  struct cpu_info **child_cpu_info_ptr;
   asize_t offset;
 
   if (info == NULL) {
@@ -169,15 +164,24 @@ local_fork (struct cpu_info *info, struct fork_ipc *fork_args)
 
   parent_id = info->cpuid;
 
-  child_vm = find_free_vm ();
-  if (child_vm > MAX_CPUS) {
+  child_cpu_info = find_free_vm ();
+  if (!child_cpu_info) {
     return -1;
   }
-  vm_table[child_vm] = BUSY;
+  child_cpu_info->vmm_info.vmm_has_vm = true;
 
-  child_cpu_info = get_cpu_info (child_vm);
   parent_cpu_info = get_cpu_info (parent_id);
 
+  child_cpu_info->vm_info.vm_parent = parent_id;
+  child_cpu_info->vm_info.vm_state = RUNNING;
+  /*
+   * TODO:
+   *     If any of memory allocations fails, we have to free all other allocated
+   *     memory blocks, and set
+   *     child_cpu_info->vmm_info.vmm_has_vm = false;
+   *
+   *     Currently we assume that memory allocation does not fail! Such a STRONG assumption!!!
+   */
   child_cpu_info->vm_info.vm_start_vaddr = parent_cpu_info->vm_info.vm_start_vaddr;
   child_cpu_info->vm_info.vm_start_paddr = parent_cpu_info->vm_info.vm_start_paddr;
 
@@ -239,11 +243,11 @@ local_fork (struct cpu_info *info, struct fork_ipc *fork_args)
   cprintk ("========================\n", 0xF);
   __asm__ __volatile__ ("cli;hlt\n\t");
 #endif
-  return child_vm;
+  return child_cpu_info->cpuid;
 }
 /* ================================================= */
 static void
-load_elf (struct cpu_info *curr_cpu_info, phys_addr_t elf)
+load_elf (struct cpu_info * const curr_cpu_info, const phys_addr_t elf)
 {
   asize_t vm_size;     /* VMM's Code + data + rodata + bss + stack */
   aint ph_num;          /* VMM's number of program headers */
@@ -256,8 +260,8 @@ load_elf (struct cpu_info *curr_cpu_info, phys_addr_t elf)
   phys_addr_t old_prodata;
   phys_addr_t old_pbss;
   phys_addr_t old_pstack;
-  //phys_addr_t old_pgtb;
-  //phys_addr_t old_ept;
+  phys_addr_t old_pgtb;
+  phys_addr_t old_ept;
   /*
    * stage2 ELF header contains 4 sections. (look at stage2/link64.ld).
    * These sections are respectively
@@ -282,8 +286,8 @@ load_elf (struct cpu_info *curr_cpu_info, phys_addr_t elf)
   old_prodata = curr_cpu_info->vm_info.vm_rodata_paddr;
   old_pbss = curr_cpu_info->vm_info.vm_bss_paddr;
   old_pstack = curr_cpu_info->vm_info.vm_stack_paddr;
-  //old_pgtb = curr_cpu_info->vm_info.vm_page_tables;
-  //old_ept  = curr_cpu_info->vm_info.vm_ept;
+  old_pgtb = curr_cpu_info->vm_info.vm_page_tables;
+  old_ept  = curr_cpu_info->vm_info.vm_ept;
   /* ========================================= */
   elf_hdr = (Elf64_Ehdr*)elf;  /* Start address of executable */
   /* ========================================= */
@@ -372,13 +376,13 @@ load_elf (struct cpu_info *curr_cpu_info, phys_addr_t elf)
     panic ("PM: Computed two different VM end addresses %x & %x\n", curr_cpu_info->vm_info.vm_end_paddr, curr_cpu_info->vm_info.vm_start_paddr + vm_size);
   }
 
-  free_mem_pages (old_pcode);
-  free_mem_pages (old_pdata);
-  free_mem_pages (old_prodata);
-  free_mem_pages (old_pbss);
-  free_mem_pages (old_pstack);
-  //free_page_tables (old_pgtb);
-  //free_page_tables (old_ept);
+  if (old_pcode)   free_mem_pages (old_pcode);
+  if (old_pdata)   free_mem_pages (old_pdata);
+  if (old_prodata) free_mem_pages (old_prodata);
+  if (old_pbss)    free_mem_pages (old_pbss);
+  if (old_pstack)  free_mem_pages (old_pstack);
+  free_page_tables (old_pgtb);
+  free_page_tables (old_ept);
 #if 0
   cprintk ("code p = %x v = %x\ndata p = %x v = %x\nrodata p = %x v = %x\nbss p = %x v = %x\nstack p = %x v = %x\n", 0xF, curr_cpu_info->vm_info.vm_code_paddr, curr_cpu_info->vm_info.vm_code_vaddr,
       curr_cpu_info->vm_info.vm_data_paddr, curr_cpu_info->vm_info.vm_data_vaddr,
@@ -390,7 +394,7 @@ load_elf (struct cpu_info *curr_cpu_info, phys_addr_t elf)
 }
 /* ================================================= */
 static pid_t
-local_exec (struct cpu_info *info, struct exec_ipc *exec_args)
+local_exec (struct cpu_info * const info, const struct exec_ipc * const exec_args)
 {
   aint i;
   aint argc;
@@ -471,7 +475,7 @@ local_exec (struct cpu_info *info, struct exec_ipc *exec_args)
 }
 /* ================================================= */
 static phys_addr_t
-local_channel (struct channel_ipc *req)
+local_channel (const struct channel_ipc * const req)
 {
   struct cpu_info *vm1;
   struct cpu_info *vm2;
@@ -509,26 +513,113 @@ local_channel (struct channel_ipc *req)
 }
 /* ================================================= */
 static void
-local_exit (struct cpu_info *info, struct exit_ipc *exit_args)
+local_exit (struct cpu_info * const info, const struct exit_ipc const *exit_args)
 {
-  if (cpuinfo == NULL) {
-    cprintk ("Exit: Invalid cpuid!\n", 0x4);
+  struct cpu_info *parent_info;
+
+  if (info == NULL) {
+    cprintk ("Exit: No cpu info provided!\n", 0x4);
     halt ();
   }
 
-  info->vm_info.vm_exit_status = exit_args->status;
 
-  free_mem_pages (info->vm_info.vm_code_paddr);
-  free_mem_pages (info->vm_info.vm_data_paddr);
-  free_mem_pages (info->vm_info.vm_rodata_paddr);
-  free_mem_pages (info->vm_info.vm_bss_paddr);
-  free_mem_pages (info->vm_info.vm_stack_paddr);
-  //free_page_tables (info->vm_info.vm_page_tables);
-  //free_page_tables (info->vm_info.vm_ept);
+  if (info->vm_info.vm_code_paddr)
+    free_mem_pages (info->vm_info.vm_code_paddr);
+  if (info->vm_info.vm_data_paddr)
+    free_mem_pages (info->vm_info.vm_data_paddr);
+  if (info->vm_info.vm_rodata_paddr)
+    free_mem_pages (info->vm_info.vm_rodata_paddr);
+  if (info->vm_info.vm_bss_paddr)
+    free_mem_pages (info->vm_info.vm_bss_paddr);
+  if (info->vm_info.vm_stack_paddr)
+    free_mem_pages (info->vm_info.vm_stack_paddr);
+  free_page_tables (info->vm_info.vm_page_tables);
+  free_page_tables (info->vm_info.vm_ept);
 
-  cprintk ("VM %d exited with status %d!\n", 0xE, info->cpuid, info->vm_info.vm_exit_status);
-  halt ();
+  parent_info = get_cpu_info (info->vm_info.vm_parent);
+  if (!parent_info) {
+    panic ("PM (local_exit): failed to get cpu information!");
+  }
+
+  if (parent_info->vm_info.vm_state == WAIT_CHLD) {
+    struct waitpid_reply wait_reply;
+
+    wait_reply.child_pid = info->cpuid;
+    wait_reply.status = exit_args->status;
+
+    msg_reply (parent_info->cpuid, WAITPID_IPC, &wait_reply, sizeof (struct waitpid_reply));
+  } else {
+    info->vm_info.vm_exit_status = exit_args->status;
+  }
 }
+/* ================================================= */
+static void
+local_waitpid (struct cpu_info * const info,
+               const struct waitpid_ipc * const waitpid_args,
+               struct waitpid_reply *reply)
+{
+  struct cpu_info *child;
+
+  if (info == NULL) {
+    cprintk ("Exit: No cpu info provided!\n", 0x4);
+    halt ();
+  }
+
+  if (waitpid_args->wait_for < -1 || waitpid_args->wait_for > MAX_CPUS) {
+    cprintk ("PM %s: waiting for invalid PID %d\n", 0x4, __func__, waitpid_args->wait_for);
+    reply->child_pid = -1;
+    return;
+  }
+
+
+  if (waitpid_args->wait_for != -1) {
+    child = get_cpu_info (waitpid_args->wait_for);
+    if (!child) {
+      cprintk ("PM: %s: Couldn't find child %d\n", 0x4, __func__, waitpid_args->wait_for);
+      reply->child_pid = -1;
+      return;
+    }
+
+    if (info->cpuid != child->vm_info.vm_parent) {
+      reply->child_pid = -1;
+      return;
+    }
+    if (child->vm_info.vm_state != ZOMBIE) {
+      child = NULL;
+    }
+  } else {
+    int i;
+    for (i = ALWAYS_BUSY; i < MAX_CPUS; i++) {
+      child = get_cpu_info (i);
+      if (!child) {
+        panic ("PM %s: Failed to get cpu information!\n", __func__);
+      }
+
+      if (child->vm_info.vm_parent == info->cpuid &&
+          child->vm_info.vm_state == ZOMBIE) {
+        break;
+      }
+    }
+    /* NO child Found */
+    if (i == MAX_CPUS) {
+      child = NULL;
+    }
+  }
+
+  if (child) {
+
+    reply->child_pid = child->cpuid;
+    reply->status = child->vm_info.vm_exit_status;
+
+    child->vmm_info.vmm_has_vm = false;  /* No VM any more!! */
+    return;
+  } else {
+    info->vm_info.vm_state = WAIT_CHLD;
+    reply->child_pid = 0;
+    return;
+  }
+}
+
 /* ================================================= */
 void
 vm_main (void)
@@ -544,6 +635,7 @@ vm_main (void)
 
   while (1) {
     struct message *m __aligned (0x10) = msg_check();
+    struct waitpid_reply wait_reply;
     pid_t r;
     phys_addr_t channel;
 
@@ -564,11 +656,16 @@ vm_main (void)
       case EXIT_IPC:
         local_exit (get_cpu_info (m->from), (struct exit_ipc *)m->data);
         break;
+      case WAITPID_IPC:
+        local_waitpid (get_cpu_info (m->from), (struct waitpid_ipc *)m->data, &wait_reply);
+        if (wait_reply.child_pid != 0) {
+          msg_reply (m->from, WAITPID_IPC, &wait_reply, sizeof (struct waitpid_reply));
+        }
+        break;
       case CHANNEL_IPC:
         channel = local_channel ((struct channel_ipc *)m->data);
         msg_reply (m->from, CHANNEL_IPC, &channel, sizeof (phys_addr_t));
         break;
-
       default:
         cprintk("PM: Warning, unknown request %d from %d\n", 0xD, m->number, m->from);
     }
