@@ -120,7 +120,6 @@ lapic_startaps (cpuid_t cpuid)
   // ... prior to executing the following sequence:"
   if ((r = lapic_ipi_init(cpuid)) < 0)
     panic ("unable to send init error r");
-  cprintk ("LAPIC cpuid = %x\n", 0x6, cpuid);
 
   timer_delay (10);	// 10ms
 

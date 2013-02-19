@@ -56,10 +56,12 @@ int
 msg_receive(int from)
 {
   int i;
+  int ncpus;
 
+  ncpus = cpuinfo->ncpus;
   while (1) {
     if (from == ANY) {
-      for (i = 0 ; i < 8/*get_ncpus()*/ ; i++) {
+      for (i = 0 ; i < ncpus ; i++) {
         if (cpuinfo->msg_input[i].number) {
           cpuinfo->msg_input[i].number = 0;
           from = i;

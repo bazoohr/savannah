@@ -234,8 +234,6 @@ mp_init(void)
 		panic ("Too little number of CPUs");
   }
 
-	cprintk("Number of CPUs: %d\n", 0xE, get_ncpus ());
-
 	phys_addr_t ioapicpa;
 	if (ioapic_conf) {
 		ioapicpa = ioapic_conf->addr;

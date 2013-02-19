@@ -24,7 +24,7 @@ main (int argc, char **argv)
   struct message *req;
   struct keyboard_read kbd_rd;
   struct read_reply readreply;
-  int i;
+//  int i;
 
   con_init ();
 
@@ -38,10 +38,12 @@ main (int argc, char **argv)
   kbd_init ();
   */
 
+#if 0
   for (i = 0 ; i < cpuinfo->cpuid ; i++) printk("\n");
   cprintk ("This is the keyboard driver!! %d\n", 0xE, argc);
+#endif
 
-  asm volatile ("cli\n\r");
+  __asm__ __volatile__ ("cli\n\r");
 
   while (1) {
     msg_receive (FS);
@@ -49,11 +51,9 @@ main (int argc, char **argv)
     req = &cpuinfo->msg_input[FS];
     memcpy (&kbd_rd, req->data, sizeof (struct keyboard_read));
 
-    cprintk ("request received from %d to read %d bytes into address = %x\n", 0x8, kbd_rd.from, kbd_rd.count, kbd_rd.channel);
-
     wait_for_completed_request(kbd_rd.channel, kbd_rd.count);
 
-    asm volatile ("cli\n\r");
+    __asm__ __volatile__ ("cli\n\r");
 
     readreply.from = kbd_rd.from;
     readreply.type = TYPE_CHAR;

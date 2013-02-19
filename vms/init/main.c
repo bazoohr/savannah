@@ -23,7 +23,7 @@ vm_main (void)
     cprintk ("THIS IS CHILD!\n", 0x2);
     while (1) {__asm__ __volatile__ ("cli;pause;\n\t");}
   }
-  cprintk ("INIT: My info is in addr = %d\n", 0xD, cpuinfo->cpuid);
+//  cprintk ("INIT: My info is in addr = %d\n", 0xD, cpuinfo->cpuid);
 
   char content[10];
   memset(content, 0, 10);
@@ -69,7 +69,7 @@ vm_main (void)
   }
 
   for (i = 0 ; i < cpuinfo->cpuid ; i++) printk("\n");
-  cprintk ("parent: child's PID = %d fd2 = %d fd = %d test = %x cpuid = %d\n", 0xE, pid, fd2, fd, test, cpuinfo->cpuid);
+  cprintk ("parent: child's PID = %d fd2 = %d fd = %d test = %x cpuid = %d\n", 0xD, pid, fd2, fd, test, cpuinfo->cpuid);
   //putc('@');
 
   pid = fork();
@@ -81,6 +81,19 @@ vm_main (void)
     exec("login", NULL);
   }
   int status;
+  if (waitpid (pid, &status, 0) < 0) {
+    cprintk ("Init::waitpid for process %d failed!\n", 0x4, status);
+  }
+  cprintk ("Process %d exited with value %d!\n", 0x4, pid, status);
+
+  pid = fork();
+  if (pid == -1) {
+    cprintk ("Failed to fork!\n", 0x4);
+  } else if (pid == 0) {
+    for (i = 0 ; i < cpuinfo->cpuid ; i++) printk("\n");
+    cprintk ("I am the login child pid = %d fd2 = %d fd1 = %d test = %x cpuid = %d\n", 0xD, pid, fd2, fd, test, cpuinfo->cpuid);
+    exec("login", NULL);
+  }
   if (waitpid (pid, &status, 0) < 0) {
     cprintk ("Init::waitpid for process %d failed!\n", 0x4, status);
   }

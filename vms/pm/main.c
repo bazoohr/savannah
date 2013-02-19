@@ -46,7 +46,7 @@ find_free_vm (void)
 {
   struct cpu_info *cpu;
   aint i;
-  for (i = ALWAYS_BUSY; i < MAX_CPUS; i++) {
+  for (i = ALWAYS_BUSY; i < cpuinfo->ncpus; i++) {
     cpu = get_cpu_info (i);
     if (!cpu) {
       panic ("pm (find_free_vm): could not get cpu information!");
@@ -64,7 +64,6 @@ pm_init (void)
   struct pm_args *pm_arguments __aligned (0x10);
 
   pm_arguments = (struct pm_args*)cpuinfo->vm_args;
-  cprintk ("pm_arguments->memory_size = %d\n", 0xF, pm_arguments->memory_size);
   memory_init (pm_arguments->last_used_addr, pm_arguments->memory_size);
 }
 /* ================================================= */
@@ -477,19 +476,19 @@ local_exec (struct cpu_info * const info, const struct exec_ipc * const exec_arg
 static phys_addr_t
 local_channel (const struct channel_ipc * const req)
 {
-  struct cpu_info *vm1;
-  struct cpu_info *vm2;
+  struct cpu_info *cpu1;
+  struct cpu_info *cpu2;
   phys_addr_t channel;
 
-  vm1 = get_cpu_info (req->end1);
-  vm2 = get_cpu_info (req->end2);
+  cpu1 = get_cpu_info (req->end1);
+  cpu2 = get_cpu_info (req->end2);
 
-  if (vm1->vm_info.vm_start_paddr == 0 || vm1->vm_info.vm_stack_paddr == 0) {
-    panic ("PM: creating channel failed! VM1 does not exist! VM1 = %d & VM2 = %d!\n", vm1->cpuid, vm2->cpuid);
+  if (cpu1->vmm_info.vmm_has_vm == false) {
+    panic ("PM: creating channel failed! VM1 does not exist! VM1 = %d & VM2 = %d!\n", cpu1->cpuid, cpu2->cpuid);
   }
 
-  if (vm2->vm_info.vm_start_paddr == 0 || vm2->vm_info.vm_stack_paddr == 0) {
-    panic ("PM: creating channel failed! VM2 does not exist! VM1 = %d & VM2 = %d!\n", vm1->cpuid, vm2->cpuid);
+  if (cpu2->vmm_info.vmm_has_vm == false) {
+    panic ("PM: creating channel failed! VM2 does not exist! VM1 = %d & VM2 = %d!\n", cpu1->cpuid, cpu2->cpuid);
   }
 
   channel = (phys_addr_t)alloc_mem_pages (pages (CHANNEL_SIZE, USER_VMS_PAGE_SIZE));
@@ -497,13 +496,14 @@ local_channel (const struct channel_ipc * const req)
     panic ("PM: Failed to alloced memory!");
   }
 
-  EPT_map_memory (&vm1->vm_info.vm_ept,
+  cprintk ("channel created at address = %x\n", 0xE, channel);
+  EPT_map_memory (&cpu1->vm_info.vm_ept,
       channel,  channel + CHANNEL_SIZE,
       channel,
       USER_VMS_PAGE_SIZE,
       EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
 
-  EPT_map_memory (&vm2->vm_info.vm_ept,
+  EPT_map_memory (&cpu2->vm_info.vm_ept,
       channel,  channel + CHANNEL_SIZE,
       channel,
       USER_VMS_PAGE_SIZE,
@@ -515,6 +515,7 @@ local_channel (const struct channel_ipc * const req)
 static void
 local_exit (struct cpu_info * const info, const struct exit_ipc const *exit_args)
 {
+  int i;
   struct cpu_info *parent_info;
 
   if (info == NULL) {
@@ -541,8 +542,23 @@ local_exit (struct cpu_info * const info, const struct exit_ipc const *exit_args
     panic ("PM (local_exit): failed to get cpu information!");
   }
 
+  /* Free pages allocated for channels */
+  for (i = 0; i < MAX_FD; i++) {
+    if (info->vm_info.fds[i].type == TYPE_CHAR) {
+      free_mem_pages (info->vm_info.fds[i].offset);
+    }
+  }
+  /*
+   * TODO:
+   *     Unmap memory allocated for channels in driver side
+   */
+
+  memset (info->vm_info.fds, 0, MAX_FD * sizeof (struct header));
+
   if (parent_info->vm_info.vm_state == WAIT_CHLD) {
     struct waitpid_reply wait_reply;
+
+    info->vmm_info.vmm_has_vm = false;
 
     wait_reply.child_pid = info->cpuid;
     wait_reply.status = exit_args->status;
@@ -624,15 +640,15 @@ local_waitpid (struct cpu_info * const info,
 void
 vm_main (void)
 {
-  aint i;
   con_init ();
 
   pm_init ();
 
+#if 0
   for (i = 0 ; i < cpuinfo->cpuid; i++) printk("\n");
 
   cprintk ("PM: My info is in addr = %d\n", 0xD, cpuinfo->cpuid);
-
+#endif
   while (1) {
     struct message *m __aligned (0x10) = msg_check();
     struct waitpid_reply wait_reply;

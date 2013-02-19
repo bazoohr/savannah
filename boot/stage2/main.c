@@ -180,9 +180,9 @@ load_all_vmms (phys_addr_t vmm_elf_addr, phys_addr_t boot_stage2_end_addr)
 #if 0
     cprintk ("BSS START = %x BSS_END = %x STACK_START = %x STACK_END = %x\n", 0x3, s->p_vaddr, s->p_vaddr + s->p_memsz,
         curr_cpu_info->vmm_info.vmm_stack_vaddr, curr_cpu_info->vmm_info.vmm_regs.rsp);
-#endif
     cprintk ("P: BSS START = %x BSS_END = %x STACK_START = %x STACK_END = %x\n", 0x3, VIRT2PHYS(s->p_vaddr), VIRT2PHYS((s->p_vaddr + s->p_memsz)),
         curr_cpu_info->vmm_info.vmm_stack_paddr, curr_cpu_info->vmm_info.vmm_end_paddr);
+#endif
 
     /* Message Box */
     curr_cpu_info->msg_input  = get_msg_input(curr_cpu);
@@ -692,30 +692,15 @@ boot_stage2_main (struct boot_stage2_args *boot_args)
   phys_addr_t vms_array[] = {boot_args->pm_elf_addr, boot_args->fs_elf_addr, boot_args->init_elf_addr};
 
   con_init ();
-  cprintk ("boot_stage2_end_addr = %x\n", 0xB, boot_args->boot_stage2_end_addr);
-  cprintk ("fs_elf_addr = %x\ninit_elf_addr = %x\n", 0x5, boot_args->fs_elf_addr, boot_args->init_elf_addr);
   memory_init (boot_args->boot_stage2_end_addr, boot_args->sys_mem_size);
 
   map_memory (&(boot_args->boot_stage2_page_tables), 0xFEC00000, 0x100000000, 0xFEC00000, _2MB_, VMM_PAGE_UNCACHABLE, MAP_UPDATE);
 
   mp_init ();
 
-  int i;
-
-  for (i = 0; i < get_ncpus (); i++) {
-    cprintk ("cpuinfo --> %x cpuid = %d\n", 0x6, get_cpu_info (i), get_cpu_info (i)->cpuid);
-  }
   msg_input = (struct message *)calloc_align (sizeof (uint8_t), get_ncpus() * _4KB_, _2MB_);
-  cprintk ("msg_input = %x\n", 0xB, msg_input);
   msg_output = (struct message *)calloc_align (sizeof (uint8_t), get_ncpus() * _4KB_, _2MB_);
-  cprintk ("msg_output = %x\n", 0xB, msg_output);
   msg_ready = (bool *)calloc_align (sizeof (uint8_t), get_ncpus() * _4KB_, _2MB_);
-  cprintk ("msg_ready = %x\n", 0xB, msg_ready);
-
-
-  cprintk ("msg_input[%d] = %x\n", 0xC, 2, get_msg_input (2));
-  cprintk ("msg_out[%d] = %x\n", 0xC, 2, get_msg_output (2));
-  cprintk ("msg_ready[%d] = %x\n", 0xC, 2, get_msg_ready (2));
 
   interrupt_init ();
 

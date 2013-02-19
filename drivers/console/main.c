@@ -20,11 +20,13 @@ main (int argc, char **argv)
   int i;
   con_init ();
 
+#if 0
   for (i = 0 ; i < cpuinfo->cpuid ; i++) printk("\n");
   cprintk ("This is the console driver!!\n", 0xE);
   for (i = 0 ; i < argc ; i++) {
     cprintk ("argv[%d] = %s\n", 0xE, i, argv[i]);
   }
+#endif
 
   while (1) {
     msg_receive(FS);

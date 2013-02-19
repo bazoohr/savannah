@@ -46,8 +46,6 @@ local_open_char(const char *pathname, int from, struct open_reply *openreply)
   struct message *pm_reply;
   struct header *fds;
 
-  cprintk ("pathname = %s from %d\n", 0x6, pathname, from);
-
   if (from > MAX_CPUS || from < 0) {
     openreply->fd = -1;
     return;
@@ -83,8 +81,6 @@ local_open_char(const char *pathname, int from, struct open_reply *openreply)
   memcpy (&fds[fd].offset, pm_reply->data, sizeof (phys_addr_t));
   fds[fd].type = TYPE_CHAR;
   fds[fd].length = 0;
-
-  cprintk ("channel created in address %x\n", 0x6, fds[fd].offset);
 
   openreply->fd = fd;
   openreply->channel = (void *)fds[fd].offset;
@@ -294,14 +290,15 @@ local_load(char *path)
 void
 vm_main (void)
 {
-  int i;
   con_init ();
 
   filesystem = cpuinfo->vm_args;
 
+#if 0
   for (i = 0 ; i < cpuinfo->cpuid; i++) printk("\n");
 
   cprintk ("FS: My info is in addr = %d\n", 0xD, cpuinfo->cpuid);
+#endif
 
   while (1) {
     struct message *m = msg_check();
