@@ -7,6 +7,15 @@
 #include <cdef.h>
 #include <const.h>
 #include <message.h>
+#include <config.h>
+
+struct header {
+	char name[32];    /* File name */
+	uint32_t type;    /* Type of the file (normal file, char, block ...) */
+	uint32_t length;  /* File length */
+	uint64_t offset;  /* Offset where the file is located starting from
+			   * the beginning of the file */
+};
 
 struct system_descriptor {
 	uint64_t sd_lolimit:16;
@@ -158,6 +167,8 @@ struct vm_proc {
 
   phys_addr_t vm_vmcs_ptr;   // VMX VMC Pointer (must be 4KB aligned)
   phys_addr_t vm_vmxon_ptr;  // VMXON pointer   (must be 4KB aligned)
+
+  struct header fds[MAX_FD];
 };
 
 struct vmm_proc {

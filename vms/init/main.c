@@ -25,7 +25,6 @@ vm_main (void)
   }
   cprintk ("INIT: My info is in addr = %d\n", 0xD, cpuinfo->cpuid);
 
-#if 0
   char content[10];
   memset(content, 0, 10);
 
@@ -49,9 +48,7 @@ vm_main (void)
 
   cprintk("INIT: Fd1 = %d\n", 0xD, fd);
   cprintk("INIT: Fd2 = %d\n", 0xD, fd2);
-#endif
-  int fd = 0;
-  int fd2 = 0;
+
   int pid = fork ();
   if (pid == -1) {
     cprintk ("Failed to fork!\n", 0x4);
@@ -80,7 +77,7 @@ vm_main (void)
     cprintk ("Failed to fork!\n", 0x4);
   } else if (pid == 0) {
     for (i = 0 ; i < cpuinfo->cpuid ; i++) printk("\n");
-    cprintk ("I am the console child pid = %d fd2 = %d fd1 = %d test = %x cpuid = %d\n", 0xD, pid, fd2, fd, test, cpuinfo->cpuid);
+    cprintk ("I am the login child pid = %d fd2 = %d fd1 = %d test = %x cpuid = %d\n", 0xD, pid, fd2, fd, test, cpuinfo->cpuid);
     exec("login", NULL);
   }
 

@@ -15,6 +15,7 @@
 #include <pmap.h>
 #include <elf.h>
 #include <panic.h>
+#include <macro.h>
 /* ================================================= */
 #define ALWAYS_BUSY (NUMBER_SERVERS + NUMBER_USER_VMS)
 /* ================================================= */

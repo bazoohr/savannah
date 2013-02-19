@@ -5,6 +5,7 @@
 #include <string.h>
 #include <printk.h>
 #include <config.h>
+#include <macro.h>
 
 #define __1KB_SHIFT 10
 
