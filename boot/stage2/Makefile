@@ -10,7 +10,7 @@ include $(ROOT)/config.mak
 include $(ROOT)/rules.mak
 
 LINK_LD  = stage2.ld
-PROGNAME = stage2
+PROGNAME = $(BOOT_STAGE2)
 MYDIR    = boot/stage2/
 
 CFLAGS  += -I ./include/ -I $(ROOT)/include/

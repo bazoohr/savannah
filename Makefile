@@ -33,11 +33,21 @@ build-all:
 
 install: build-all
 	@echo "    Installing..."
-	@printf	"serial --unit =0 --stop=1 --speed=115200 --parity=no --word=8\n\
-		terminal --timeout=0 serial console\n\
-		default 0\n\
-		timeout = 0\n\
-		title \"Anarchix\"\n\
+#	@printf	"serial --unit =0 --stop=1 --speed=115200 --parity=no --word=8\n\
+#		terminal --timeout=0 serial console\n\
+#		timeout = 20\n\
+#		title \"Anarchix\"\n\
+#		root (cd)\n\
+#		kernel --type=multiboot /boot/grub/$(BOOT_STAGE1) root=cd\n\
+#		module /boot/grub/$(BOOT_STAGE2)\n\
+#		module /boot/grub/$(BOOT_APS)\n\
+#		module /boot/grub/$(VMM)\n\
+#		module /boot/grub/$(PM)\n\
+#		module /boot/grub/$(FS)\n\
+#		module /boot/grub/$(INIT)\n\
+#		module /boot/grub/$(INITRD)\n" > /tmp/menu.lst
+	@printf "timeout 0\n\
+	  title vuos\n\
 		kernel --type=multiboot /boot/grub/$(BOOT_STAGE1)\n\
 		module /boot/grub/$(BOOT_STAGE2)\n\
 		module /boot/grub/$(BOOT_APS)\n\
@@ -61,7 +71,7 @@ install: build-all
 	@cp vms/init/$(INIT) /tmp/iso/boot/grub
 	@cp initrd/$(INITRD) /tmp/iso/boot/grub
 	@genisoimage -quiet -input-charset ascii -R -b boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4 \
-             -boot-info-table -o $(IMAGE) /tmp/iso
+		-boot-info-table -o $(IMAGE) /tmp/iso
 	@echo "    Installing... OK"
 run:
 	@bochs -q -f bochsrc.txt

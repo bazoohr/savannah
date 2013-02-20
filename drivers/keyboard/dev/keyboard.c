@@ -122,7 +122,7 @@ static void __inline
 kbd_add_buf (int data)
 {
   buffer[bufpos++] = data;
-//  cprintk ("Keyboard: %c\n", 0xE, data);
+  cprintk ("Keyboard: %c\n", 0xE, data);
 }
 
 void

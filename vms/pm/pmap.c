@@ -306,6 +306,48 @@ EPT_map_memory (phys_addr_t *pml4_paddr,
     vaddr += page_size;
   }
 }
+
+void
+unmap_memory (phys_addr_t pml4_paddr, virt_addr_t vaddr)
+{
+  int pml4_idx;
+  int pdpe_idx;
+  int pde_idx;
+  int pte_idx;
+  page_table_entry_t *pml4;
+  page_table_entry_t *pdpe;
+  page_table_entry_t *pde;
+  page_table_entry_t *pte;
+
+  pml4 = (page_table_entry_t *)pml4_paddr;
+
+  pml4_idx = (vaddr >> 39) & 0x1FF;
+  pdpe_idx = (vaddr >> 30) & 0x1FF;
+  pde_idx  = (vaddr >> 21) & 0x1FF;
+  pte_idx  = (vaddr >> 12) & 0x1FF;
+
+  pdpe = (page_table_entry_t *)((phys_addr_t)pml4[pml4_idx] & ~0xFFF);
+  if (pdpe && pdpe[pdpe_idx]) {
+    if (!(pdpe[pdpe_idx] & PAGE_PSE)) {
+      pde = (page_table_entry_t *)((phys_addr_t)pdpe[pdpe_idx] & ~0xFFF);
+      if (pde && pde[pde_idx]) {
+        if (!(pde[pde_idx] & PAGE_PSE)) {
+          pte = (page_table_entry_t *)((phys_addr_t)pde[pde_idx] & ~0xFFF);
+          pte[pte_idx] = 0;
+        } else {
+          pde[pde_idx] = 0;
+        }
+      }
+    } else {
+      pdpe[pdpe_idx] = 0;
+    }
+  }
+  /*
+   * TODO:
+   *     TLB MUST be flushed at this point, if process
+   *     is going to resume execution after unmapping.
+   */
+}
 void
 free_page_tables (phys_addr_t base)
 {
@@ -330,10 +372,8 @@ free_page_tables (phys_addr_t base)
             for (pde_idx = 0; pde_idx < PAGE_TABLE_ENTRIES; pde_idx++) {
 
               if (pde[pde_idx] && !(pde[pde_idx] & PAGE_PSE)) { /* page < 2MB */
-                if (pde[pde_idx]) {
-                  phys_addr_t pte = ((phys_addr_t)pde[pde_idx] & ~0xFFF);
-                  free_mem_pages (pte);
-                }
+                phys_addr_t pte = ((phys_addr_t)pde[pde_idx] & ~0xFFF);
+                free_mem_pages (pte);
               }
             }
             free_mem_pages ((phys_addr_t)pde);

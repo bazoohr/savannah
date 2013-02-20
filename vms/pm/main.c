@@ -513,7 +513,7 @@ local_channel (const struct channel_ipc * const req)
 }
 /* ================================================= */
 static void
-local_exit (struct cpu_info * const info, const struct exit_ipc const *exit_args)
+local_exit (struct cpu_info * const info, const struct exit_ipc * const exit_args)
 {
   int i;
   struct cpu_info *parent_info;
