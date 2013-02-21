@@ -53,6 +53,7 @@ lib/libos.a
 
 bochsrc.txt
 boot/stage1/stage1
+boot/stage1/boot_stage1
 boot/stage2/boot_aps.out
 boot/stage2/boot_aps
 boot/stage2/include/asm_frame_const.h
@@ -63,3 +64,4 @@ vmm/vmm
 vmm/include/asm_frame_const.h
 vm/include/asm_frame_const.h
 boot/stage2/stage2
+boot/stage2/boot_stage2

@@ -2,7 +2,7 @@
 #include <ipc.h>
 #include <string.h>
 #include <lib_mem.h>
-#include <printf.h>
+#include <printk.h>
 #include <config.h>
 #include <fs.h>
 #include <misc.h>
@@ -28,11 +28,11 @@ fork_internal (virt_addr_t register_array_vaddr)
     open_stdout = open ("stdout", O_RDWR);
 
     if (open_stdin == -1 && !is_driver (cpuinfo->cpuid)) {
-      printf ("fork_internal: Failed to open stdin!");
+      printk ("fork_internal: Failed to open stdin!");
       __asm__ __volatile__ ("cli;hlt\n\t");
     }
     if (open_stdout == -1 && !is_driver (cpuinfo->cpuid)) {
-      printf ("fork_internal: Failed to open stdout!");
+      printk ("fork_internal: Failed to open stdout!");
       __asm__ __volatile__ ("cli;hlt\n\t");
     }
   }

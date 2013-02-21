@@ -4,7 +4,7 @@ include $(ROOT)/rules.mak
 
 MYDIR = lib/
 
-CFLAGS  += -I ./include/ -I $(ROOT)/include/
+CFLAGS  += -I ./include/ -I $(ROOT)/include/ -I $(ROOT)/vms/pm/include/
 ASFLAGS += -I ./include/ -I $(ROOT)/include/
 
 AR=ar

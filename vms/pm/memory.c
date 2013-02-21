@@ -108,15 +108,23 @@ alloc_mem_pages (size_t n)
   struct block_node *current_node;
   phys_addr_t found_block = 0;
 
+  /*
+   * Requesting for zero pages does not
+   * make any sense :)
+   */
+  if (n == 0) {
+    return (phys_addr_t)0;
+  }
+
   current_node = blist;
 
   while (current_node != NULL) {
     if (current_node->b_avl == false || current_node->b_pages < n) {
       current_node = current_node->next;
     } else if (current_node->b_pages == n) {
-        current_node->b_avl = false;
-        found_block = current_node->b_start_addr;
-        break;
+      current_node->b_avl = false;
+      found_block = current_node->b_start_addr;
+      break;
     } else {
       struct block_node *new_node;
       phys_addr_t new_node_paddr;
@@ -134,8 +142,8 @@ alloc_mem_pages (size_t n)
       current_node->b_avl = false;
       current_node->next = new_node;
 
-     found_block = current_node->b_start_addr;
-     break;
+      found_block = current_node->b_start_addr;
+      break;
     }
   } /* While */
 
