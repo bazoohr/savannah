@@ -1,6 +1,6 @@
 #include <asmfunc.h>
 #include <panic.h>
-#include <printk.h>
+#include <printf.h>
 #include <cdef.h>
 #include <dev/ioapic.h>
 #include <dev/lapic.h>
@@ -122,7 +122,7 @@ static void __inline
 kbd_add_buf (int data)
 {
   buffer[bufpos++] = data;
-  cprintk ("Keyboard: %c\n", 0xE, data);
+  printf ("%c", data);
 }
 
 void

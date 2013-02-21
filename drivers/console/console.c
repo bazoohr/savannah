@@ -6,91 +6,111 @@
  * ======================================== */
 #include <console.h>
 #include <types.h>
-#include <printk.h>
+#include <asmfunc.h>
 /* ============================= */
 static uint64_t y;
 static uint64_t x;
-static uint64_t pos;
+/* ============================= */
+// TODO: Fix this! It does not seems to work.
+static void con_cursor ()
+{
+  uint16_t loc = (y * 80) + x;
+
+  outb(0x0F, 0x3D4);
+  outb((unsigned char)(loc & 0xFF), 0x3D5);
+  outb(0x0E, 0x3D4);
+  outb((unsigned char )((loc >> 8) & 0xFF), 0x3D5);
+}
+/* ============================= */
+static void con_clear ()
+{
+  int i;
+  uint16_t *vga = (uint16_t*)SCR_START;
+
+  for (i = 0 ; i < LINES * COLUMNS ; i++) {
+    vga[i] = ' ';
+  }
+}
 /* ============================= */
 static void scroll ()
 {
-	uint64_t temp1 = SCR_START;
-	uint64_t temp2 = SCR_START + COLUMNS * 2;
-	while (temp2 <= SCR_END)
-		*(char*)temp1++ = *(char*)temp2++;
-	while (temp1 < SCR_END)
-		*(long*)temp1++ = 0;
-	y = LINES - 1;
-	x = 0;
-	pos = SCR_END - COLUMNS * 2;
+  int i;
+  uint16_t *vga = (uint16_t*)SCR_START;
+
+  if (y >= LINES) {
+    for (i = 0 ; i < (LINES - 1) * COLUMNS ; i++) {
+      vga[i] = vga[i + COLUMNS];
+    }
+
+    for (i = (LINES - 1) * COLUMNS ; i < LINES * COLUMNS ; i++) {
+      vga[i] = ' ';
+    }
+
+    y = LINES - 1;
+    x = 0;
+  }
 }
 /* ============================= */
 static void put_newline ()
 {
-	pos = SCR_START + (++y * COLUMNS * 2);
-	x = 0;
-	if (pos >= SCR_END)
-		scroll ();
+  x = 0;
+  y += 1;
+
+  scroll();
 }
 /* ============================= */
 static void put_tab ()
 {
-	pos += TAB_SIZE << 1;
-	if (pos >= SCR_END)
-		scroll ();
-	*(char*)pos = '\t';
-	x += TAB_SIZE;
+  x += TAB_SIZE;
+
+  scroll();
 }
 /* ============================= */
 static void put_normal (int ch, int color)
 {
-	if (pos + 2 >= SCR_END)
-		scroll (); 
+  uint16_t *vga = (uint16_t*)SCR_START;
+  int i;
 
-  *(uint16_t*)pos = ((uint8_t)ch | (((uint8_t)color) << 8));
+  if (x >= COLUMNS) {
+    x = 0;
+    y += 1;
+  }
 
-  pos += 2;
-	x++;
+  scroll();
+
+  i = (y * COLUMNS) + x;
+
+  vga[i] = ch | color << 8;
+  x += 1;
 }
 /* ============================= */
-void kputc (int ch, int color)
+void putc (int ch, int color)
 {
-	switch (ch){
-		case '\n':
-			put_newline ();
-			break;
-		case '\t':
-			put_tab ();
-			break;
-		default:
-			put_normal (ch, color);
-			break;
-	}
+  switch (ch){
+    case '\n':
+      put_newline ();
+      break;
+    case '\t':
+      put_tab ();
+      break;
+    default:
+      put_normal (ch, color);
+      break;
+  }
+  con_cursor ();
 }
 /* =============================== */
-void kputs (const char *str, int color)
+void puts (const char *str, int color)
 {
-	char ch;
-	while ((ch = *str++) != '\0')
-		kputc (ch, color);
-}
-/* ============================= */
-void change_cursor_pos (int new_x, int new_y)
-{
-  y = new_y;
-  x = new_x;
-	pos = SCR_START + (x << 1) + y * (COLUMNS << 1);
-}
-/* ============================= */
-void get_cursor_pos (virt_addr_t xptr, virt_addr_t yptr)
-{
-	*(uint32_t*)xptr = x;
-	*(uint32_t*)yptr = y;
+  char ch;
+  while ((ch = *str++) != '\0')
+    putc (ch, color);
 }
 /* ============================= */
 void con_init ()
 {
-	y = 0;
-	x = 0;
-	pos = SCR_START;
+  con_clear ();
+  y = 0;
+  x = 0;
+  con_cursor ();
 }

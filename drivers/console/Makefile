@@ -18,7 +18,7 @@ CFLAGS  += -I ./include/ -I $(ROOT)/include/ -I $(ROOT)/lib/include
 ASFLAGS += -I ./include/ -I $(ROOT)/include/
 LDFLAGS += -n -T $(LINK_LD)
 
-SRC = start_off.S main.c console.c printk.c asmfunc.S cpu.c
+SRC = start_off.S main.c console.c asmfunc.S cpu.c
 
 
 OBJ = $(subst .S,.o,$(filter %.S,$(SRC))) $(subst .c,.o,$(filter %.c,$(SRC)))

@@ -1,6 +1,5 @@
 #include <cdef.h>
 #include <types.h>
-#include <printk.h>
 #include <console.h>
 #include <const.h>
 #include <asmfunc.h>
@@ -35,7 +34,7 @@ main (int argc, char **argv)
     memcpy (&cwrite, req->data, sizeof (struct console_write));
 
     for (i = 0 ; i < cwrite.count ; i++) {
-      kputc(((char*)cwrite.channel)[i], 0xF);
+      putc(((char*)cwrite.channel)[i], 0xF);
     }
 
     writereply.from = cwrite.from;
@@ -46,7 +45,7 @@ main (int argc, char **argv)
 //
 //    memcpy(&tmp, cpuinfo->msg_input[from].data, sizeof(struct putc_ipc));
 //
-//    kputc(tmp.c, 0xF);
+//    putc(tmp.c, 0xF);
   }
 
   for (;;);

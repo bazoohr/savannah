@@ -80,6 +80,7 @@ vm_main (void)
     cprintk ("I am the login child pid = %d fd2 = %d fd1 = %d test = %x cpuid = %d\n", 0xD, pid, fd2, fd, test, cpuinfo->cpuid);
     exec("login", NULL);
   }
+#if 0
   int status;
   if (waitpid (pid, &status, 0) < 0) {
     cprintk ("Init::waitpid for process %d failed!\n", 0x4, status);
@@ -98,6 +99,7 @@ vm_main (void)
     cprintk ("Init::waitpid for process %d failed!\n", 0x4, status);
   }
   cprintk ("Process %d exited with value %d!\n", 0x4, pid, status);
+#endif
 
   while (1) {__asm__ __volatile__ ("cli;pause;\n\t");}
 }
