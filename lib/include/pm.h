@@ -40,6 +40,7 @@ struct channel_ipc {
 
 int fork (void);
 void exec (char *path, char **argv);
+void exit (int status);
 int waitpid (int pid, int *status_buf, int options);
 
 #endif /* __PM_H__ */
