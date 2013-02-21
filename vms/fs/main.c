@@ -42,6 +42,7 @@ void
 local_open_char(const char *pathname, int from, struct open_reply *openreply)
 {
   int fd;
+  uint32_t dst;
   struct channel_ipc msg;
   struct message *pm_reply;
   struct header *fds;
@@ -53,8 +54,10 @@ local_open_char(const char *pathname, int from, struct open_reply *openreply)
 
   if (strcmp (pathname, "stdin") == 0) {
     fd = 0;
+    dst = KBD;
   } else if (strcmp (pathname, "stdout") == 0) {
     fd = 1;
+    dst = CONSOLE;
   } else {
     fd = -1;  /* JUST to SHUT UP GCC */
     cprintk ("FS: Unknown char file!", 0x4);
@@ -70,7 +73,7 @@ local_open_char(const char *pathname, int from, struct open_reply *openreply)
   }
 
   msg.end1 = from;
-  msg.end2 = fd == 0 ? KBD : CONSOLE;
+  msg.end2 = dst;
 
   msg_send (PM, CHANNEL_IPC, &msg, sizeof (struct channel_ipc));
 
@@ -81,6 +84,7 @@ local_open_char(const char *pathname, int from, struct open_reply *openreply)
   memcpy (&fds[fd].offset, pm_reply->data, sizeof (phys_addr_t));
   fds[fd].type = TYPE_CHAR;
   fds[fd].length = 0;
+  fds[fd].dst = dst;
 
   openreply->fd = fd;
   openreply->channel = (void *)fds[fd].offset;
@@ -125,6 +129,7 @@ local_open(const char *pathname, int flags, int from, struct open_reply *openrep
     if (strcmp(tmp->name, pathname) == 0)
       break;
   }
+
   if (i >= num_files) {
     openreply->fd = -1;
     return;
@@ -134,6 +139,7 @@ local_open(const char *pathname, int flags, int from, struct open_reply *openrep
   // NOTE: We are not copying name for performance reasons.
   fds[fd].type = tmp->type;
   fds[fd].length = tmp->length;
+  fds[fd].dst = 0;
   fds[fd].offset = tmp->offset;
 
   openreply->fd = fd;

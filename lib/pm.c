@@ -12,8 +12,6 @@ fork_internal (virt_addr_t register_array_vaddr)
 {
   int result;
   struct fork_ipc fork_args;
-  int open_stdin;
-  int open_stdout;
 
   fork_args.cpuinfo_vaddr = (virt_addr_t)&cpuinfo;
   fork_args.register_array_paddr = virt2phys (cpuinfo, register_array_vaddr);
@@ -22,20 +20,6 @@ fork_internal (virt_addr_t register_array_vaddr)
   msg_receive (PM);
 
   memcpy (&result, &cpuinfo->msg_input[PM].data, sizeof (int));
-
-  if (cpuinfo->cpuid != INIT) {
-    open_stdin  = open ("stdin", O_RDONLY);
-    open_stdout = open ("stdout", O_RDWR);
-
-    if (open_stdin == -1 && !is_driver (cpuinfo->cpuid)) {
-      printk ("fork_internal: Failed to open stdin!");
-      __asm__ __volatile__ ("cli;hlt\n\t");
-    }
-    if (open_stdout == -1 && !is_driver (cpuinfo->cpuid)) {
-      printk ("fork_internal: Failed to open stdout!");
-      __asm__ __volatile__ ("cli;hlt\n\t");
-    }
-  }
 
   return result;
 }

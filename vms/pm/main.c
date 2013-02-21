@@ -148,6 +148,47 @@ ept_pmap (struct cpu_info * const child_cpu_info)
         EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
   }
 }
+/* ================================================= */
+static phys_addr_t
+local_channel (const struct channel_ipc * const req)
+{
+  struct cpu_info *cpu1;
+  struct cpu_info *cpu2;
+  phys_addr_t channel;
+
+  cpu1 = get_cpu_info (req->end1);
+  cpu2 = get_cpu_info (req->end2);
+
+  if (cpu1->vmm_info.vmm_has_vm == false) {
+    panic ("PM: creating channel failed! VM1 does not exist! VM1 = %d & VM2 = %d!\n", cpu1->cpuid, cpu2->cpuid);
+  }
+
+  if (cpu2->vmm_info.vmm_has_vm == false) {
+    panic ("PM: creating channel failed! VM2 does not exist! VM1 = %d & VM2 = %d!\n", cpu1->cpuid, cpu2->cpuid);
+  }
+
+  channel = (phys_addr_t)alloc_mem_pages (pages (CHANNEL_SIZE, USER_VMS_PAGE_SIZE));
+  if (channel == 0) {
+    panic ("PM: Failed to alloced memory!");
+  }
+
+  //cprintk ("channel created at address = %x\n", 0xE, channel);
+
+  EPT_map_memory (&cpu1->vm_info.vm_ept,
+      channel,  channel + CHANNEL_SIZE,
+      channel,
+      USER_VMS_PAGE_SIZE,
+      EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
+
+  EPT_map_memory (&cpu2->vm_info.vm_ept,
+      channel,  channel + CHANNEL_SIZE,
+      channel,
+      USER_VMS_PAGE_SIZE,
+      EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
+
+  return channel;
+}
+/* ================================================= */
 static pid_t
 local_fork (const struct cpu_info * const info, const struct fork_ipc * const fork_args)
 {
@@ -156,6 +197,10 @@ local_fork (const struct cpu_info * const info, const struct fork_ipc * const fo
   struct cpu_info *parent_cpu_info;
   struct cpu_info **child_cpu_info_ptr;
   asize_t offset;
+
+  struct channel_ipc channelipc;
+  int i;
+  phys_addr_t channel;
 
   if (info == NULL) {
     return -1;
@@ -217,6 +262,19 @@ local_fork (const struct cpu_info * const info, const struct fork_ipc * const fo
    * so we only need to map ept
    */
   ept_pmap (child_cpu_info);
+
+  /* Copy all the fds from the parent to the child */
+  memcpy(child_cpu_info->vm_info.fds, parent_cpu_info->vm_info.fds, MAX_FD * sizeof(struct header));
+
+  /* For all the CHAR fds create a new channel for the child */
+  for (i = 0 ; i < MAX_FD ; i++) {
+    if (child_cpu_info->vm_info.fds[i].type == TYPE_CHAR) {
+      channelipc.end1 = child_cpu_info->cpuid;
+      channelipc.end2 = child_cpu_info->vm_info.fds[i].dst;
+      channel = local_channel (&channelipc);
+      child_cpu_info->vm_info.fds[i].offset = channel;
+    }
+  }
 
   memcpy ((void *)&child_cpu_info->vm_info.vm_regs, (void *)fork_args->register_array_paddr, sizeof (struct regs));
 
@@ -471,45 +529,6 @@ local_exec (struct cpu_info * const info, const struct exec_ipc * const exec_arg
   info->vm_info.vm_regs.rdi = argc;
   info->vm_info.vm_regs.rsi = argv_virt_ptr;
   return 0;
-}
-/* ================================================= */
-static phys_addr_t
-local_channel (const struct channel_ipc * const req)
-{
-  struct cpu_info *cpu1;
-  struct cpu_info *cpu2;
-  phys_addr_t channel;
-
-  cpu1 = get_cpu_info (req->end1);
-  cpu2 = get_cpu_info (req->end2);
-
-  if (cpu1->vmm_info.vmm_has_vm == false) {
-    panic ("PM: creating channel failed! VM1 does not exist! VM1 = %d & VM2 = %d!\n", cpu1->cpuid, cpu2->cpuid);
-  }
-
-  if (cpu2->vmm_info.vmm_has_vm == false) {
-    panic ("PM: creating channel failed! VM2 does not exist! VM1 = %d & VM2 = %d!\n", cpu1->cpuid, cpu2->cpuid);
-  }
-
-  channel = (phys_addr_t)alloc_mem_pages (pages (CHANNEL_SIZE, USER_VMS_PAGE_SIZE));
-  if (channel == 0) {
-    panic ("PM: Failed to alloced memory!");
-  }
-
-  cprintk ("channel created at address = %x\n", 0xE, channel);
-  EPT_map_memory (&cpu1->vm_info.vm_ept,
-      channel,  channel + CHANNEL_SIZE,
-      channel,
-      USER_VMS_PAGE_SIZE,
-      EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
-
-  EPT_map_memory (&cpu2->vm_info.vm_ept,
-      channel,  channel + CHANNEL_SIZE,
-      channel,
-      USER_VMS_PAGE_SIZE,
-      EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
-
-  return channel;
 }
 /* ================================================= */
 static void

@@ -5,7 +5,11 @@
 
 #include <lib_mem.h>
 
-static struct open_reply fds[MAX_FD];
+void open_std()
+{
+  open("stdin", O_RDONLY);
+  open("stdout", O_RDWR);
+}
 
 int open(const char *pathname, int flags)
 {
@@ -32,9 +36,6 @@ int open(const char *pathname, int flags)
 
   if (fd < 0)
     return -1;
-
-  fds[fd].fd = fd;
-  fds[fd].channel = reply_data->channel;
 
   return fd;
 }
@@ -68,12 +69,13 @@ int write(int fd, void *buf, int count)
   struct write_ipc tmp;
   struct message *fs_reply;
   struct write_reply *reply_data;
+  struct header *fds = cpuinfo->vm_info.fds;
 
   tmp.fd = fd;
-  tmp.buf = fds[fd].channel;
+  tmp.buf = (void *)fds[fd].offset;
   tmp.count = count;
 
-  memcpy(fds[fd].channel, buf, count);
+  memcpy((void *)fds[fd].offset, buf, count);
 
   msg_send(FS, WRITE_IPC, &tmp, sizeof(struct write_ipc));
   msg_receive(FS);

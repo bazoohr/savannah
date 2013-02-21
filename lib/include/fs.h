@@ -76,5 +76,6 @@ int open(const char *pathname, int flags);
 int read(int fd, void *buf, int count);
 int write(int fd, void *buf, int count);
 int close(int fd);
+void open_std();
 
 #endif /* __FS_H__ */

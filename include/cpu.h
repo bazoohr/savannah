@@ -13,6 +13,7 @@ struct header {
 	char name[32];    /* File name */
 	uint32_t type;    /* Type of the file (normal file, char, block ...) */
 	uint32_t length;  /* File length */
+	uint64_t dst;     /* Cpuid of the destination (for CHAR or BLOCK fds) */
 	uint64_t offset;  /* Offset where the file is located starting from
 			   * the beginning of the file */
 };

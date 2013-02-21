@@ -1,7 +1,6 @@
 #include <fs.h>
 #include <pm.h>
 #include <printf.h>
-#include <printk.h>
 
 int main(int argc, char **argv)
 {
@@ -9,8 +8,8 @@ int main(int argc, char **argv)
   char str[16];
   int r;
 
-  con_init ();
-  open("stdin", O_RDWR);
+  open_std();
+
   printf("READY!\n");
   printf ("Going to fork in login!!\n");
   child = fork ();

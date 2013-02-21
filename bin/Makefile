@@ -17,7 +17,7 @@ LDFLAGS += -n -T $(LINK_LD)
 MYDIR = bin/
 LIBDIR = $(ROOT)/lib/
 
-SRC = login.c start_off.S console.c printk.c
+SRC = login.c start_off.S
 
 OBJ = $(subst .S,.o,$(filter %.S,$(SRC))) $(subst .c,.o,$(filter %.c,$(SRC)))
 

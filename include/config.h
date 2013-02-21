@@ -28,7 +28,7 @@
 
 #define CHANNEL_SIZE USER_VMS_PAGE_SIZE
 
-#define MAX_FD (64)
+#define MAX_FD (32)
 
 #define MAX_ARGV 16
 #define MAX_ARGV_LEN 256
