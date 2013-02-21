@@ -1,7 +1,7 @@
 #include <cdef.h>
 #include <dev/pic.h>
 #include <types.h>
-#include <printk.h>
+#include <debug.h>
 #include <console.h>
 #include <const.h>
 #include <interrupt.h>
@@ -24,9 +24,6 @@ main (int argc, char **argv)
   struct message *req;
   struct keyboard_read kbd_rd;
   struct read_reply readreply;
-//  int i;
-
-  con_init ();
 
   create_new_gdt (gdt, NGDT * sizeof (struct system_descriptor));
   interrupt_init ();

@@ -359,6 +359,8 @@ load_user_vms (phys_addr_t *vms_array)
     curr_cpu_info->vm_info.vm_stack_paddr = (phys_addr_t)malloc_align (_2MB_, USER_VMS_PAGE_SIZE);
     curr_cpu_info->vm_info.vm_regs.rsp = curr_cpu_info->vm_info.vm_stack_vaddr + curr_cpu_info->vm_info.vm_stack_size;
 
+    curr_cpu_info->vm_info.vm_regs.rflags = 0x2;  /* No Flags set!!! */
+
     vm_size = (curr_cpu_info->vm_info.vm_stack_paddr + curr_cpu_info->vm_info.vm_stack_size) - curr_cpu_info->vm_info.vm_start_paddr;
 
     curr_cpu_info->vm_info.vm_end_vaddr = curr_cpu_info->vm_info.vm_start_vaddr + vm_size;
@@ -518,6 +520,8 @@ load_server_vms (phys_addr_t *vms_array)
     curr_cpu_info->vm_info.vm_stack_paddr = curr_cpu_info->vm_info.vm_stack_vaddr;
     curr_cpu_info->vm_info.vm_stack_size  = VM_STACK_SIZE;
     curr_cpu_info->vm_info.vm_regs.rsp = curr_cpu_info->vm_info.vm_stack_vaddr + curr_cpu_info->vm_info.vm_stack_size;
+
+    curr_cpu_info->vm_info.vm_regs.rflags = 0x2;  /* No Flags set!!! */
 
     vm_size = curr_cpu_info->vm_info.vm_stack_vaddr - curr_cpu_info->vm_info.vm_start_vaddr;
 

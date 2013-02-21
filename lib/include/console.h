@@ -12,8 +12,8 @@
 
 #include <types.h>
 
-void kputc (int ch, int color);
-void kputs (const char *str, int color);
+void con_putc (int ch, int color);
+void con_puts (const char *str, int color);
 void con_init ();
 void change_cursor_pos (int new_x, int new_y);
 void get_cursor_pos (phys_addr_t xptr, phys_addr_t yptr);

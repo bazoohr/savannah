@@ -1,10 +1,10 @@
 #include <asmfunc.h>
 #include <panic.h>
-#include <printk.h>
 #include <cdef.h>
 #include <dev/ioapic.h>
 #include <dev/lapic.h>
 #include <isr.h>
+#include <debug.h>
 
 #define NOP 0
 #define KBD_DATA_PORT  0x60
@@ -122,7 +122,7 @@ static void __inline
 kbd_add_buf (int data)
 {
   buffer[bufpos++] = data;
-  cprintk ("Keyboard: %c\n", 0xE, data);
+  DEBUG ("Keyboard: %c\n", 0xE, data);
 }
 
 void

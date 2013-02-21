@@ -3,7 +3,6 @@
 #include <asmfunc.h>
 
 static struct gate_descriptor idt[NIDT] __aligned (16);
-static struct descriptor_register idtr;
 
 
 static void
@@ -53,6 +52,7 @@ static void
 idt_init (void)
 {
   int vec_no;
+  struct descriptor_register idtr;
 
 	for (vec_no = 0; vec_no < NIDT; vec_no++)
 		setgate (vec_no, (phys_addr_t)&reserved, IDT_TRAP_GATE, KNL_PVL, IST);

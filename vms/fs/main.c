@@ -1,7 +1,5 @@
 #include <cdef.h>
 #include <types.h>
-#include <printk.h>
-#include <console.h>
 #include <const.h>
 #include <asmfunc.h>
 #include <cpu.h>
@@ -12,6 +10,7 @@
 #include <config.h>
 #include <misc.h>
 #include <pm.h>
+#include <debug.h>
 
 char *filesystem;
 
@@ -57,7 +56,7 @@ local_open_char(const char *pathname, int from, struct open_reply *openreply)
     fd = 1;
   } else {
     fd = -1;  /* JUST to SHUT UP GCC */
-    cprintk ("FS: Unknown char file!", 0x4);
+    DEBUG ("FS: Unknown char file!", 0x4);
     halt ();
   }
 
@@ -149,11 +148,11 @@ local_read_char (int fd, int count, int from)
   struct header *fds;
 
   if (fd > MAX_FD) {
-    cprintk ("local_read_char: TOO big fd value %d!", 0x4, fd);
+    DEBUG ("local_read_char: TOO big fd value %d!", 0x4, fd);
     halt ();
   }
   if (from > MAX_CPUS || from < 0) {
-    cprintk ("local_read_char: \"from\" = %d not valid!", 0x4, from);
+    DEBUG  ("local_read_char: \"from\" = %d not valid!", 0x4, from);
     halt ();
   }
 
@@ -164,7 +163,7 @@ local_read_char (int fd, int count, int from)
   channel_addr = (void *)fds[fd].offset;
 
   if (channel_addr == 0) {
-    cprintk ("local_read_char: No channle found!", 0x4);
+    DEBUG ("local_read_char: No channle found!", 0x4);
     halt ();
   }
 
@@ -226,7 +225,7 @@ local_read(int fd, void *buf, int count, int from)
     return local_read_file (fd, buf, count, from);
   }
 
-  cprintk("FS: local_read: File type (%d) is unknown!\n", 0x4, fds[fd].type);
+  DEBUG ("FS: local_read: File type (%d) is unknown!\n", 0x4, fds[fd].type);
   halt();
 
   return -1;
@@ -290,14 +289,12 @@ local_load(char *path)
 void
 vm_main (void)
 {
-  con_init ();
-
   filesystem = cpuinfo->vm_args;
 
 #if 0
   for (i = 0 ; i < cpuinfo->cpuid; i++) printk("\n");
 
-  cprintk ("FS: My info is in addr = %d\n", 0xD, cpuinfo->cpuid);
+  DEBUG  ("FS: My info is in addr = %d\n", 0xD, cpuinfo->cpuid);
 #endif
 
   while (1) {
@@ -360,7 +357,7 @@ vm_main (void)
       msg_reply(writereply->from, WRITE_IPC, writereply, sizeof(struct write_reply));
       break;
     default:
-      cprintk("FS: Warning, unknown request %d\n", 0xD, m->number);
+      DEBUG ("FS: Warning, unknown request %d\n", 0xD, m->number);
     }
   }
 

@@ -17,7 +17,7 @@ LDFLAGS += -n -T $(LINK_LD)
 MYDIR = vms/init/
 LIBDIR = $(ROOT)/lib/
 
-SRC = start_off.S main.c console.c printk.c asmfunc.S cpu.c
+SRC = start_off.S main.c asmfunc.S
 
 OBJ = $(subst .S,.o,$(filter %.S,$(SRC))) $(subst .c,.o,$(filter %.c,$(SRC)))
 

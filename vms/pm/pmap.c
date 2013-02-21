@@ -3,7 +3,7 @@
 #include <string.h>
 #include <memory.h>
 #include <panic.h>
-#include <printk.h>
+#include <debug.h>
 #include <macro.h>
 #include <pmap.h>
 /* ========================================== */
@@ -81,7 +81,7 @@ map_memory (phys_addr_t *pml4_paddr,
     pml4 = (page_table_entry_t *)*pml4_paddr;
 
     if ((pml4[0] & (PAGE_PRESENT | PAGE_RW)) == 0) {
-      cprintk ("Warning:\nSecond Boot Stage: Invalid PML4 used to map VMM Pages!", 0x4);
+      DEBUG ("Warning:\nSecond Boot Stage: Invalid PML4 used to map VMM Pages!", 0x4);
     }
     if (pml4[0] == 0) {
       panic ("Second Boot Stage: Trying to update null page tables!");
@@ -233,7 +233,7 @@ EPT_map_memory (phys_addr_t *pml4_paddr,
     pml4 = (page_table_entry_t *)*pml4_paddr;
 
     if ((pml4[0] & (PAGE_PRESENT | PAGE_RW)) == 0) {
-      cprintk ("Warning:\nSecond Boot Stage: Invalid PML4 used to map VMM Pages!", 0x4);
+      DEBUG ("Warning:\nSecond Boot Stage: Invalid PML4 used to map VMM Pages!", 0x4);
     }
     if (pml4[0] == 0) {
       panic ("Second Boot Stage: Trying to update null page tables!");

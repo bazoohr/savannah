@@ -3,7 +3,7 @@
 #include <panic.h>
 #include <types.h>
 #include <asmfunc.h>
-#include <printk.h>
+#include <debug.h>
 #include <cpu.h>
 #include <string.h>
 #include <cpuinfo.h>
@@ -44,7 +44,7 @@ static void msr_lock()
 		nl |= 2;
 		wrmsr(MSR_IA32_FEATURE_CONTROL, nl);
 	} else {
-		cprintk("MSR Already locked\n", 0xB);
+		DEBUG("MSR Already locked\n", 0xB);
 	}
 }
 
@@ -129,7 +129,7 @@ static void vmx_vmwrite(uint64_t field, uint64_t value)
 			: "=q"(error) : "a"(value), "d"(field) : "cc");
 
 	if (error) {
-		cprintk("Error executing VMXWRITE(%d, %d)", 0x4, field, value);
+		DEBUG("Error executing VMXWRITE(%d, %d)", 0x4, field, value);
 		panic("");
 	}
 }
@@ -146,7 +146,6 @@ static void setup_vmcs(void)
 
 	uint16_t u16 = 0;
 	uint64_t u64 = 0;
-	uint64_t flags = 0;
 
 	// 16-Bit Host-State Fields
 	__asm__ __volatile__("mov %%es, %0" : "=m" (u16));	vmx_vmwrite(HOST_ES_SELECTOR, u16);
@@ -285,8 +284,7 @@ static void setup_vmcs(void)
 
 	vmx_vmwrite(EPT_POINTER, cpuinfo->vm_info.vm_ept | 0x6 | (3 << 3));
 
-	flags = rflags();
-	vmx_vmwrite(GUEST_RFLAGS, flags);
+	vmx_vmwrite(GUEST_RFLAGS, cpuinfo->vm_info.vm_regs.rflags);
 
 	u64 = rdmsr(MSR_IA32_SYSENTER_ESP);
 	vmx_vmwrite(GUEST_SYSENTER_ESP, u64);
@@ -368,7 +366,7 @@ void host_entry()
 
 		int r = *(int*)msg_data;
 		if (r == -1) {
-			cprintk("Exec FAILED!: %d\n", 0x4, *(int *)msg_data);
+			DEBUG("Exec FAILED!: %d\n", 0x4, *(int *)msg_data);
 			while(1);
 		}
 
@@ -380,8 +378,8 @@ void host_entry()
 
 		vmlaunch ();
 	} else {
-		cprintk("HOOOOOOOOOSSSSSSSSSTTTTTTTTT!!!!!!!!!!!!!\n", 0xA);
-		cprintk ("Exited because of %d\n", 0xF, reason);
+		DEBUG ("HOOOOOOOOOSSSSSSSSSTTTTTTTTT!!!!!!!!!!!!!\n", 0xA);
+		DEBUG ("Exited because of %d\n", 0xF, reason);
 		//vmresume();
 		while(1);
 	}

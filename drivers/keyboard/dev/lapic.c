@@ -1,7 +1,6 @@
 #include <dev/lapic.h>
 #include <asmfunc.h>
 #include <isr.h>
-#include <printk.h>
 #include <dev/apicreg.h>
 #include <timer.h>
 #include <panic.h>

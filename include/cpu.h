@@ -249,6 +249,26 @@ uint64_t get_ncpus (void);
 #endif
 
 #define CPU_INFO_PTR_ADDR  (BOOT_APS_BASE_ADDR + BOOT_APS_LENGTH)
+/*
+* EFLAGS bits
+*/
+#define RFLAGS_CF 0x00000001 /* Carry Flag */
+#define RFLAGS_PF 0x00000004 /* Parity Flag */
+#define RFLAGS_AF 0x00000010 /* Auxillary carry Flag */
+#define RFLAGS_ZF 0x00000040 /* Zero Flag */
+#define RFLAGS_SF 0x00000080 /* Sign Flag */
+#define RFLAGS_TF 0x00000100 /* Trap Flag */
+#define RFLAGS_IF 0x00000200 /* Interrupt Flag */
+#define RFLAGS_DF 0x00000400 /* Direction Flag */
+#define RFLAGS_OF 0x00000800 /* Overflow Flag */
+#define RFLAGS_IOPL 0x00003000 /* IOPL mask */
+#define RFLAGS_NT 0x00004000 /* Nested Task */
+#define RFLAGS_RF 0x00010000 /* Resume Flag */
+#define RFLAGS_VM 0x00020000 /* Virtual Mode */
+#define RFLAGS_AC 0x00040000 /* Alignment Check */
+#define RFLAGS_VIF  0x00080000 /* Virtual Interrupt Flag */
+#define RFLAGS_VIP  0x00100000 /* Virtual Interrupt Pending */
+#define RFLAGS_ID 0x00200000 /* CPUID detection flag */
 /* ============================================= */
 // Control Register flags
 #define CR0_PE		0x00000001	// Protection Enable

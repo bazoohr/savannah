@@ -10,14 +10,14 @@ include $(ROOT)/rules.mak
 
 LINK_LD = bin.ld
 
-CFLAGS  += -I include/ -I $(ROOT)/include/ -I $(ROOT)/lib/include -I $(ROOT)/vms/pm/include/
+CFLAGS  += -I include/ -I $(ROOT)/include/ -I $(ROOT)/lib/include
 ASFLAGS += -I include/ -I $(ROOT)/include/ -I $(ROOT)/lib/include
 LDFLAGS += -n -T $(LINK_LD)
 
 MYDIR = bin/
 LIBDIR = $(ROOT)/lib/
 
-SRC = login.c start_off.S console.c printk.c
+SRC = login.c start_off.S
 
 OBJ = $(subst .S,.o,$(filter %.S,$(SRC))) $(subst .c,.o,$(filter %.c,$(SRC)))
 

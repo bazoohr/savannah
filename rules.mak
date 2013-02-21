@@ -7,6 +7,7 @@
 OPTLVL = -O3
 AS = $(CC)
 LD = ld
+DEBUG = yes
 
 CFLAGS  := -m64 -fno-stack-protector -fno-builtin -nostdinc -mno-red-zone -Wall -msse2 -Werror $(OPTLVL)
 ASFLAGS := -m64 -Wall -D__ASSEMBLY__
@@ -21,6 +22,10 @@ LDFLAGS :=
 # which compiler are we using.
 ifeq ($(CC),clang)
 ASFLAGS += -no-integrated-as
+endif
+# ===================================
+ifeq ($(DEBUG),yes)
+CFLAGS += -D__DEBUG__
 endif
 # ===================================
 ifeq ($(CC),gcc)
