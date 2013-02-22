@@ -2,29 +2,38 @@
 #include <pm.h>
 #include <printf.h>
 
+#define MAX_LEN 16
+
 int main(int argc, char **argv)
 {
-  int child;
-  char str[16];
-  int r;
+  int i, ch, pid, r;
+  char cmd[MAX_LEN];
 
   open_std();
 
-  printf("READY!\n");
-  printf ("Going to fork in login!!\n");
-  child = fork ();
-  if (child == 0) {
-    printf ("I am child!!!\n");
-    exit (1);
-  } else {
-    printf ("I am parent!!\n");
+  printf("$ ");
+
+  i = 0;
+  while (ch != '\n' && i < MAX_LEN) {
+    read (0, &ch, 1);
+    cmd[i] = ch;
+    i++;
   }
-  waitpid (child, &r, 0);
-  printf ("Child exited with value %d\n", r);
-  r = read (0, str, 5);
-  str[r] = '\0';
-  printf("r = %d Result: %s\n", r, str);
-  write(1, str, 5);
+  cmd[i] = '\0';
+
+  printf("Command: %s\n", cmd);
+
+  pid = fork();
+  if (pid < 0) {
+    printf("Fork error!\n");
+  } else if (pid == 0) { /* Child */
+    exec("test", NULL);
+    printf("File not found\n");
+    exit(-1);
+  } else { /* Parent */
+    waitpid (pid, &r, 0);
+    printf("Parent\n");
+  }
 
   return -1;
 }

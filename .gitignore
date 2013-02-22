@@ -32,6 +32,7 @@ tools/gen_asm_cpu_const_h
 tools/gen_asm_frame_const_h
 
 bin/login
+bin/test
 
 tools/create_initrd
 

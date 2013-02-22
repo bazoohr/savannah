@@ -495,6 +495,8 @@ local_exec (struct cpu_info * const info, const struct exec_ipc * const exec_arg
   argc = i;  /* Number of arguments */
   /* Parse ELF executable, and load the processes */
   load_elf(info, elf);
+  /* Cleanup the FDs */
+  memset(info->vm_info.fds, 0, sizeof(struct header) * MAX_FD);
   /* Map memory for the new processes */
   ept_pmap (info);
   /* Pass arguments. We use stack to store arguments */
