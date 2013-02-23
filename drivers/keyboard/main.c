@@ -23,6 +23,7 @@ main (int argc, char **argv)
   struct message *req;
   struct keyboard_read kbd_rd;
   struct read_reply readreply;
+  int from;
 
   create_new_gdt (gdt, NGDT * sizeof (struct system_descriptor));
   interrupt_init ();
@@ -39,17 +40,17 @@ main (int argc, char **argv)
   cprintk ("This is the keyboard driver!! %d\n", 0xE, argc);
 #endif
 
-  __asm__ __volatile__ ("cli\n\r");
+  cli ();
 
   while (1) {
-    msg_receive (FS);
+    from = msg_receive (ANY);
 
-    req = &cpuinfo->msg_input[FS];
+    req = &cpuinfo->msg_input[from];
     memcpy (&kbd_rd, req->data, sizeof (struct keyboard_read));
 
     wait_for_completed_request(kbd_rd.channel, kbd_rd.count);
 
-    __asm__ __volatile__ ("cli\n\r");
+    cli ();
 
     readreply.from = kbd_rd.from;
     readreply.type = TYPE_CHAR;
@@ -57,6 +58,7 @@ main (int argc, char **argv)
     readreply.channel = kbd_rd.channel;
 
     msg_send (FS, READ_ACK, &readreply, sizeof(struct read_reply));
+    msg_receive (FS);
   }
 
   for (;;);

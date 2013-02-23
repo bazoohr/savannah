@@ -111,7 +111,7 @@ wait_for_completed_request(char *channel, int count)
 {
   buffer = channel;
   while (1) {
-    asm volatile ("sti;hlt\n\t");
+    __asm__ __volatile__ ("sti;hlt\n\t");
     if (bufpos >= count) {
       bufpos = 0;
       break;

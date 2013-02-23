@@ -171,7 +171,7 @@ local_channel (const struct channel_ipc * const req)
     panic ("PM: Failed to alloced memory!");
   }
 
-  //cprintk ("channel created at address = %x\n", 0xE, channel);
+//  DEBUG ("channel created %d->%d at address = %x\n", 0xE, cpu1->cpuid, cpu2->cpuid, channel);
 
   EPT_map_memory (&cpu1->vm_info.vm_ept,
       channel,  channel + CHANNEL_SIZE,

@@ -4,7 +4,7 @@
 # Hamid R. Bazoobandi
 # Sat. 14 July 2012 Amsterdam
 # ==================================
-OPTLVL = -O2
+OPTLVL = -O3
 AS = $(CC)
 LD = ld
 DEBUG = yes

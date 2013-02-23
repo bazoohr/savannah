@@ -354,20 +354,16 @@ vm_main (void)
     case WRITE_IPC:
       writeipc = (struct write_ipc*)m->data;
       local_write(writeipc->fd, writeipc->buf, writeipc->count, m->from);
+      break;
     case READ_ACK:
       reply = (struct read_reply *)m->data;
       msg_reply(FS, reply->from, READ_IPC, reply, sizeof(struct read_reply));
+      msg_reply(FS, KBD, READ_IPC, reply, sizeof(struct read_reply));
       break;
     case WRITE_ACK:
       writereply = (struct write_reply *)m->data;
-#if 0
-      if (writereply->from == 5) {
-        DEBUG ("5%d ", 0xF, writereply->count);
-      } else if (writereply->from == 6) {
-        DEBUG ("6%d ", 0xE, writereply->count);
-      }
-#endif
       msg_reply(FS, writereply->from, WRITE_IPC, writereply, sizeof(struct write_reply));
+      msg_reply(FS, CONSOLE, WRITE_IPC, writereply, sizeof(struct write_reply));
       break;
     default:
       DEBUG ("FS: Warning, unknown request %d\n", 0xD, m->number);
