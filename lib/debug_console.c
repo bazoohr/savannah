@@ -4,9 +4,8 @@
  * Hamid R. Bazoobandi 2009                 *
  * a VERY simple driver for console         *
  * ======================================== */
-#include <console.h>
+#include <debug_console.h>
 #include <types.h>
-#include <printk.h>
 /* ============================= */
 static uint64_t y;
 static uint64_t x;
@@ -45,7 +44,7 @@ static void put_tab ()
 static void put_normal (int ch, int color)
 {
 	if (pos + 2 >= SCR_END)
-		scroll (); 
+		scroll ();
 
   *(uint16_t*)pos = ((uint8_t)ch | (((uint8_t)color) << 8));
 
@@ -53,7 +52,7 @@ static void put_normal (int ch, int color)
 	x++;
 }
 /* ============================= */
-void kputc (int ch, int color)
+void debug_con_putc (int ch, int color)
 {
 	switch (ch){
 		case '\n':
@@ -68,11 +67,11 @@ void kputc (int ch, int color)
 	}
 }
 /* =============================== */
-void kputs (const char *str, int color)
+void debug_con_puts (const char *str, int color)
 {
 	char ch;
 	while ((ch = *str++) != '\0')
-		kputc (ch, color);
+		debug_con_putc (ch, color);
 }
 /* ============================= */
 void change_cursor_pos (int new_x, int new_y)
@@ -88,7 +87,7 @@ void get_cursor_pos (virt_addr_t xptr, virt_addr_t yptr)
 	*(uint32_t*)yptr = y;
 }
 /* ============================= */
-void con_init ()
+void debug_con_init ()
 {
 	y = 0;
 	x = 0;

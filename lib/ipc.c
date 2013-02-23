@@ -1,6 +1,8 @@
 #include <ipc.h>
 #include <string.h>
 #include <misc.h>
+#include <debug.h> /* Remove */
+#include <fs.h>   /* Remove */
 
 /*
  * msg_send() - Send a message to another process.
@@ -55,20 +57,26 @@ msg_send(const int to, const int number, const void *data, const int size)
 int
 msg_receive(int from)
 {
-  int i;
+  static int i = 0;
   int ncpus;
 
   ncpus = cpuinfo->ncpus;
+
   while (1) {
     if (from == ANY) {
-      for (i = 0 ; i < ncpus ; i++) {
+      while (i < ncpus) {
         if (cpuinfo->msg_input[i].number) {
           cpuinfo->msg_input[i].number = 0;
           from = i;
+          i++;
           break;
         }
+        i++;
       }
 
+      if (i >= ncpus) {
+        i = 0;
+      }
       if (from != ANY)
         break;
     } else {
@@ -110,7 +118,7 @@ msg_check()
 {
   int id = cpuinfo->cpuid;
   /* Volatile is because of preventing GCC of doing cazy (WRONG)optimizations in O3 */
-  volatile int i;
+  static volatile int i = 0;
   int from;
   bool *base_r;
   uint64_t ncpus;
@@ -123,11 +131,16 @@ msg_check()
   from = -1;
   base_r = (bool*)((phys_addr_t)cpuinfo->msg_ready - (_4KB_ * id));
   while (1) {
-    for (i = 0 ; i < ncpus ; i++) {
+    while (i < ncpus) {
       if (*(bool*)((phys_addr_t)base_r + (_4KB_ * i) + id)) {
         from = i;
+        i++;
         break;
       }
+      i++;
+    }
+    if (i >= ncpus) {
+      i = 0;
     }
     if (from != -1)
       break;
@@ -161,18 +174,22 @@ msg_check()
  * 'msg_receive' will return and the process can read the result.
  */
 void
-msg_reply(const int to, const int number, const void *data, const int size)
+msg_reply(const int from, const int to, const int number, const void *data, const int size)
 {
+  int id;
+  struct message *base;
+  struct message *inbox;
+
   if (! check_server()) {
     return;
   }
 
-  int id = cpuinfo->cpuid;
+  id = cpuinfo->cpuid;
 
-  struct message *base = (struct message *)(((phys_addr_t)cpuinfo->msg_input - (_4KB_ * id)));
-  struct message *inbox = (struct message *)(((phys_addr_t)base + (_4KB_ * to)));
+  base = (struct message *)(((phys_addr_t)cpuinfo->msg_input - (_4KB_ * id)));
+  inbox = (struct message *)(((phys_addr_t)base + (_4KB_ * to)));
 
-  inbox[id].from = id;
-  memcpy(inbox[id].data, data, size);
-  inbox[id].number = number;
+  inbox[from].from = from;
+  memcpy(inbox[from].data, data, size);
+  inbox[from].number = number;
 }

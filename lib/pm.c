@@ -2,7 +2,7 @@
 #include <ipc.h>
 #include <string.h>
 #include <lib_mem.h>
-#include <printk.h>
+#include <debug.h>
 #include <config.h>
 #include <fs.h>
 #include <misc.h>

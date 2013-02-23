@@ -1,7 +1,6 @@
 #include <cdef.h>
 #include <types.h>
-#include <printk.h>
-#include <console.h>
+#include <debug.h>
 #include <const.h>
 #include <interrupt.h>
 #include <asmfunc.h>
@@ -16,7 +15,6 @@ struct system_descriptor gdt[NGDT] __aligned (16);
 void
 vmm_main (void)
 {
-  con_init ();
   create_new_gdt (gdt, NGDT * sizeof (struct system_descriptor));
 
   interrupt_init ();
@@ -24,7 +22,7 @@ vmm_main (void)
   if (cpuinfo->vm_info.vm_start_vaddr == 0) {
 
     if (cpuinfo->vm_info.vm_start_paddr != 0) {
-      cprintk ("VMM[%d]: misconfigured VM information\n", 0x4, cpuinfo->cpuid);
+      DEBUG ("VMM[%d]: misconfigured VM information\n", 0x4, cpuinfo->cpuid);
       halt ();
     }
 
@@ -37,6 +35,6 @@ vmm_main (void)
   /* ================================== */
   vmx_init ();
   /* ================================== */
-  cprintk ("We should NEVER get here!\n", 0x4);
+  DEBUG ("We should NEVER get here!\n", 0x4);
   halt ();
 }

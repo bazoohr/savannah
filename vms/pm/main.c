@@ -1,7 +1,5 @@
 #include <cdef.h>
 #include <types.h>
-#include <printk.h>
-#include <console.h>
 #include <const.h>
 #include <asmfunc.h>
 #include <memory.h>
@@ -16,6 +14,7 @@
 #include <elf.h>
 #include <panic.h>
 #include <macro.h>
+#include <debug.h>
 /* ================================================= */
 #define ALWAYS_BUSY (NUMBER_SERVERS + NUMBER_USER_VMS)
 /* ================================================= */
@@ -172,8 +171,6 @@ local_channel (const struct channel_ipc * const req)
     panic ("PM: Failed to alloced memory!");
   }
 
-  //cprintk ("channel created at address = %x\n", 0xE, channel);
-
   EPT_map_memory (&cpu1->vm_info.vm_ept,
       channel,  channel + CHANNEL_SIZE,
       channel,
@@ -291,13 +288,13 @@ local_fork (const struct cpu_info * const info, const struct fork_ipc * const fo
   child_cpu_info->vm_info.vm_regs.rax = 0;
 
 #if 0
-  cprintk ("code p = %x v = %x\ndata p = %x v = %x\nrodata p = %x v = %x\nbss p = %x v = %x\nstack p = %x v = %x\n pgtb = %x ept = %x\n", 0xF, child_cpu_info->vm_info.vm_code_paddr, child_cpu_info->vm_info.vm_code_vaddr,
+  DEBUG ("code p = %x v = %x\ndata p = %x v = %x\nrodata p = %x v = %x\nbss p = %x v = %x\nstack p = %x v = %x\n pgtb = %x ept = %x\n", 0xF, child_cpu_info->vm_info.vm_code_paddr, child_cpu_info->vm_info.vm_code_vaddr,
       child_cpu_info->vm_info.vm_data_paddr, child_cpu_info->vm_info.vm_data_vaddr,
       child_cpu_info->vm_info.vm_rodata_paddr, child_cpu_info->vm_info.vm_rodata_vaddr,
       child_cpu_info->vm_info.vm_bss_paddr, child_cpu_info->vm_info.vm_bss_vaddr,
       child_cpu_info->vm_info.vm_stack_paddr, child_cpu_info->vm_info.vm_stack_vaddr,
       child_cpu_info->vm_info.vm_page_tables, child_cpu_info->vm_info.vm_ept);
-  cprintk ("========================\n", 0xF);
+  DEBUG ("========================\n", 0xF);
   __asm__ __volatile__ ("cli;hlt\n\t");
 #endif
   return child_cpu_info->cpuid;
@@ -351,7 +348,7 @@ load_elf (struct cpu_info * const curr_cpu_info, const phys_addr_t elf)
 
   ph_num = elf_hdr->e_phnum;    /* Number of program headers in ELF executable */
   if (ph_num != 4) {
-    cprintk ("ELF executable contains %d sections!\n", 0x4, ph_num);
+    DEBUG ("ELF executable contains %d sections!\n", 0x4, ph_num);
     panic ("Unexpected VM Header!\n");
   }
 
@@ -424,6 +421,7 @@ load_elf (struct cpu_info * const curr_cpu_info, const phys_addr_t elf)
   curr_cpu_info->vm_info.vm_stack_paddr = (phys_addr_t)alloc_mem_pages (pages (_2MB_, USER_VMS_PAGE_SIZE));
   curr_cpu_info->vm_info.vm_regs.rsp = curr_cpu_info->vm_info.vm_stack_vaddr + curr_cpu_info->vm_info.vm_stack_size;
 
+  curr_cpu_info->vm_info.vm_regs.rflags = 0x2; /* No Flags Set!!! */
   vm_size = (curr_cpu_info->vm_info.vm_stack_paddr + curr_cpu_info->vm_info.vm_stack_size) - curr_cpu_info->vm_info.vm_start_paddr;
 
   curr_cpu_info->vm_info.vm_end_vaddr = curr_cpu_info->vm_info.vm_start_vaddr + vm_size;
@@ -441,12 +439,12 @@ load_elf (struct cpu_info * const curr_cpu_info, const phys_addr_t elf)
   free_page_tables (old_pgtb);
   free_page_tables (old_ept);
 #if 0
-  cprintk ("code p = %x v = %x\ndata p = %x v = %x\nrodata p = %x v = %x\nbss p = %x v = %x\nstack p = %x v = %x\n", 0xF, curr_cpu_info->vm_info.vm_code_paddr, curr_cpu_info->vm_info.vm_code_vaddr,
+  DEBUG ("code p = %x v = %x\ndata p = %x v = %x\nrodata p = %x v = %x\nbss p = %x v = %x\nstack p = %x v = %x\n", 0xF, curr_cpu_info->vm_info.vm_code_paddr, curr_cpu_info->vm_info.vm_code_vaddr,
       curr_cpu_info->vm_info.vm_data_paddr, curr_cpu_info->vm_info.vm_data_vaddr,
       curr_cpu_info->vm_info.vm_rodata_paddr, curr_cpu_info->vm_info.vm_rodata_vaddr,
       curr_cpu_info->vm_info.vm_bss_paddr, curr_cpu_info->vm_info.vm_bss_vaddr,
       curr_cpu_info->vm_info.vm_stack_paddr, curr_cpu_info->vm_info.vm_stack_vaddr);
-  cprintk ("========================\n", 0xF);
+  DEBUG ("========================\n", 0xF);
 #endif
 }
 /* ================================================= */
@@ -540,7 +538,7 @@ local_exit (struct cpu_info * const info, const struct exit_ipc * const exit_arg
   struct cpu_info *parent_info;
 
   if (info == NULL) {
-    cprintk ("Exit: No cpu info provided!\n", 0x4);
+    DEBUG ("Exit: No cpu info provided!\n", 0x4);
     halt ();
   }
 
@@ -584,7 +582,7 @@ local_exit (struct cpu_info * const info, const struct exit_ipc * const exit_arg
     wait_reply.child_pid = info->cpuid;
     wait_reply.status = exit_args->status;
 
-    msg_reply (parent_info->cpuid, WAITPID_IPC, &wait_reply, sizeof (struct waitpid_reply));
+    msg_reply (PM, parent_info->cpuid, WAITPID_IPC, &wait_reply, sizeof (struct waitpid_reply));
   } else {
     info->vm_info.vm_exit_status = exit_args->status;
   }
@@ -598,12 +596,12 @@ local_waitpid (struct cpu_info * const info,
   struct cpu_info *child;
 
   if (info == NULL) {
-    cprintk ("Exit: No cpu info provided!\n", 0x4);
+    DEBUG ("Exit: No cpu info provided!\n", 0x4);
     halt ();
   }
 
   if (waitpid_args->wait_for < -1 || waitpid_args->wait_for > MAX_CPUS) {
-    cprintk ("PM %s: waiting for invalid PID %d\n", 0x4, __func__, waitpid_args->wait_for);
+    DEBUG ("PM %s: waiting for invalid PID %d\n", 0x4, __func__, waitpid_args->wait_for);
     reply->child_pid = -1;
     return;
   }
@@ -612,7 +610,7 @@ local_waitpid (struct cpu_info * const info,
   if (waitpid_args->wait_for != -1) {
     child = get_cpu_info (waitpid_args->wait_for);
     if (!child) {
-      cprintk ("PM: %s: Couldn't find child %d\n", 0x4, __func__, waitpid_args->wait_for);
+      DEBUG ("PM: %s: Couldn't find child %d\n", 0x4, __func__, waitpid_args->wait_for);
       reply->child_pid = -1;
       return;
     }
@@ -661,14 +659,12 @@ local_waitpid (struct cpu_info * const info,
 void
 vm_main (void)
 {
-  con_init ();
-
   pm_init ();
 
 #if 0
   for (i = 0 ; i < cpuinfo->cpuid; i++) printk("\n");
 
-  cprintk ("PM: My info is in addr = %d\n", 0xD, cpuinfo->cpuid);
+  DEBUG ("PM: My info is in addr = %d\n", 0xD, cpuinfo->cpuid);
 #endif
   while (1) {
     struct message *m __aligned (0x10) = msg_check();
@@ -681,14 +677,14 @@ vm_main (void)
         r = local_fork (get_cpu_info (m->from), (struct fork_ipc *)m->data);
         /* Reply to the child */
         if (r != -1) {
-          msg_reply (r, FORK_IPC, &r, sizeof (pid_t));
+          msg_reply (PM, r, FORK_IPC, &r, sizeof (pid_t));
         }
         /* Reply to the parent */
-        msg_reply(m->from, FORK_IPC, &r, sizeof(pid_t));
+        msg_reply(PM, m->from, FORK_IPC, &r, sizeof(pid_t));
         break;
       case EXEC_IPC:
         r = local_exec (get_cpu_info (m->from), (struct exec_ipc *)m->data);
-        msg_reply (m->from, EXEC_IPC, &r, sizeof (pid_t));
+        msg_reply (PM, m->from, EXEC_IPC, &r, sizeof (pid_t));
         break;
       case EXIT_IPC:
         local_exit (get_cpu_info (m->from), (struct exit_ipc *)m->data);
@@ -696,15 +692,15 @@ vm_main (void)
       case WAITPID_IPC:
         local_waitpid (get_cpu_info (m->from), (struct waitpid_ipc *)m->data, &wait_reply);
         if (wait_reply.child_pid != 0) {
-          msg_reply (m->from, WAITPID_IPC, &wait_reply, sizeof (struct waitpid_reply));
+          msg_reply (PM, m->from, WAITPID_IPC, &wait_reply, sizeof (struct waitpid_reply));
         }
         break;
       case CHANNEL_IPC:
         channel = local_channel ((struct channel_ipc *)m->data);
-        msg_reply (m->from, CHANNEL_IPC, &channel, sizeof (phys_addr_t));
+        msg_reply (PM, m->from, CHANNEL_IPC, &channel, sizeof (phys_addr_t));
         break;
       default:
-        cprintk("PM: Warning, unknown request %d from %d\n", 0xD, m->number, m->from);
+        DEBUG ("PM: Warning, unknown request %d from %d\n", 0xD, m->number, m->from);
     }
   }
 

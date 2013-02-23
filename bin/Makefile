@@ -10,7 +10,7 @@ include $(ROOT)/rules.mak
 
 LINK_LD = bin.ld
 
-CFLAGS  += -I include/ -I $(ROOT)/include/ -I $(ROOT)/lib/include -I $(ROOT)/vms/pm/include/
+CFLAGS  += -I include/ -I $(ROOT)/include/ -I $(ROOT)/lib/include
 ASFLAGS += -I include/ -I $(ROOT)/include/ -I $(ROOT)/lib/include
 LDFLAGS += -n -T $(LINK_LD)
 

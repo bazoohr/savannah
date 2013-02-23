@@ -1,7 +1,9 @@
+#ifdef __DEBUG__
+/* ======================================= */
 #include <stdarg.h>
-#include <printk.h>
+#include <debug_console.h>
 #include <string.h>
-
+/* ======================================= */
 static void put_hex (uint64_t num, int color)
 {
 	aint i;
@@ -17,10 +19,10 @@ static void put_hex (uint64_t num, int color)
   i = 15;
   while (buffer[i] == '0') i--;
   if (i == -1) {
-    kputc ('0', color);
+    debug_con_putc ('0', color);
   }
   while (i >= 0) {
-    kputc (buffer[i--], color);
+    debug_con_putc (buffer[i--], color);
   }
 }
 
@@ -43,48 +45,15 @@ static void put_decimal (int num, int color)
 
  buffer[pos] = num;
 
- if (negative == true) kputc ('-', color);
+ if (negative == true) debug_con_putc ('-', color);
 
  for (i = pos; i >= 0; i--) {
-   kputc (buffer[i] + '0', color);
+   debug_con_putc (buffer[i] + '0', color);
  }
 }
-void printk (const char* fmt, ...)
-{
-	va_list p __aligned (0x10);
-	char ch __aligned (0x10);
 
-	va_start (p, fmt);
-
-	while ((ch = *fmt++) != '\0'){
-
-		if (ch != '%'){
-			kputc (ch, TEXT_COLOR_WHITE);
-			continue;
-		}
-
-		switch (*fmt++){
-			case 'c':
-				kputc (va_arg (p, int), TEXT_COLOR_WHITE);
-				break;
-			case 'x':
-				put_hex (va_arg (p, long), TEXT_COLOR_WHITE);
-				break;
-      case 'd':
-        put_decimal (va_arg (p, int), TEXT_COLOR_WHITE);
-        break;
-			case 's':
-				kputs (va_arg (p, char*), TEXT_COLOR_WHITE);
-				break;
-			default:
-        break;
-		}
-	}
-
-	va_end (p);
-}
-
-void cprintk (const char* fmt, int color, ...)
+void
+print_debug_info (const char* fmt, int color, ...)
 {
  	va_list p __aligned (0x10);
 	char ch __aligned (0x10);
@@ -94,13 +63,13 @@ void cprintk (const char* fmt, int color, ...)
 	while ((ch = *fmt++) != '\0'){
 
 		if (ch != '%'){
-			kputc (ch, color);
+			debug_con_putc (ch, color);
 			continue;
 		}
 
 		switch (*fmt++){
 			case 'c':
-				kputc (va_arg (p, int), color);
+				debug_con_putc (va_arg (p, int), color);
 				break;
 			case 'x':
 				put_hex (va_arg (p, long), color);
@@ -109,7 +78,7 @@ void cprintk (const char* fmt, int color, ...)
         put_decimal (va_arg (p, int), color);
         break;
 			case 's':
-				kputs (va_arg (p, char*), color);
+				debug_con_puts (va_arg (p, char*), color);
 				break;
 			default:
         break;
@@ -118,3 +87,4 @@ void cprintk (const char* fmt, int color, ...)
 
 	va_end (p);
 }
+#endif

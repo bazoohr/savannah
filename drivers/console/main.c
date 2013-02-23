@@ -9,6 +9,7 @@
 #include <string.h>
 #include <cpuinfo.h>
 #include <fs.h>
+#include <debug.h>
 /* ========================================== */
 int
 main (int argc, char **argv)
@@ -17,35 +18,28 @@ main (int argc, char **argv)
   struct console_write cwrite;
   struct write_reply writereply;
   int i;
+  int from;
   con_init ();
 
-#if 0
-  for (i = 0 ; i < cpuinfo->cpuid ; i++) printk("\n");
-  cprintk ("This is the console driver!!\n", 0xE);
-  for (i = 0 ; i < argc ; i++) {
-    cprintk ("argv[%d] = %s\n", 0xE, i, argv[i]);
-  }
-#endif
-
   while (1) {
-    msg_receive(FS);
+    from = msg_receive(ANY);
 
-    req = &cpuinfo->msg_input[FS];
+    req = &cpuinfo->msg_input[from];
     memcpy (&cwrite, req->data, sizeof (struct console_write));
 
     for (i = 0 ; i < cwrite.count ; i++) {
-      putc(((char*)cwrite.channel)[i], 0xF);
+      putc (((char *)cwrite.channel)[i], 0xF);
     }
 
+    /*
+     * cwrite.from MUST be equal to from, else
+     * we are in a trouble
+     */
     writereply.from = cwrite.from;
     writereply.count = cwrite.count;
 
     msg_send (FS, WRITE_ACK, &writereply, sizeof(struct write_reply));
-//    struct putc_ipc tmp;
-//
-//    memcpy(&tmp, cpuinfo->msg_input[from].data, sizeof(struct putc_ipc));
-//
-//    putc(tmp.c, 0xF);
+    msg_receive (FS);
   }
 
   for (;;);

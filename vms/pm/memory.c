@@ -3,10 +3,8 @@
 #include <page.h>
 #include <panic.h>
 #include <string.h>
-#include <printk.h>
 #include <config.h>
 #include <macro.h>
-#include <printk.h>
 
 struct block_node {
   phys_addr_t b_start_addr;

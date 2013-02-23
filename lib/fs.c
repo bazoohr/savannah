@@ -4,6 +4,7 @@
 #include <config.h>
 
 #include <lib_mem.h>
+#include <debug.h>
 
 void open_std()
 {
@@ -84,6 +85,19 @@ int write(int fd, void *buf, int count)
 
   reply_data = (struct write_reply *)fs_reply->data;
 
+#if 0
+ // DEBUG ("%c", 0xA, ((char*)tmp.buf)[0]);
+  if (cpuinfo->cpuid == 5) {
+    static int i = 0;
+    if (i == 0) {DEBUG ("\n", 0x7); i = 1; }
+    DEBUG ("%c ", 0xB, ((char*)tmp.buf)[0]);
+  } else if (cpuinfo->cpuid == 6) {
+    static int j = 0;
+    if (j == 0) {DEBUG ("\n\n", 0x7); j = 1; }
+    DEBUG ("%c ", 0xC, ((char*)tmp.buf)[0]);
+   // DEBUG ("%c ", 0xC, ((char*)tmp.buf)[0]);
+  }
+#endif
   return reply_data->count;
 }
 
