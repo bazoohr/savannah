@@ -537,11 +537,12 @@ load_server_vms (phys_addr_t *vms_array)
     }
 
 
+#if 0
     /* Message Box */
+    /* These are not needed since are already set in load_all_vmms */
     curr_cpu_info->msg_input  = get_msg_input(curr_cpu);
     curr_cpu_info->msg_output = get_msg_output(curr_cpu);
     curr_cpu_info->msg_ready  = get_msg_ready(curr_cpu);
-#if 0
     cprintk ("SERVER: code p = %x v = %x size = %d\ndata p = %x v = %x size = %d\nrodata p = %x v = %x size = %d\nbss p = %x v = %x size = %d\nstack p = %x v = %x size = %d\n end = %x\n", 0xC,
         curr_cpu_info->vm_info.vm_code_paddr, curr_cpu_info->vm_info.vm_code_vaddr, curr_cpu_info->vm_info.vm_code_size,
         curr_cpu_info->vm_info.vm_data_paddr, curr_cpu_info->vm_info.vm_data_vaddr, curr_cpu_info->vm_info.vm_data_size,

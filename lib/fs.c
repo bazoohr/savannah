@@ -70,7 +70,7 @@ int write(int fd, void *buf, int count)
   struct write_ipc tmp;
   struct message *fs_reply;
   struct write_reply *reply_data;
-  struct header *fds = cpuinfo->vm_info.fds;
+  struct file_descriptor *fds = cpuinfo->vm_info.fds;
 
   tmp.fd = fd;
   tmp.buf = (void *)fds[fd].offset;
@@ -85,19 +85,6 @@ int write(int fd, void *buf, int count)
 
   reply_data = (struct write_reply *)fs_reply->data;
 
-#if 0
- // DEBUG ("%c", 0xA, ((char*)tmp.buf)[0]);
-  if (cpuinfo->cpuid == 5) {
-    static int i = 0;
-    if (i == 0) {DEBUG ("\n", 0x7); i = 1; }
-    DEBUG ("%c ", 0xB, ((char*)tmp.buf)[0]);
-  } else if (cpuinfo->cpuid == 6) {
-    static int j = 0;
-    if (j == 0) {DEBUG ("\n\n", 0x7); j = 1; }
-    DEBUG ("%c ", 0xC, ((char*)tmp.buf)[0]);
-   // DEBUG ("%c ", 0xC, ((char*)tmp.buf)[0]);
-  }
-#endif
   return reply_data->count;
 }
 

@@ -261,7 +261,7 @@ local_fork (const struct cpu_info * const info, const struct fork_ipc * const fo
   ept_pmap (child_cpu_info);
 
   /* Copy all the fds from the parent to the child */
-  memcpy(child_cpu_info->vm_info.fds, parent_cpu_info->vm_info.fds, MAX_FD * sizeof(struct header));
+  memcpy(child_cpu_info->vm_info.fds, parent_cpu_info->vm_info.fds, MAX_FD * sizeof(struct file_descriptor));
 
   /* For all the CHAR fds create a new channel for the child */
   for (i = 0 ; i < MAX_FD ; i++) {
@@ -495,7 +495,7 @@ local_exec (struct cpu_info * const info, const struct exec_ipc * const exec_arg
   /* Parse ELF executable, and load the processes */
   load_elf(info, elf);
   /* Cleanup the FDs */
-  memset(info->vm_info.fds, 0, sizeof(struct header) * MAX_FD);
+  memset(info->vm_info.fds, 0, sizeof(struct file_descriptor) * MAX_FD);
   /* Map memory for the new processes */
   ept_pmap (info);
   /* Pass arguments. We use stack to store arguments */
@@ -573,7 +573,7 @@ local_exit (struct cpu_info * const info, const struct exit_ipc * const exit_arg
    *     Unmap memory allocated for channels in driver side
    */
 
-  memset (info->vm_info.fds, 0, MAX_FD * sizeof (struct header));
+  memset (info->vm_info.fds, 0, MAX_FD * sizeof (struct file_descriptor));
 
   if (parent_info->vm_info.vm_state == WAIT_CHLD) {
     struct waitpid_reply wait_reply;

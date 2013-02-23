@@ -26,7 +26,7 @@ get_cpu_info (cpuid_t cpuid)
   return (struct cpu_info *)((phys_addr_t)base + cpuid * _4KB_);
 }
 
-struct header *
+struct file_descriptor *
 get_fds (int from)
 {
   if (from > MAX_CPUS)
@@ -44,7 +44,7 @@ local_open_char(const char *pathname, int from, struct open_reply *openreply)
   uint32_t dst;
   struct channel_ipc msg;
   struct message *pm_reply;
-  struct header *fds;
+  struct file_descriptor *fds;
 
   if (from > MAX_CPUS || from < 0) {
     openreply->fd = -1;
@@ -96,7 +96,7 @@ local_open(const char *pathname, int flags, int from, struct open_reply *openrep
   int fd;
   struct header *tmp;
   int num_files;
-  struct header *fds;
+  struct file_descriptor *fds;
 
   if (strcmp(pathname, "stdin") == 0 || strcmp(pathname, "stdout") == 0)
     return local_open_char(pathname, from, openreply);
@@ -151,7 +151,7 @@ local_read_char (int fd, int count, int from)
   struct keyboard_read kbd_rd;
   void *channel_addr;
   int to;
-  struct header *fds;
+  struct file_descriptor *fds;
 
   if (fd > MAX_FD) {
     DEBUG ("local_read_char: TOO big fd value %d!", 0x4, fd);
@@ -185,7 +185,7 @@ local_read_char (int fd, int count, int from)
 static int
 local_read_file (int fd, void *buf, int count, int from)
 {
-  struct header *fds;
+  struct file_descriptor *fds;
 
   fds = get_fds(from);
 
@@ -203,7 +203,7 @@ get_type(int fd, int from)
   if (fd > MAX_FD || fd < 0)
     return -1;
 
-  struct header *fds;
+  struct file_descriptor *fds;
 
   fds = get_fds(from);
 
@@ -216,7 +216,7 @@ get_type(int fd, int from)
 int
 local_read(int fd, void *buf, int count, int from)
 {
-  struct header *fds;
+  struct file_descriptor *fds;
   int type;
 
   type = get_type(fd, from);
@@ -259,7 +259,7 @@ local_write(int fd, void *buf, int count, int from)
 int
 local_close(int fd, int from)
 {
-  struct header *fds;
+  struct file_descriptor *fds;
   if (fd > MAX_FD)
     return -1;
 
