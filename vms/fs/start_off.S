@@ -10,7 +10,7 @@ _start:
    */
   pushq %rdi
   pushq %rsi
-  callq con_init /* Needed for panic */
+  callq debug_con_init /* Needed for panic */
   callq wait_ready
   popq %rsi
   popq %rdi

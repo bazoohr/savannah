@@ -17,10 +17,10 @@ static void put_hex (uint64_t num, int color)
   i = 15;
   while (buffer[i] == '0') i--;
   if (i == -1) {
-    kputc ('0', color);
+    putc ('0', color);
   }
   while (i >= 0) {
-    kputc (buffer[i--], color);
+    putc (buffer[i--], color);
   }
 }
 
@@ -43,10 +43,10 @@ static void put_decimal (int num, int color)
 
  buffer[pos] = num;
 
- if (negative == true) kputc ('-', color);
+ if (negative == true) putc ('-', color);
 
  for (i = pos; i >= 0; i--) {
-   kputc (buffer[i] + '0', color);
+   putc (buffer[i] + '0', color);
  }
 }
 void printk (const char* fmt, ...)
@@ -59,13 +59,13 @@ void printk (const char* fmt, ...)
 	while ((ch = *fmt++) != '\0'){
 
 		if (ch != '%'){
-			kputc (ch, TEXT_COLOR_WHITE);
+			putc (ch, TEXT_COLOR_WHITE);
 			continue;
 		}
 
 		switch (*fmt++){
 			case 'c':
-				kputc (va_arg (p, int), TEXT_COLOR_WHITE);
+				putc (va_arg (p, int), TEXT_COLOR_WHITE);
 				break; 
 			case 'x':
 				put_hex (va_arg (p, long), TEXT_COLOR_WHITE);
@@ -74,7 +74,7 @@ void printk (const char* fmt, ...)
         put_decimal (va_arg (p, int), TEXT_COLOR_WHITE);
         break;
 			case 's':
-				kputs (va_arg (p, char*), TEXT_COLOR_WHITE);
+				puts (va_arg (p, char*), TEXT_COLOR_WHITE);
 				break;
 			default:
         break;
@@ -94,13 +94,13 @@ void cprintk (const char* fmt, int color, ...)
 	while ((ch = *fmt++) != '\0'){
 
 		if (ch != '%'){
-			kputc (ch, color);
+			putc (ch, color);
 			continue;
 		}
 
 		switch (*fmt++){
 			case 'c':
-				kputc (va_arg (p, int), color);
+				putc (va_arg (p, int), color);
 				break; 
 			case 'x':
 				put_hex (va_arg (p, long), color);
@@ -109,7 +109,7 @@ void cprintk (const char* fmt, int color, ...)
         put_decimal (va_arg (p, int), color);
         break;
 			case 's':
-				kputs (va_arg (p, char*), color);
+				puts (va_arg (p, char*), color);
 				break;
 			default:
         break;

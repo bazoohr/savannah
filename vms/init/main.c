@@ -1,7 +1,6 @@
 #include <cdef.h>
 #include <types.h>
 #include <debug.h>
-#include <console.h>
 #include <const.h>
 #include <asmfunc.h>
 #include <cpu.h>
@@ -15,7 +14,6 @@ void
 vm_main (void)
 {
   int i;
-  con_init ();
 
   for (i = 0 ; i < cpuinfo->cpuid ; i++) DEBUG ("\n", 0x7);
 
@@ -80,24 +78,6 @@ vm_main (void)
     DEBUG  ("I am the login child pid = %d fd2 = %d fd1 = %d test = %x cpuid = %d\n", 0xD, pid, fd2, fd, test, cpuinfo->cpuid);
     exec("login", NULL);
   }
-  int status;
-  if (waitpid (pid, &status, 0) < 0) {
-    DEBUG  ("Init::waitpid for process %d failed!\n", 0x4, status);
-  }
-  DEBUG  ("Process %d exited with value %d!\n", 0x4, pid, status);
-
-  pid = fork();
-  if (pid == -1) {
-    DEBUG  ("Failed to fork!\n", 0x4);
-  } else if (pid == 0) {
-    for (i = 0 ; i < cpuinfo->cpuid ; i++) DEBUG("\n", 0x7);
-    DEBUG  ("I am the login child pid = %d fd2 = %d fd1 = %d test = %x cpuid = %d\n", 0xD, pid, fd2, fd, test, cpuinfo->cpuid);
-    exec("login", NULL);
-  }
-  if (waitpid (pid, &status, 0) < 0) {
-    DEBUG  ("Init::waitpid for process %d failed!\n", 0x4, status);
-  }
-  DEBUG  ("Process %d exited with value %d!\n", 0x4, pid, status);
 
   while (1) {__asm__ __volatile__ ("cli;pause;\n\t");}
 }

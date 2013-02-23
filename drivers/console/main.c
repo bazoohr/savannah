@@ -1,6 +1,5 @@
 #include <cdef.h>
 #include <types.h>
-#include <printk.h>
 #include <console.h>
 #include <const.h>
 #include <asmfunc.h>
@@ -10,6 +9,7 @@
 #include <string.h>
 #include <cpuinfo.h>
 #include <fs.h>
+#include <debug.h>
 /* ========================================== */
 int
 main (int argc, char **argv)
@@ -18,6 +18,7 @@ main (int argc, char **argv)
   struct console_write cwrite;
   struct write_reply writereply;
   int i;
+  int from;
   con_init ();
 
 #if 0
@@ -29,15 +30,26 @@ main (int argc, char **argv)
 #endif
 
   while (1) {
-    msg_receive(FS);
+    from = msg_receive(ANY);
 
-    req = &cpuinfo->msg_input[FS];
+    req = &cpuinfo->msg_input[from];
     memcpy (&cwrite, req->data, sizeof (struct console_write));
+    //DEBUG ("count = %d from %d %c\n", 0xA, cwrite.count, from, ((char*)cwrite.channel)[i]);
 
     for (i = 0 ; i < cwrite.count ; i++) {
-      kputc(((char*)cwrite.channel)[i], 0xF);
+    //  putc (i + '0', 0xA);
+#if 0
+      if (from == 5) {
+        DEBUG ("%c ", 0xA, ((char*)cwrite.channel)[i]);
+      }
+#endif
+      putc (((char *)cwrite.channel)[i], 0xF);
     }
 
+    /*
+     * cwrite.from MUST be equal to from, else
+     * we are in a trouble
+     */
     writereply.from = cwrite.from;
     writereply.count = cwrite.count;
 
@@ -46,7 +58,7 @@ main (int argc, char **argv)
 //
 //    memcpy(&tmp, cpuinfo->msg_input[from].data, sizeof(struct putc_ipc));
 //
-//    kputc(tmp.c, 0xF);
+//    putc(tmp.c, 0xF);
   }
 
   for (;;);

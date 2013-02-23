@@ -24,7 +24,7 @@ inb (uint16_t port)
 }
 
 static inline void
-outb (uint16_t port, uint8_t data)
+outb (uint8_t data, uint16_t port)
 {
     __asm __volatile("outb %0,%%dx" : : "a" (data), "d" (port));
 }

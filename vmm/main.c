@@ -1,7 +1,6 @@
 #include <cdef.h>
 #include <types.h>
 #include <debug.h>
-#include <console.h>
 #include <const.h>
 #include <interrupt.h>
 #include <asmfunc.h>
@@ -16,7 +15,6 @@ struct system_descriptor gdt[NGDT] __aligned (16);
 void
 vmm_main (void)
 {
-  con_init ();
   create_new_gdt (gdt, NGDT * sizeof (struct system_descriptor));
 
   interrupt_init ();

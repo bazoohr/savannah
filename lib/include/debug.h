@@ -3,7 +3,7 @@
 
 #ifdef __DEBUG__
 
-#include <console.h>
+#include <debug_console.h>
 
 void print_debug_info (const char* fmt, int color, ...);
 #define DEBUG(...) print_debug_info (__VA_ARGS__)

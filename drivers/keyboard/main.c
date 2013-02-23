@@ -2,7 +2,6 @@
 #include <dev/pic.h>
 #include <types.h>
 #include <debug.h>
-#include <console.h>
 #include <const.h>
 #include <interrupt.h>
 #include <asmfunc.h>

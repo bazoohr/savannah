@@ -1,5 +1,5 @@
 #include <stdarg.h>
-#include <console.h>
+#include <debug_console.h>
 #include <string.h>
 /* ============================================== */
 static void
@@ -18,10 +18,10 @@ put_hex (uint64_t num, int color)
   i = 15;
   while (buffer[i] == '0') i--;
   if (i == -1) {
-    con_putc ('0', color);
+    debug_con_putc ('0', color);
   }
   while (i >= 0) {
-    con_putc (buffer[i--], color);
+    debug_con_putc (buffer[i--], color);
   }
 }
 /* ============================================== */
@@ -45,10 +45,10 @@ put_decimal (int num, int color)
 
  buffer[pos] = num;
 
- if (negative == true) con_putc ('-', color);
+ if (negative == true) debug_con_putc ('-', color);
 
  for (i = pos; i >= 0; i--) {
-   con_putc (buffer[i] + '0', color);
+   debug_con_putc (buffer[i] + '0', color);
  }
 }
 /* ============================================== */
@@ -60,13 +60,13 @@ vcprintf (const char* fmt, int color, va_list ap)
 	while ((ch = *fmt++) != '\0'){
 
 		if (ch != '%'){
-			con_putc (ch, color);
+			debug_con_putc (ch, color);
 			continue;
 		}
 
 		switch (*fmt++){
 			case 'c':
-				con_putc (va_arg (ap, int), color);
+				debug_con_putc (va_arg (ap, int), color);
 				break;
 			case 'x':
 				put_hex (va_arg (ap, long), color);
@@ -75,7 +75,7 @@ vcprintf (const char* fmt, int color, va_list ap)
         put_decimal (va_arg (ap, int), color);
         break;
 			case 's':
-				con_puts (va_arg (ap, char*), color);
+				debug_con_puts (va_arg (ap, char*), color);
 				break;
 			default:
         break;

@@ -4,8 +4,13 @@
 #include <config.h>
 
 #include <lib_mem.h>
+#include <debug.h>
 
-static struct open_reply fds[MAX_FD];
+void open_std()
+{
+  open("stdin", O_RDONLY);
+  open("stdout", O_RDWR);
+}
 
 int open(const char *pathname, int flags)
 {
@@ -32,9 +37,6 @@ int open(const char *pathname, int flags)
 
   if (fd < 0)
     return -1;
-
-  fds[fd].fd = fd;
-  fds[fd].channel = reply_data->channel;
 
   return fd;
 }
@@ -68,12 +70,13 @@ int write(int fd, void *buf, int count)
   struct write_ipc tmp;
   struct message *fs_reply;
   struct write_reply *reply_data;
+  struct header *fds = cpuinfo->vm_info.fds;
 
   tmp.fd = fd;
-  tmp.buf = fds[fd].channel;
+  tmp.buf = (void *)fds[fd].offset;
   tmp.count = count;
 
-  memcpy(fds[fd].channel, buf, count);
+  memcpy((void *)fds[fd].offset, buf, count);
 
   msg_send(FS, WRITE_IPC, &tmp, sizeof(struct write_ipc));
   msg_receive(FS);
@@ -82,6 +85,19 @@ int write(int fd, void *buf, int count)
 
   reply_data = (struct write_reply *)fs_reply->data;
 
+#if 0
+ // DEBUG ("%c", 0xA, ((char*)tmp.buf)[0]);
+  if (cpuinfo->cpuid == 5) {
+    static int i = 0;
+    if (i == 0) {DEBUG ("\n", 0x7); i = 1; }
+    DEBUG ("%c ", 0xB, ((char*)tmp.buf)[0]);
+  } else if (cpuinfo->cpuid == 6) {
+    static int j = 0;
+    if (j == 0) {DEBUG ("\n\n", 0x7); j = 1; }
+    DEBUG ("%c ", 0xC, ((char*)tmp.buf)[0]);
+   // DEBUG ("%c ", 0xC, ((char*)tmp.buf)[0]);
+  }
+#endif
   return reply_data->count;
 }
 

@@ -147,6 +147,47 @@ ept_pmap (struct cpu_info * const child_cpu_info)
         EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
   }
 }
+/* ================================================= */
+static phys_addr_t
+local_channel (const struct channel_ipc * const req)
+{
+  struct cpu_info *cpu1;
+  struct cpu_info *cpu2;
+  phys_addr_t channel;
+
+  cpu1 = get_cpu_info (req->end1);
+  cpu2 = get_cpu_info (req->end2);
+
+  if (cpu1->vmm_info.vmm_has_vm == false) {
+    panic ("PM: creating channel failed! VM1 does not exist! VM1 = %d & VM2 = %d!\n", cpu1->cpuid, cpu2->cpuid);
+  }
+
+  if (cpu2->vmm_info.vmm_has_vm == false) {
+    panic ("PM: creating channel failed! VM2 does not exist! VM1 = %d & VM2 = %d!\n", cpu1->cpuid, cpu2->cpuid);
+  }
+
+  channel = (phys_addr_t)alloc_mem_pages (pages (CHANNEL_SIZE, USER_VMS_PAGE_SIZE));
+  if (channel == 0) {
+    panic ("PM: Failed to alloced memory!");
+  }
+
+  //cprintk ("channel created at address = %x\n", 0xE, channel);
+
+  EPT_map_memory (&cpu1->vm_info.vm_ept,
+      channel,  channel + CHANNEL_SIZE,
+      channel,
+      USER_VMS_PAGE_SIZE,
+      EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
+
+  EPT_map_memory (&cpu2->vm_info.vm_ept,
+      channel,  channel + CHANNEL_SIZE,
+      channel,
+      USER_VMS_PAGE_SIZE,
+      EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
+
+  return channel;
+}
+/* ================================================= */
 static pid_t
 local_fork (const struct cpu_info * const info, const struct fork_ipc * const fork_args)
 {
@@ -155,6 +196,10 @@ local_fork (const struct cpu_info * const info, const struct fork_ipc * const fo
   struct cpu_info *parent_cpu_info;
   struct cpu_info **child_cpu_info_ptr;
   asize_t offset;
+
+  struct channel_ipc channelipc;
+  int i;
+  phys_addr_t channel;
 
   if (info == NULL) {
     return -1;
@@ -216,6 +261,19 @@ local_fork (const struct cpu_info * const info, const struct fork_ipc * const fo
    * so we only need to map ept
    */
   ept_pmap (child_cpu_info);
+
+  /* Copy all the fds from the parent to the child */
+  memcpy(child_cpu_info->vm_info.fds, parent_cpu_info->vm_info.fds, MAX_FD * sizeof(struct header));
+
+  /* For all the CHAR fds create a new channel for the child */
+  for (i = 0 ; i < MAX_FD ; i++) {
+    if (child_cpu_info->vm_info.fds[i].type == TYPE_CHAR) {
+      channelipc.end1 = child_cpu_info->cpuid;
+      channelipc.end2 = child_cpu_info->vm_info.fds[i].dst;
+      channel = local_channel (&channelipc);
+      child_cpu_info->vm_info.fds[i].offset = channel;
+    }
+  }
 
   memcpy ((void *)&child_cpu_info->vm_info.vm_regs, (void *)fork_args->register_array_paddr, sizeof (struct regs));
 
@@ -472,46 +530,6 @@ local_exec (struct cpu_info * const info, const struct exec_ipc * const exec_arg
   info->vm_info.vm_regs.rsi = argv_virt_ptr;
   return 0;
 }
-/* ================================================= */
-static phys_addr_t
-local_channel (const struct channel_ipc * const req)
-{
-  struct cpu_info *cpu1;
-  struct cpu_info *cpu2;
-  phys_addr_t channel;
-
-  cpu1 = get_cpu_info (req->end1);
-  cpu2 = get_cpu_info (req->end2);
-
-  if (cpu1->vmm_info.vmm_has_vm == false) {
-    panic ("PM: creating channel failed! VM1 does not exist! VM1 = %d & VM2 = %d!\n", cpu1->cpuid, cpu2->cpuid);
-  }
-
-  if (cpu2->vmm_info.vmm_has_vm == false) {
-    panic ("PM: creating channel failed! VM2 does not exist! VM1 = %d & VM2 = %d!\n", cpu1->cpuid, cpu2->cpuid);
-  }
-
-  channel = (phys_addr_t)alloc_mem_pages (pages (CHANNEL_SIZE, USER_VMS_PAGE_SIZE));
-  if (channel == 0) {
-    panic ("PM: Failed to alloced memory!");
-  }
-
-  DEBUG ("channel created at address = %x\n", 0xE, channel);
-  EPT_map_memory (&cpu1->vm_info.vm_ept,
-      channel,  channel + CHANNEL_SIZE,
-      channel,
-      USER_VMS_PAGE_SIZE,
-      EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
-
-  EPT_map_memory (&cpu2->vm_info.vm_ept,
-      channel,  channel + CHANNEL_SIZE,
-      channel,
-      USER_VMS_PAGE_SIZE,
-      EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
-
-  return channel;
-}
-/* ================================================= */
 static void
 local_exit (struct cpu_info * const info, const struct exit_ipc * const exit_args)
 {
@@ -563,7 +581,7 @@ local_exit (struct cpu_info * const info, const struct exit_ipc * const exit_arg
     wait_reply.child_pid = info->cpuid;
     wait_reply.status = exit_args->status;
 
-    msg_reply (parent_info->cpuid, WAITPID_IPC, &wait_reply, sizeof (struct waitpid_reply));
+    msg_reply (PM, parent_info->cpuid, WAITPID_IPC, &wait_reply, sizeof (struct waitpid_reply));
   } else {
     info->vm_info.vm_exit_status = exit_args->status;
   }
@@ -658,14 +676,14 @@ vm_main (void)
         r = local_fork (get_cpu_info (m->from), (struct fork_ipc *)m->data);
         /* Reply to the child */
         if (r != -1) {
-          msg_reply (r, FORK_IPC, &r, sizeof (pid_t));
+          msg_reply (PM, r, FORK_IPC, &r, sizeof (pid_t));
         }
         /* Reply to the parent */
-        msg_reply(m->from, FORK_IPC, &r, sizeof(pid_t));
+        msg_reply(PM, m->from, FORK_IPC, &r, sizeof(pid_t));
         break;
       case EXEC_IPC:
         r = local_exec (get_cpu_info (m->from), (struct exec_ipc *)m->data);
-        msg_reply (m->from, EXEC_IPC, &r, sizeof (pid_t));
+        msg_reply (PM, m->from, EXEC_IPC, &r, sizeof (pid_t));
         break;
       case EXIT_IPC:
         local_exit (get_cpu_info (m->from), (struct exit_ipc *)m->data);
@@ -673,12 +691,12 @@ vm_main (void)
       case WAITPID_IPC:
         local_waitpid (get_cpu_info (m->from), (struct waitpid_ipc *)m->data, &wait_reply);
         if (wait_reply.child_pid != 0) {
-          msg_reply (m->from, WAITPID_IPC, &wait_reply, sizeof (struct waitpid_reply));
+          msg_reply (PM, m->from, WAITPID_IPC, &wait_reply, sizeof (struct waitpid_reply));
         }
         break;
       case CHANNEL_IPC:
         channel = local_channel ((struct channel_ipc *)m->data);
-        msg_reply (m->from, CHANNEL_IPC, &channel, sizeof (phys_addr_t));
+        msg_reply (PM, m->from, CHANNEL_IPC, &channel, sizeof (phys_addr_t));
         break;
       default:
         DEBUG ("PM: Warning, unknown request %d from %d\n", 0xD, m->number, m->from);

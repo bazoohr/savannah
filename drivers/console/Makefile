@@ -20,7 +20,6 @@ LDFLAGS += -n -T $(LINK_LD)
 
 SRC = start_off.S main.c console.c printk.c
 
-
 OBJ = $(subst .S,.o,$(filter %.S,$(SRC))) $(subst .c,.o,$(filter %.c,$(SRC)))
 
 all: $(PROGNAME)

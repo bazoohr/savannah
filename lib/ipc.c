@@ -1,6 +1,8 @@
 #include <ipc.h>
 #include <string.h>
 #include <misc.h>
+#include <debug.h> /* Remove */
+#include <fs.h>   /* Remove */
 
 /*
  * msg_send() - Send a message to another process.
@@ -59,6 +61,7 @@ msg_receive(int from)
   int ncpus;
 
   ncpus = cpuinfo->ncpus;
+
   while (1) {
     if (from == ANY) {
       for (i = 0 ; i < ncpus ; i++) {
@@ -161,7 +164,7 @@ msg_check()
  * 'msg_receive' will return and the process can read the result.
  */
 void
-msg_reply(const int to, const int number, const void *data, const int size)
+msg_reply(const int from, const int to, const int number, const void *data, const int size)
 {
   if (! check_server()) {
     return;
@@ -172,7 +175,21 @@ msg_reply(const int to, const int number, const void *data, const int size)
   struct message *base = (struct message *)(((phys_addr_t)cpuinfo->msg_input - (_4KB_ * id)));
   struct message *inbox = (struct message *)(((phys_addr_t)base + (_4KB_ * to)));
 
-  inbox[id].from = id;
-  memcpy(inbox[id].data, data, size);
-  inbox[id].number = number;
+#if 0
+  if (from == 6) {
+    struct console_write cwrite;
+    memcpy (&cwrite, data, sizeof (struct console_write));
+    char *str = (char *)cwrite.channel;
+    DEBUG ("%c", 0xA, str[0]);
+  }
+  if (from == 5) {
+    struct console_write cwrite;
+    memcpy (&cwrite, data, sizeof (struct console_write));
+    char *str = (char *)cwrite.channel;
+    DEBUG ("%c", 0xB, str[0]);
+  }
+#endif
+  inbox[from].from = from;
+  memcpy(inbox[from].data, data, size);
+  inbox[from].number = number;
 }

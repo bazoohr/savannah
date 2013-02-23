@@ -4,7 +4,7 @@
  * Hamid R. Bazoobandi 2009                 *
  * a VERY simple driver for console         *
  * ======================================== */
-#include <console.h>
+#include <debug_console.h>
 #include <types.h>
 /* ============================= */
 static uint64_t y;
@@ -52,7 +52,7 @@ static void put_normal (int ch, int color)
 	x++;
 }
 /* ============================= */
-void con_putc (int ch, int color)
+void debug_con_putc (int ch, int color)
 {
 	switch (ch){
 		case '\n':
@@ -67,11 +67,11 @@ void con_putc (int ch, int color)
 	}
 }
 /* =============================== */
-void con_puts (const char *str, int color)
+void debug_con_puts (const char *str, int color)
 {
 	char ch;
 	while ((ch = *str++) != '\0')
-		con_putc (ch, color);
+		debug_con_putc (ch, color);
 }
 /* ============================= */
 void change_cursor_pos (int new_x, int new_y)
@@ -87,7 +87,7 @@ void get_cursor_pos (virt_addr_t xptr, virt_addr_t yptr)
 	*(uint32_t*)yptr = y;
 }
 /* ============================= */
-void con_init ()
+void debug_con_init ()
 {
 	y = 0;
 	x = 0;

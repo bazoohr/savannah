@@ -4,7 +4,7 @@
 # Hamid R. Bazoobandi
 # Sat. 14 July 2012 Amsterdam
 # ==================================
-OPTLVL = -O3
+OPTLVL = -O2
 AS = $(CC)
 LD = ld
 DEBUG = yes
@@ -26,6 +26,7 @@ endif
 # ===================================
 ifeq ($(DEBUG),yes)
 CFLAGS += -D__DEBUG__
+ASFLAGS += -D__DEBUG__
 endif
 # ===================================
 ifeq ($(CC),gcc)
@@ -42,7 +43,7 @@ endef
 %.o: %.c
 	$(call silent_command, $(call make_depend,$<,$@,$(subst .o,.d,$@)))
 	$(call silent_command, $(CC) $(CFLAGS) -c -o $@ $<, "    CC    $(MYDIR)$<")
-#	$(call silent_command, $(CC) $(CFLAGS) -S $<, "    SS    $(MYDIR)$<")
+	#$(call silent_command, $(CC) $(CFLAGS) -S $<, "    SS    $(MYDIR)$<")
 %.o: %.S
 	$(call silent_command, $(call make_depend,$<,$@,$(subst .o,.d,$@)))
 	$(call silent_command, $(AS) $(ASFLAGS) -c -o $@ $<, "    AS    $(MYDIR)$<")

@@ -7,7 +7,7 @@ _start:
    */
   pushq %rdi
   pushq %rsi
-  callq con_init
+  callq debug_con_init
   popq %rsi
   popq %rdi
 

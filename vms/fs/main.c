@@ -41,6 +41,7 @@ void
 local_open_char(const char *pathname, int from, struct open_reply *openreply)
 {
   int fd;
+  uint32_t dst;
   struct channel_ipc msg;
   struct message *pm_reply;
   struct header *fds;
@@ -52,8 +53,10 @@ local_open_char(const char *pathname, int from, struct open_reply *openreply)
 
   if (strcmp (pathname, "stdin") == 0) {
     fd = 0;
+    dst = KBD;
   } else if (strcmp (pathname, "stdout") == 0) {
     fd = 1;
+    dst = CONSOLE;
   } else {
     fd = -1;  /* JUST to SHUT UP GCC */
     DEBUG ("FS: Unknown char file!", 0x4);
@@ -69,7 +72,7 @@ local_open_char(const char *pathname, int from, struct open_reply *openreply)
   }
 
   msg.end1 = from;
-  msg.end2 = fd == 0 ? KBD : CONSOLE;
+  msg.end2 = dst;
 
   msg_send (PM, CHANNEL_IPC, &msg, sizeof (struct channel_ipc));
 
@@ -80,6 +83,7 @@ local_open_char(const char *pathname, int from, struct open_reply *openreply)
   memcpy (&fds[fd].offset, pm_reply->data, sizeof (phys_addr_t));
   fds[fd].type = TYPE_CHAR;
   fds[fd].length = 0;
+  fds[fd].dst = dst;
 
   openreply->fd = fd;
   openreply->channel = (void *)fds[fd].offset;
@@ -124,6 +128,7 @@ local_open(const char *pathname, int flags, int from, struct open_reply *openrep
     if (strcmp(tmp->name, pathname) == 0)
       break;
   }
+
   if (i >= num_files) {
     openreply->fd = -1;
     return;
@@ -133,6 +138,7 @@ local_open(const char *pathname, int flags, int from, struct open_reply *openrep
   // NOTE: We are not copying name for performance reasons.
   fds[fd].type = tmp->type;
   fds[fd].length = tmp->length;
+  fds[fd].dst = 0;
   fds[fd].offset = tmp->offset;
 
   openreply->fd = fd;
@@ -171,7 +177,7 @@ local_read_char (int fd, int count, int from)
   kbd_rd.channel = channel_addr;
   kbd_rd.count = count;
 
-  msg_reply (to, READ_IPC, &kbd_rd, sizeof (struct keyboard_read));
+  msg_reply (from, to, READ_IPC, &kbd_rd, sizeof (struct keyboard_read));
 
   return count;
 }
@@ -240,14 +246,14 @@ local_write(int fd, void *buf, int count, int from)
   if (get_type(fd, from) == TYPE_FILE || fd != 1) {
     writereply.from = from;
     writereply.count = -1;
-    msg_reply (from, WRITE_IPC, &writereply, sizeof(struct write_reply));
+    msg_reply (FS, from, WRITE_IPC, &writereply, sizeof(struct write_reply));
   }
 
   cwrite.from = from;
   cwrite.channel = buf;
   cwrite.count = count;
 
-  msg_reply (CONSOLE, WRITE_IPC, &cwrite, sizeof(struct console_write));
+  msg_reply (from, CONSOLE, WRITE_IPC, &cwrite, sizeof(struct console_write));
 }
 
 int
@@ -314,12 +320,12 @@ vm_main (void)
     case OPEN_IPC:
       if (is_driver(m->from)) {
         r = -1;
-        msg_reply(m->from, OPEN_IPC, &r, sizeof(int));
+        msg_reply(FS, m->from, OPEN_IPC, &r, sizeof(int));
         break;
       }
       memcpy(&opentmp, m->data, sizeof(struct open_ipc));
       local_open(opentmp.pathname, opentmp.flags, m->from, &openreply);
-      msg_reply(m->from, OPEN_IPC, &openreply, sizeof(struct open_reply));
+      msg_reply(FS, m->from, OPEN_IPC, &openreply, sizeof(struct open_reply));
       break;
     case READ_IPC:
       memcpy(&readtmp, m->data, sizeof(struct read_ipc));
@@ -328,33 +334,40 @@ vm_main (void)
         readreply.type = TYPE_FILE;
         readreply.count = r;
 	readreply.channel = NULL;
-        msg_reply(m->from, READ_IPC, &readreply, sizeof(struct read_reply));
+        msg_reply(FS, m->from, READ_IPC, &readreply, sizeof(struct read_reply));
       }
       break;
     case CLOSE_IPC:
       memcpy(&closetmp, m->data, sizeof(struct close_ipc));
       r = local_close(closetmp.fd, m->from);
-      msg_reply(m->from, CLOSE_IPC, &r, sizeof(int));
+      msg_reply(FS, m->from, CLOSE_IPC, &r, sizeof(int));
       break;
     case LOAD_IPC:
       if (m->from != PM) {
         f = 0;
-        msg_reply(m->from, LOAD_IPC, &f, sizeof(phys_addr_t));
+        msg_reply(FS, m->from, LOAD_IPC, &f, sizeof(phys_addr_t));
         break;
       }
       f = local_load(m->data);
-      msg_reply(m->from, LOAD_IPC, &f, sizeof(phys_addr_t));
+      msg_reply(FS, m->from, LOAD_IPC, &f, sizeof(phys_addr_t));
       break;
     case WRITE_IPC:
       writeipc = (struct write_ipc*)m->data;
       local_write(writeipc->fd, writeipc->buf, writeipc->count, m->from);
     case READ_ACK:
       reply = (struct read_reply *)m->data;
-      msg_reply(reply->from, READ_IPC, reply, sizeof(struct read_reply));
+      msg_reply(FS, reply->from, READ_IPC, reply, sizeof(struct read_reply));
       break;
     case WRITE_ACK:
       writereply = (struct write_reply *)m->data;
-      msg_reply(writereply->from, WRITE_IPC, writereply, sizeof(struct write_reply));
+#if 0
+      if (writereply->from == 5) {
+        DEBUG ("5%d ", 0xF, writereply->count);
+      } else if (writereply->from == 6) {
+        DEBUG ("6%d ", 0xE, writereply->count);
+      }
+#endif
+      msg_reply(FS, writereply->from, WRITE_IPC, writereply, sizeof(struct write_reply));
       break;
     default:
       DEBUG ("FS: Warning, unknown request %d\n", 0xD, m->number);
