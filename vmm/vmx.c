@@ -311,7 +311,42 @@ static void setup_vmcs(void)
 
 void vmresume()
 {
-	__asm__ volatile (ASM_VMX_VMRESUME);
+  __asm__ __volatile__ (
+      "movq %c[VM_REGS_RAX_IDX](%0), %%rax\n\t"
+      "movq %c[VM_REGS_RBX_IDX](%0), %%rbx\n\t"
+      "movq %c[VM_REGS_RCX_IDX](%0), %%rcx\n\t"
+      "movq %c[VM_REGS_RDX_IDX](%0), %%rdx\n\t"
+      "movq %c[VM_REGS_RSI_IDX](%0), %%rsi\n\t"
+      "movq %c[VM_REGS_RBP_IDX](%0), %%rbp\n\t"
+      "movq %c[VM_REGS_R8_IDX](%0), %%r8\n\t"
+      "movq %c[VM_REGS_R9_IDX](%0), %%r9\n\t"
+      "movq %c[VM_REGS_R10_IDX](%0), %%r10\n\t"
+      "movq %c[VM_REGS_R11_IDX](%0), %%r11\n\t"
+      "movq %c[VM_REGS_R12_IDX](%0), %%r12\n\t"
+      "movq %c[VM_REGS_R13_IDX](%0), %%r13\n\t"
+      "movq %c[VM_REGS_R14_IDX](%0), %%r14\n\t"
+      "movq %c[VM_REGS_R15_IDX](%0), %%r15\n\t"
+      "movq %c[VM_REGS_RDI_IDX](%0), %%rdi\n\t"
+      ASM_VMX_VMRESUME
+      :
+      :
+      "D"(cpuinfo),
+      [VM_REGS_RAX_IDX]"i"(offsetof (struct cpu_info, vm_info.vm_regs.rax)),
+      [VM_REGS_RBX_IDX]"i"(offsetof (struct cpu_info, vm_info.vm_regs.rbx)),
+      [VM_REGS_RCX_IDX]"i"(offsetof (struct cpu_info, vm_info.vm_regs.rcx)),
+      [VM_REGS_RDX_IDX]"i"(offsetof (struct cpu_info, vm_info.vm_regs.rdx)),
+      [VM_REGS_RSI_IDX]"i"(offsetof (struct cpu_info, vm_info.vm_regs.rsi)),
+      [VM_REGS_RBP_IDX]"i"(offsetof (struct cpu_info, vm_info.vm_regs.rbp)),
+      [VM_REGS_R8_IDX]"i"(offsetof (struct cpu_info, vm_info.vm_regs.r8)),
+      [VM_REGS_R9_IDX]"i"(offsetof (struct cpu_info, vm_info.vm_regs.r9)),
+      [VM_REGS_R10_IDX]"i"(offsetof (struct cpu_info, vm_info.vm_regs.r10)),
+      [VM_REGS_R11_IDX]"i"(offsetof (struct cpu_info, vm_info.vm_regs.r11)),
+      [VM_REGS_R12_IDX]"i"(offsetof (struct cpu_info, vm_info.vm_regs.r12)),
+      [VM_REGS_R13_IDX]"i"(offsetof (struct cpu_info, vm_info.vm_regs.r13)),
+      [VM_REGS_R14_IDX]"i"(offsetof (struct cpu_info, vm_info.vm_regs.r14)),
+      [VM_REGS_R15_IDX]"i"(offsetof (struct cpu_info, vm_info.vm_regs.r15)),
+      [VM_REGS_RDI_IDX]"i"(offsetof (struct cpu_info, vm_info.vm_regs.rdi))
+  );
 }
 
 void vmlaunch()
@@ -365,22 +400,23 @@ void host_entry()
 		msg_data = (phys_addr_t)cpuinfo->msg_input[PM].data;
 
 		int r = *(int*)msg_data;
-		if (r == -1) {
-			DEBUG("Exec FAILED!: %d\n", 0x4, *(int *)msg_data);
-			while(1);
-		}
 
-		clear_vmcs (cpuinfo->vm_info.vm_vmcs_ptr);
+		if (r != -1) {
+			clear_vmcs (cpuinfo->vm_info.vm_vmcs_ptr);
+		}
 
 		load_vmcs (cpuinfo->vm_info.vm_vmcs_ptr);
 
 		setup_vmcs ();
 
-		vmlaunch ();
+		if (r == -1) {
+			vmresume();
+		} else {
+			vmlaunch ();
+		}
 	} else {
 		DEBUG ("HOOOOOOOOOSSSSSSSSSTTTTTTTTT!!!!!!!!!!!!!\n", 0xA);
 		DEBUG ("Exited because of %d\n", 0xF, reason);
-		//vmresume();
 		while(1);
 	}
 }

@@ -2,6 +2,7 @@
 #define __PM_H__
 
 #include <types.h>
+#include <cpuinfo.h>
 
 #define FORK_IPC    1
 #define EXEC_IPC    2
@@ -19,6 +20,7 @@ struct fork_ipc {
 struct exec_ipc {
   char path[MAX_PATH];
   char **argv;
+  phys_addr_t registers;
 };
 
 struct exit_ipc {

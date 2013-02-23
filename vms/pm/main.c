@@ -468,6 +468,7 @@ local_exec (struct cpu_info * const info, const struct exec_ipc * const exec_arg
   elf = *msg_data;
 
   if (elf == 0) {
+    memcpy(&info->vm_info.vm_regs, (void*)exec_args->registers, sizeof(struct regs));
     return -1;
   }
 
