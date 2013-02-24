@@ -34,7 +34,7 @@ get_fds (int from)
 
   struct cpu_info *cpuinfo = get_cpu_info(from);
 
-  return cpuinfo->vm_info.fds;
+  return cpuinfo->vm_info.vm_fds;
 }
 
 void
@@ -64,6 +64,10 @@ local_open_char(const char *pathname, int from, struct open_reply *openreply)
   }
 
   fds = get_fds(from);
+  if (fds == 0) {
+    openreply->fd = -1;
+    return;
+  }
 
   /* If the file is already open! */
   if (fds[fd].offset != 0) {
@@ -102,6 +106,10 @@ local_open(const char *pathname, int flags, int from, struct open_reply *openrep
     return local_open_char(pathname, from, openreply);
 
   fds = get_fds(from);
+  if (fds == 0) {
+    openreply->fd = -1;
+    return;
+  }
 
   // Find the lowest available fd
   for (i = 2 ; i < MAX_FD ; i++)
@@ -165,6 +173,9 @@ local_read_char (int fd, int count, int from)
   to = (fd == 0) ? KBD : CONSOLE;
 
   fds = get_fds(from);
+  if (fds == 0) {
+    return 0;
+  }
 
   channel_addr = (void *)fds[fd].offset;
 
@@ -188,6 +199,9 @@ local_read_file (int fd, void *buf, int count, int from)
   struct file_descriptor *fds;
 
   fds = get_fds(from);
+  if (fds == 0) {
+    return 0;
+  }
 
   if (count > fds[fd].length)
     count = fds[fd].length;
@@ -206,6 +220,9 @@ get_type(int fd, int from)
   struct file_descriptor *fds;
 
   fds = get_fds(from);
+  if (fds == 0) {
+    return -1;
+  }
 
   if (fds[fd].type == 0)
     return -1;
@@ -224,6 +241,9 @@ local_read(int fd, void *buf, int count, int from)
     return -1;
 
   fds = get_fds(from);
+  if (fds == 0) {
+    return -1;
+  }
 
   if (fds[fd].type == TYPE_CHAR) {
     return local_read_char (fd, count, from);
@@ -264,6 +284,9 @@ local_close(int fd, int from)
     return -1;
 
   fds = get_fds(from);
+  if (fds == 0) {
+    return 0;
+  }
 
   fds[fd].type = 0;
   fds[fd].length = 0;

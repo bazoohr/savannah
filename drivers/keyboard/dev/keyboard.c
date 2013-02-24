@@ -123,7 +123,6 @@ static void __inline
 kbd_add_buf (int data)
 {
   buffer[bufpos++] = data;
-  printf ("%c", data);
 }
 
 void

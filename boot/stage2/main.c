@@ -370,6 +370,9 @@ load_user_vms (phys_addr_t *vms_array)
       panic ("Second Boot Stage: Computed two different VM end addresses %x & %x\n", curr_cpu_info->vm_info.vm_end_paddr, curr_cpu_info->vm_info.vm_start_paddr + vm_size);
     }
 
+    /* Set the FDs pointer to NULL at the beginning */
+    curr_cpu_info->vm_info.vm_fds = NULL;
+
 #if 0
     cprintk ("code p = %x v = %x\ndata p = %x v = %x\nrodata p = %x v = %x\nbss p = %x v = %x\nstack p = %x v = %x\n", 0xC, curr_cpu_info->vm_info.vm_code_paddr, curr_cpu_info->vm_info.vm_code_vaddr,
         curr_cpu_info->vm_info.vm_data_paddr, curr_cpu_info->vm_info.vm_data_vaddr,
@@ -535,6 +538,9 @@ load_server_vms (phys_addr_t *vms_array)
     if (vm_size > VM_MAX_SIZE) {
       panic ("Second Boot Stage: vm is too large!");
     }
+
+    /* Set the FDs pointer to NULL at the beginning */
+    curr_cpu_info->vm_info.vm_fds = NULL;
 
 
 #if 0

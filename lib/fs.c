@@ -70,7 +70,7 @@ int write(int fd, void *buf, int count)
   struct write_ipc tmp;
   struct message *fs_reply;
   struct write_reply *reply_data;
-  struct file_descriptor *fds = cpuinfo->vm_info.fds;
+  struct file_descriptor *fds = cpuinfo->vm_info.vm_fds;
 
   tmp.fd = fd;
   tmp.buf = (void *)fds[fd].offset;

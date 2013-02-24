@@ -16,7 +16,7 @@ all: create_initrd
 
 create_initrd: create_initrd.c
 	$(CC) -Wall -o $@ $@.c
-	$(call silent_command, ./$@ 1.txt 2.txt $(ROOT)/bin/login $(ROOT)/bin/test $(ROOT)/drivers/keyboard/keyboard $(ROOT)/drivers/console/console, "    GEN   $(CURDIR)/$(INITRD)")
+	$(call silent_command, ./$@ 1.txt 2.txt $(ROOT)/bin/login $(ROOT)/bin/test $(ROOT)/bin/testfs $(ROOT)/drivers/keyboard/keyboard $(ROOT)/drivers/console/console, "    GEN   $(CURDIR)/$(INITRD)")
 clean:
 	$(call silent_command, rm -f *.o *.d $(INITRD), "    CLEAN $(MYDIR)")
 	@rm -f `echo *.c | sed 's/ /\n/g' | sed 's/\(^.*\)\.c/\1/g'`

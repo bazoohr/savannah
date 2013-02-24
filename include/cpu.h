@@ -185,7 +185,7 @@ struct vm_proc {
   phys_addr_t vm_vmcs_ptr;   // VMX VMC Pointer (must be 4KB aligned)
   phys_addr_t vm_vmxon_ptr;  // VMXON pointer   (must be 4KB aligned)
 
-  struct file_descriptor fds[MAX_FD];
+  struct file_descriptor *vm_fds;
 };
 
 struct vmm_proc {

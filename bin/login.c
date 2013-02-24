@@ -19,6 +19,7 @@ int main(int argc, char **argv)
     ch = 0;
     while (ch != '\n' && i < MAX_LEN) {
       read (0, &ch, 1);
+      printf("%c", ch);
       cmd[i] = ch;
       i++;
     }

@@ -23,12 +23,17 @@ OBJ = $(subst .S,.o,$(filter %.S,$(SRC))) $(subst .c,.o,$(filter %.c,$(SRC)))
 SRC2 = test.c start_off.S
 OBJ2 = $(subst .S,.o,$(filter %.S,$(SRC2))) $(subst .c,.o,$(filter %.c,$(SRC2)))
 
-all: login test
+SRC3 = testfs.c start_off.S
+OBJ3 = $(subst .S,.o,$(filter %.S,$(SRC3))) $(subst .c,.o,$(filter %.c,$(SRC3)))
+
+all: login test testfs
 
 login: $(OBJ)
 	$(call silent_command, $(LD) $(LDFLAGS) -o $@ $(OBJ) $(LIBDIR)/$(USRLIB), "    LINK  $(MYDIR)$@")
 test: $(OBJ2)
 	$(call silent_command, $(LD) $(LDFLAGS) -o $@ $(OBJ2) $(LIBDIR)/$(USRLIB), "    LINK  $(MYDIR)$@")
+testfs: $(OBJ3)
+	$(call silent_command, $(LD) $(LDFLAGS) -o $@ $(OBJ3) $(LIBDIR)/$(USRLIB), "    LINK  $(MYDIR)$@")
 
 -include $(subst .c,.d,$(filter %.c,$(SRC)))
 
