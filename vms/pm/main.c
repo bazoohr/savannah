@@ -86,11 +86,9 @@ ept_pmap (struct cpu_info * const child_cpu_info)
       0xFEC00000,
       USER_VMS_PAGE_SIZE,
       EPT_PAGE_READ | EPT_PAGE_WRITE, MAP_UPDATE);  /* XXX: Why do we need write access here? */
-  EPT_map_memory (&child_cpu_info->vm_info.vm_ept,
-      child_cpu_info->vm_info.vm_page_tables, child_cpu_info->vm_info.vm_page_tables + 2 * PAGE_TABLE_SIZE,
-      child_cpu_info->vm_info.vm_page_tables,
-      USER_VMS_PAGE_SIZE,
-      EPT_PAGE_READ, MAP_UPDATE);
+
+  ept_map_page_tables (&child_cpu_info->vm_info.vm_ept, child_cpu_info->vm_info.vm_page_tables, EPT_PAGE_READ);
+
   EPT_map_memory (&child_cpu_info->vm_info.vm_ept,
       (phys_addr_t)child_cpu_info, (phys_addr_t)child_cpu_info + _4KB_,
       (phys_addr_t)child_cpu_info,
@@ -147,6 +145,14 @@ ept_pmap (struct cpu_info * const child_cpu_info)
         USER_VMS_PAGE_SIZE,
         EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
   }
+  if (child_cpu_info->vm_info.vm_fds > 0) {
+    EPT_map_memory (&child_cpu_info->vm_info.vm_ept,
+        (phys_addr_t)child_cpu_info->vm_info.vm_fds, (phys_addr_t)child_cpu_info->vm_info.vm_fds + _4KB_,
+        (phys_addr_t)child_cpu_info->vm_info.vm_fds,
+        USER_VMS_PAGE_SIZE,
+        EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
+  }
+
 }
 /* ================================================= */
 static phys_addr_t
@@ -255,23 +261,19 @@ local_fork (const struct cpu_info * const info, const struct fork_ipc * const fo
   child_cpu_info->vm_info.vm_stack_size  = parent_cpu_info->vm_info.vm_stack_size;
   memcpy ((void*)child_cpu_info->vm_info.vm_stack_paddr, (void*)parent_cpu_info->vm_info.vm_stack_paddr, parent_cpu_info->vm_info.vm_stack_size);
 
+  /* Allocate memory for FDs if the process is not a driver */
+  if (!is_driver(child_cpu_info->cpuid)) {
+    child_cpu_info->vm_info.vm_fds = (struct file_descriptor*)alloc_mem_pages (pages (MAX_FD * sizeof(struct file_descriptor), USER_VMS_PAGE_SIZE));
+  }
+
   /*
    * VM's page tables are already build in boot/stage2
    * so we only need to map ept
    */
   ept_pmap (child_cpu_info);
 
-
   /* Allocate memory for FDs if the process is not a driver */
-  if (!is_driver(child_cpu_info->cpuid)) {
-    child_cpu_info->vm_info.vm_fds = (struct file_descriptor*)alloc_mem_pages (pages (MAX_FD * sizeof(struct file_descriptor), USER_VMS_PAGE_SIZE));
-
-    EPT_map_memory (&child_cpu_info->vm_info.vm_ept,
-        (phys_addr_t)child_cpu_info->vm_info.vm_fds, (phys_addr_t)child_cpu_info->vm_info.vm_fds + _4KB_,
-        (phys_addr_t)child_cpu_info->vm_info.vm_fds,
-        USER_VMS_PAGE_SIZE,
-        EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
-
+  if (child_cpu_info->vm_info.vm_fds) {
     /* If parent has FDs */
     if (parent_cpu_info->vm_info.vm_fds != NULL) {
       /* Copy all the fds from the parent to the child */
@@ -332,6 +334,7 @@ load_elf (struct cpu_info * const curr_cpu_info, const phys_addr_t elf)
   phys_addr_t old_pstack;
   phys_addr_t old_pgtb;
   phys_addr_t old_ept;
+  phys_addr_t old_fds;
   /*
    * stage2 ELF header contains 4 sections. (look at stage2/link64.ld).
    * These sections are respectively
@@ -358,6 +361,7 @@ load_elf (struct cpu_info * const curr_cpu_info, const phys_addr_t elf)
   old_pstack = curr_cpu_info->vm_info.vm_stack_paddr;
   old_pgtb = curr_cpu_info->vm_info.vm_page_tables;
   old_ept  = curr_cpu_info->vm_info.vm_ept;
+  old_fds  = (phys_addr_t)curr_cpu_info->vm_info.vm_fds;
   /* ========================================= */
   elf_hdr = (Elf64_Ehdr*)elf;  /* Start address of executable */
   /* ========================================= */
@@ -452,6 +456,7 @@ load_elf (struct cpu_info * const curr_cpu_info, const phys_addr_t elf)
   if (old_prodata) free_mem_pages (old_prodata);
   if (old_pbss)    free_mem_pages (old_pbss);
   if (old_pstack)  free_mem_pages (old_pstack);
+  if (old_fds)     free_mem_pages (old_fds);
   free_page_tables (old_pgtb);
   free_page_tables (old_ept);
 #if 0
@@ -510,6 +515,9 @@ local_exec (struct cpu_info * const info, const struct exec_ipc * const exec_arg
   argc = i;  /* Number of arguments */
   /* Parse ELF executable, and load the processes */
   load_elf(info, elf);
+  if (info->vm_info.vm_fds) {
+    info->vm_info.vm_fds = (struct file_descriptor*)alloc_clean_mem_pages (pages (MAX_FD * sizeof(struct file_descriptor), USER_VMS_PAGE_SIZE));
+  }
   /* Map memory for the new processes */
   ept_pmap (info);
   /* Pass arguments. We use stack to store arguments */
@@ -536,17 +544,6 @@ local_exec (struct cpu_info * const info, const struct exec_ipc * const exec_arg
   /* put all already saved virtual addresses of argv entries on stack */
   for (i = 0; i < argc; i++) {
     argv_phys_ptr[i] = (virt_addr_t)argv_ptr[i];
-  }
-
-  if (info->vm_info.vm_fds) {
-    /* TODO Free the channels and unap it */
-    memset (info->vm_info.vm_fds, 0, MAX_FD * sizeof(struct file_descriptor));
-
-    EPT_map_memory (&info->vm_info.vm_ept,
-        (phys_addr_t)info->vm_info.vm_fds, (phys_addr_t)info->vm_info.vm_fds + _4KB_,
-        (phys_addr_t)info->vm_info.vm_fds,
-        USER_VMS_PAGE_SIZE,
-        EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
   }
 
   /* Process stack starts after the address argv is saved */
@@ -587,22 +584,19 @@ local_exit (struct cpu_info * const info, const struct exit_ipc * const exit_arg
     panic ("PM (local_exit): failed to get cpu information!");
   }
 
-  /* Free pages allocated for channels */
-  for (i = 0; i < MAX_FD; i++) {
-    if (info->vm_info.vm_fds[i].type == TYPE_CHAR) {
-      free_mem_pages (info->vm_info.vm_fds[i].offset);
+  if (info->vm_info.vm_fds) {
+    /* Free pages allocated for channels */
+    for (i = 0; i < MAX_FD; i++) {
+      if (info->vm_info.vm_fds[i].type == TYPE_CHAR) {
+        free_mem_pages (info->vm_info.vm_fds[i].offset);
+      }
     }
+    free_mem_pages ((phys_addr_t)info->vm_info.vm_fds);
   }
   /*
    * TODO:
    *     Unmap memory allocated for channels in driver side
    */
-
-  /* Cleanup and free the FDs */
-  if (info->vm_info.vm_fds) {
-    memset (info->vm_info.vm_fds, 0, MAX_FD * sizeof (struct file_descriptor));
-    free_mem_pages ((phys_addr_t)info->vm_info.vm_fds);
-  }
 
   if (parent_info->vm_info.vm_state == WAIT_CHLD) {
     struct waitpid_reply wait_reply;

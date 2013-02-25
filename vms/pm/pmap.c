@@ -348,6 +348,78 @@ unmap_memory (phys_addr_t pml4_paddr, virt_addr_t vaddr)
    *     is going to resume execution after unmapping.
    */
 }
+
+void
+ept_map_page_tables (phys_addr_t *ept, phys_addr_t pml4_paddr, const uint16_t protection)
+{
+  page_table_entry_t *pml4;
+  page_table_entry_t *pdpe;
+  page_table_entry_t *pde;
+  int pml4_idx;
+  int pdpe_idx;
+  int pde_idx;
+
+  if (ept == NULL || pml4_paddr == 0) {
+    panic ("ept_map_page_tables: page tables are not yet created!");
+  }
+
+  pml4 = (page_table_entry_t *)pml4_paddr;
+  EPT_map_memory (ept,
+      (virt_addr_t)pml4,
+      (virt_addr_t)pml4 + PAGE_TABLE_SIZE,
+      (phys_addr_t)pml4,
+      USER_VMS_PAGE_SIZE,
+      protection,
+      MAP_UPDATE);
+
+  for (pml4_idx = 0; pml4_idx < 1/*PAGE_TABLE_ENTRIES*/; pml4_idx++) {
+    pdpe = (page_table_entry_t *)((phys_addr_t)pml4[pml4_idx] & ~0xFFF);
+
+    if (pdpe) {
+      EPT_map_memory (ept,
+          (virt_addr_t)pdpe,
+          (virt_addr_t)pdpe + PAGE_TABLE_SIZE,
+          (phys_addr_t)pdpe,
+          USER_VMS_PAGE_SIZE,
+          protection,
+          MAP_UPDATE);
+      /*
+       * TODO:
+       *    To be in the safe side, the upper bound should be PAGE_TABLE_ENTRIES,
+       *    or it can be dynamically chosen according to the size of memory!
+       */
+      for (pdpe_idx = 0; pdpe_idx < 4/*PAGE_TABLE_ENTRIES*/; pdpe_idx++) {
+
+        if (pdpe[pdpe_idx] && !(pdpe[pdpe_idx] & PAGE_PSE)) {  /* page < 1GB */
+          pde = (page_table_entry_t *)((phys_addr_t)pdpe[pdpe_idx] & ~0xFFF);
+          if (pde) {
+            EPT_map_memory (ept,
+                (virt_addr_t)pde,
+                (virt_addr_t)pde + PAGE_TABLE_SIZE,
+                (phys_addr_t)pde,
+                USER_VMS_PAGE_SIZE,
+                protection,
+                MAP_UPDATE);
+            for (pde_idx = 0; pde_idx < PAGE_TABLE_ENTRIES; pde_idx++) {
+              if (pde[pde_idx] && !(pde[pde_idx] & PAGE_PSE)) { /* page < 2MB */
+                phys_addr_t pte = ((phys_addr_t)pde[pde_idx] & ~0xFFF);
+
+                EPT_map_memory (ept,
+                    (virt_addr_t)pte,
+                    (virt_addr_t)pte + PAGE_TABLE_SIZE,
+                    (phys_addr_t)pte,
+                    USER_VMS_PAGE_SIZE,
+                    protection,
+                    MAP_UPDATE);
+              } /* 4KB if */
+            } /* pde for */
+          } /* pde if */
+        } /* 2MB if */
+      } /* pdpe for */
+    } /* pdpe if */
+  } /* Pml4 for */
+}
+
 void
 free_page_tables (phys_addr_t base)
 {
