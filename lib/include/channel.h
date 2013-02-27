@@ -7,7 +7,7 @@ struct channel {
   bool ready_send;
   bool ready_reply;
   int  result;
-  void *data;
+  char data[1];
 };
 
 void cnl_send(struct channel *cnl);
