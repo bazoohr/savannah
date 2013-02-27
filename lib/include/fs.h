@@ -22,6 +22,10 @@
 #define MAX_PATHNAME    32
 
 // TODO Create just one structure for all the char devices
+struct read_char_rq {
+  size_t count;
+};
+
 struct keyboard_read {
   cpuid_t from;
   void *channel;
