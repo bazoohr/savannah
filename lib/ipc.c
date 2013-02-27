@@ -1,8 +1,10 @@
 #include <ipc.h>
 #include <string.h>
 #include <misc.h>
-#include <debug.h> /* Remove */
-#include <fs.h>   /* Remove */
+#include <panic.h>
+#include <debug.h> /* TODO: Remove after debugging */
+#include <fs.h>   /* TODO: Remove after debugging */
+#include <asmfunc.h> /* TODO: Remove after debugging */
 
 /*
  * msg_send() - Send a message to another process.
@@ -121,6 +123,7 @@ msg_check()
   static volatile int i = 0;
   int from;
   bool *base_r;
+  bool *ready = NULL;
   uint64_t ncpus;
 
   if (! check_server()) {
@@ -132,7 +135,8 @@ msg_check()
   base_r = (bool*)((phys_addr_t)cpuinfo->msg_ready - (_4KB_ * id));
   while (1) {
     while (i < ncpus) {
-      if (*(bool*)((phys_addr_t)base_r + (_4KB_ * i) + id)) {
+      ready = (bool*)((phys_addr_t)base_r + (_4KB_ * i));
+      if (ready[id]) {
         from = i;
         i++;
         break;
@@ -146,7 +150,10 @@ msg_check()
       break;
   }
 
-  *(bool*)((phys_addr_t)base_r + (_4KB_ * from) + id) = false;
+  if (ready == NULL) {
+    panic ("msg_check fatal: ready pointer can not be null!\n");
+  }
+  ready[id] = false;
 
   struct message *base_m = (struct message *)((phys_addr_t)cpuinfo->msg_output - (_4KB_ * id));
 

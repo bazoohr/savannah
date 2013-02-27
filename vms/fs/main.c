@@ -321,9 +321,10 @@ vm_main (void)
   filesystem = cpuinfo->vm_args;
 
 #if 0
-  for (i = 0 ; i < cpuinfo->cpuid; i++) printk("\n");
-
+  int i;
+  for (i = 0 ; i < cpuinfo->cpuid; i++) DEBUG ("\n", 0x7);
   DEBUG  ("FS: My info is in addr = %d\n", 0xD, cpuinfo->cpuid);
+  halt ();
 #endif
 
   while (1) {

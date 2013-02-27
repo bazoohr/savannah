@@ -12,15 +12,19 @@
 #define VMM_STACK_SIZE  0x1000
 #define VM_STACK_SIZE   0x1000
 
-#define NUMBER_SERVERS 2 /* Number of servers to run at booting time */
+#define NUMBER_SERVERS 3 /* Number of servers to run at booting time */
 #define NUMBER_USER_VMS 1
-#define NUMBER_MODULES 7
+#define ALWAYS_BUSY (NUMBER_SERVERS + NUMBER_USER_VMS)
 
-#define PM	0
-#define FS	1
-#define INIT  2
-#define KBD   3
-#define CONSOLE 4
+#define NUMBER_MODULES 8
+
+#define RS  0
+#define PM	1
+#define FS	2
+#define INIT  3
+
+#define KBD   4
+#define CONSOLE 5
 
 #define BSP_PAGE_SIZE  _2MB_
 #define SRVR_VMS_PAGE_SIZE _2MB_

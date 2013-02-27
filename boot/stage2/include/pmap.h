@@ -19,7 +19,7 @@ void map_memory (phys_addr_t *pml4_paddr,
             uint16_t protection,
             int  flags);
 void
-EPT_map_memory (phys_addr_t *pml4_paddr,
+ept_map_memory (phys_addr_t *pml4_paddr,
                 virt_addr_t memory_region_start_vaddr,
                 virt_addr_t memory_region_end_vaddr,
                 phys_addr_t memory_region_start_paddr,

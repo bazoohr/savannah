@@ -31,14 +31,31 @@ pages (size_t sz, size_t pgsz)
   return (sz / pgsz + ((sz % pgsz > 0) ? 1 : 0));
 }
 /* ================================================= */
-struct cpu_info *
+struct cpu_info * __inline
 get_cpu_info (const cpuid_t cpuid)
 {
+  phys_addr_t cpuinfo_base_paddr;
+
   if (cpuid > MAX_CPUS) {
     return NULL;
   }
 
-  return (struct cpu_info *)((phys_addr_t)cpuinfo + cpuid * _4KB_);
+  /*
+   * TODO:
+   *     Create a macro which hold the maximum size of cpu_info structure, and
+   *     use it here (AND EVERYWHERE)  instead of _4KB_
+   */
+  cpuinfo_base_paddr = ((phys_addr_t)cpuinfo - (/*PM's cpuid */cpuinfo->cpuid * _4KB_));
+
+  /* TODO:
+   *     create a function and intitialize if the cpu_info structure is
+   *     greater than _4KB_
+   */
+  /* TODO:
+   *     One test to be done, is to allocate more than one page for one cpuuinfo
+   *     structure, and solve the mess created afterward.
+   */
+  return (struct cpu_info *)(cpuinfo_base_paddr + cpuid * _4KB_);
 }
 /* ================================================= */
 static __inline struct cpu_info *
@@ -777,9 +794,10 @@ vm_main (void)
   pm_init ();
 
 #if 0
-  for (i = 0 ; i < cpuinfo->cpuid; i++) printk("\n");
-
+  int i;
+  for (i = 0 ; i < cpuinfo->cpuid; i++) DEBUG ("\n", 0x7);
   DEBUG ("PM: My info is in addr = %d\n", 0xD, cpuinfo->cpuid);
+  halt ();
 #endif
   while (1) {
     struct message *m __aligned (0x10) = msg_check();
