@@ -2,6 +2,8 @@
 #include <ipc.h>
 #include <string.h>
 #include <config.h>
+#include <panic.h>
+#include <channel.h>
 
 #include <lib_mem.h>
 #include <debug.h>
@@ -41,8 +43,35 @@ int open(const char *pathname, int flags)
   return fd;
 }
 
+int read_char(int fd, void *buf, int count)
+{
+  struct channel *cnl = (struct channel *)cpuinfo->vm_info.vm_fds[fd].offset;
+  struct read_char_rq req;
+
+  if (count >= (_4KB_ - offsetof(struct channel, data) - sizeof(struct read_char_rq))) {
+    panic ("Count too large!");
+  }
+
+  req.count = count;
+
+  memcpy(cnl->data, &req, sizeof (struct read_char_rq));
+
+  cnl_send(cnl);
+  cnl_receive((virt_addr_t)cnl);
+
+  if (cnl->result != -1) {
+    memcpy(buf, cnl->data, cnl->result);
+  }
+
+  return cnl->result;
+}
+
 int read(int fd, void *buf, int count)
 {
+  if (cpuinfo->vm_info.vm_fds[fd].type == TYPE_CHAR) {
+    return read_char(fd, buf, count);
+  }
+
   struct read_ipc tmp;
   struct message *fs_reply;
   struct read_reply *reply_data;
@@ -58,15 +87,41 @@ int read(int fd, void *buf, int count)
 
   reply_data = (struct read_reply *)fs_reply->data;
 
-  if (reply_data->type == TYPE_CHAR) {
-    memcpy(buf, (void*)reply_data->channel, reply_data->count);
+  return reply_data->count;
+}
+
+int write_char(int fd, void *buf, int count)
+{
+  struct channel *cnl = (struct channel *)cpuinfo->vm_info.vm_fds[fd].offset;
+  struct read_char_rq req;
+
+  if (count >= (_4KB_ - offsetof(struct channel, data) - sizeof(struct read_char_rq))) {
+    panic ("Count too large!");
   }
 
-  return reply_data->count;
+  req.count = count;
+
+  memcpy(cnl->data, &req, sizeof (struct read_char_rq));
+  memcpy(cnl->data + sizeof (struct read_char_rq), buf, count);
+
+  cnl_send(cnl);
+  cnl_receive((virt_addr_t)cnl);
+
+  return cnl->result;
 }
 
 int write(int fd, void *buf, int count)
 {
+  if (cpuinfo->vm_info.vm_fds[fd].type == 0) {
+    panic ("Type is worng!");
+  }
+
+  if (cpuinfo->vm_info.vm_fds[fd].type == TYPE_CHAR) {
+    return write_char(fd, buf, count);
+  } else {
+    panic ("Only CHAR devices are available for write");
+  }
+
   struct write_ipc tmp;
   struct message *fs_reply;
   struct write_reply *reply_data;

@@ -10,36 +10,29 @@
 #include <cpuinfo.h>
 #include <fs.h>
 #include <debug.h>
+#include <channel.h>
 /* ========================================== */
 int
 main (int argc, char **argv)
 {
-  struct message *req;
-  struct console_write cwrite;
-  struct write_reply writereply;
+  struct read_char_rq req;
   int i;
-  int from;
+  struct channel *from;
+  void *write_data;
+
   con_init ();
 
   while (1) {
-    from = msg_receive(ANY);
+    from = cnl_receive_any ();
 
-    req = &cpuinfo->msg_input[from];
-    memcpy (&cwrite, req->data, sizeof (struct console_write));
+    memcpy (&req, from->data, sizeof(struct read_char_rq));
+    write_data = (void*)((phys_addr_t)from->data + sizeof(struct read_char_rq));
 
-    for (i = 0 ; i < cwrite.count ; i++) {
-      putc (((char *)cwrite.channel)[i], 0xF);
+    for (i = 0 ; i < req.count ; i++) {
+      putc (((char *)write_data)[i], 0xF);
     }
 
-    /*
-     * cwrite.from MUST be equal to from, else
-     * we are in a trouble
-     */
-    writereply.from = cwrite.from;
-    writereply.count = cwrite.count;
-
-    msg_send (FS, WRITE_ACK, &writereply, sizeof(struct write_reply));
-    msg_receive (FS);
+    cnl_reply(from, req.count);
   }
 
   for (;;);

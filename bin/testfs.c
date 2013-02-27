@@ -8,8 +8,6 @@ int main(int argc, char **argv)
   char content[10];
   int fd, fd2;
 
-  open_std();
-
   memset(content, 0, 10);
 
   fd = open("2.txt", O_RDONLY);

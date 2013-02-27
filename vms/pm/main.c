@@ -168,8 +168,83 @@ ept_pmap (struct cpu_info * const child_cpu_info)
         (phys_addr_t)child_cpu_info->vm_info.vm_fds,
         USER_VMS_PAGE_SIZE,
         EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
+    int i;
+    for (i = 0 ; i < MAX_FD ; i++) {
+      if (child_cpu_info->vm_info.vm_fds[i].offset != 0) {
+        EPT_map_memory (&child_cpu_info->vm_info.vm_ept,
+            (phys_addr_t)child_cpu_info->vm_info.vm_fds[i].offset, (phys_addr_t)child_cpu_info->vm_info.vm_fds[i].offset + _4KB_,
+            (phys_addr_t)child_cpu_info->vm_info.vm_fds[i].offset,
+            USER_VMS_PAGE_SIZE,
+            EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
+      }
+    }
+  }
+  if (child_cpu_info->vm_info.vm_channels > 0) {
+    EPT_map_memory (&child_cpu_info->vm_info.vm_ept,
+        (phys_addr_t)child_cpu_info->vm_info.vm_channels, (phys_addr_t)child_cpu_info->vm_info.vm_channels + _4KB_,
+        (phys_addr_t)child_cpu_info->vm_info.vm_channels,
+        USER_VMS_PAGE_SIZE,
+        EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
+  }
+}
+/* ================================================= */
+static void
+remove_channel_list (phys_addr_t channel)
+{
+  if (channel == 0) {
+    panic ("Removing channel 0!\n");
   }
 
+  struct cpu_info *info;
+  int i, j, k;
+  int found = -1;
+
+  for (i = 0 ; i < cpuinfo->ncpus ; i++) {
+    info = get_cpu_info(i);
+
+    if (info->vm_info.vm_channels == NULL) {
+      continue;
+    }
+
+    for (j = 0 ; j < MAX_CHANNELS ; j++) {
+      if (info->vm_info.vm_channels[j] == channel) {
+        found = j;
+	for (k = j ; k < MAX_CHANNELS - 1 ; k++) {
+          if (info->vm_info.vm_channels[k] == 0) {
+            break;
+	  }
+
+          info->vm_info.vm_channels[k] = info->vm_info.vm_channels[k + 1];
+	  info->vm_info.vm_channels[k + 1] = 0;
+	}
+      }
+    }
+  }
+
+  if (found == -1) {
+    panic ("Channel %x not found!\n", channel);
+  }
+}
+/* ================================================= */
+static void
+add_channel_list (struct cpu_info *info, phys_addr_t channel)
+{
+  if (info->vm_info.vm_channels == NULL) {
+    panic ("Cpu does not have any channel!\n");
+  }
+
+  if (channel == 0) {
+    panic ("Channel is 0!\n");
+  }
+
+  int i;
+
+  for (i = 0 ; i < MAX_CHANNELS ; i++) {
+    if (info->vm_info.vm_channels[i] == 0) {
+      info->vm_info.vm_channels[i] = channel;
+      break;
+    }
+  }
 }
 /* ================================================= */
 static phys_addr_t
@@ -190,6 +265,10 @@ local_channel (const struct channel_ipc * const req)
     panic ("PM: creating channel failed! VM2 does not exist! VM1 = %d & VM2 = %d!\n", cpu1->cpuid, cpu2->cpuid);
   }
 
+  if (!is_driver(cpu2->cpuid)) {
+    panic ("PM: The second end of the channel needs to be always a driver");
+  }
+
   channel = (phys_addr_t)alloc_mem_pages (pages (CHANNEL_SIZE, USER_VMS_PAGE_SIZE));
   if (channel == 0) {
     panic ("PM: Failed to alloced memory!");
@@ -206,6 +285,8 @@ local_channel (const struct channel_ipc * const req)
       channel,
       USER_VMS_PAGE_SIZE,
       EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
+
+  add_channel_list(cpu2, channel);
 
   return channel;
 }
@@ -280,7 +361,12 @@ local_fork (const struct cpu_info * const info, const struct fork_ipc * const fo
 
   /* Allocate memory for FDs if the process is not a driver */
   if (!is_driver(child_cpu_info->cpuid)) {
-    child_cpu_info->vm_info.vm_fds = (struct file_descriptor*)alloc_mem_pages (pages (MAX_FD * sizeof(struct file_descriptor), USER_VMS_PAGE_SIZE));
+    child_cpu_info->vm_info.vm_fds = (struct file_descriptor*)alloc_clean_mem_pages (pages (MAX_FD * sizeof(struct file_descriptor), USER_VMS_PAGE_SIZE));
+  }
+
+  /* Allocate memory for channels for all the drivers */
+  if (is_driver(child_cpu_info->cpuid)) {
+    child_cpu_info->vm_info.vm_channels = (virt_addr_t*)alloc_clean_mem_pages (pages (MAX_CHANNELS * sizeof(virt_addr_t), USER_VMS_PAGE_SIZE));
   }
 
   /*
@@ -289,7 +375,7 @@ local_fork (const struct cpu_info * const info, const struct fork_ipc * const fo
    */
   ept_pmap (child_cpu_info);
 
-  /* Allocate memory for FDs if the process is not a driver */
+  /* Copy the FDs from the parent to the child */
   if (child_cpu_info->vm_info.vm_fds) {
     /* If parent has FDs */
     if (parent_cpu_info->vm_info.vm_fds != NULL) {
@@ -351,7 +437,6 @@ load_elf (struct cpu_info * const curr_cpu_info, const phys_addr_t elf)
   phys_addr_t old_pstack;
   phys_addr_t old_pgtb;
   phys_addr_t old_ept;
-  phys_addr_t old_fds;
   /*
    * stage2 ELF header contains 4 sections. (look at stage2/link64.ld).
    * These sections are respectively
@@ -378,7 +463,6 @@ load_elf (struct cpu_info * const curr_cpu_info, const phys_addr_t elf)
   old_pstack = curr_cpu_info->vm_info.vm_stack_paddr;
   old_pgtb = curr_cpu_info->vm_info.vm_page_tables;
   old_ept  = curr_cpu_info->vm_info.vm_ept;
-  old_fds  = (phys_addr_t)curr_cpu_info->vm_info.vm_fds;
   /* ========================================= */
   elf_hdr = (Elf64_Ehdr*)elf;  /* Start address of executable */
   /* ========================================= */
@@ -473,7 +557,6 @@ load_elf (struct cpu_info * const curr_cpu_info, const phys_addr_t elf)
   if (old_prodata) free_mem_pages (old_prodata);
   if (old_pbss)    free_mem_pages (old_pbss);
   if (old_pstack)  free_mem_pages (old_pstack);
-  if (old_fds)     free_mem_pages (old_fds);
   free_page_tables (old_pgtb);
   free_page_tables (old_ept);
 #if 0
@@ -505,6 +588,8 @@ local_exec (struct cpu_info * const info, const struct exec_ipc * const exec_arg
   msg_data = (phys_addr_t*)cpuinfo->msg_input[FS].data;
   elf = *msg_data;
 
+  /* TODO: Remove the created channels if exec fails */
+
   if (elf == 0) {
     memcpy(&info->vm_info.vm_regs, (void*)exec_args->registers, sizeof(struct regs));
     return -1;
@@ -532,9 +617,6 @@ local_exec (struct cpu_info * const info, const struct exec_ipc * const exec_arg
   argc = i;  /* Number of arguments */
   /* Parse ELF executable, and load the processes */
   load_elf(info, elf);
-  if (info->vm_info.vm_fds) {
-    info->vm_info.vm_fds = (struct file_descriptor*)alloc_clean_mem_pages (pages (MAX_FD * sizeof(struct file_descriptor), USER_VMS_PAGE_SIZE));
-  }
   /* Map memory for the new processes */
   ept_pmap (info);
   /* Pass arguments. We use stack to store arguments */
@@ -605,11 +687,20 @@ local_exit (struct cpu_info * const info, const struct exit_ipc * const exit_arg
     /* Free pages allocated for channels */
     for (i = 0; i < MAX_FD; i++) {
       if (info->vm_info.vm_fds[i].type == TYPE_CHAR) {
+        remove_channel_list(info->vm_info.vm_fds[i].offset);
         free_mem_pages (info->vm_info.vm_fds[i].offset);
+        info->vm_info.vm_fds[i].offset = 0;
       }
     }
     free_mem_pages ((phys_addr_t)info->vm_info.vm_fds);
+    info->vm_info.vm_fds = NULL;
   }
+
+  if (info->vm_info.vm_channels) {
+    free_mem_pages ((virt_addr_t)info->vm_info.vm_channels);
+    info->vm_info.vm_channels = 0;
+  }
+
   /*
    * TODO:
    *     Unmap memory allocated for channels in driver side

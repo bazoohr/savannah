@@ -15,50 +15,30 @@
 #include <fs.h>
 #include <ipc.h>
 #include <string.h>
+#include <channel.h>
 struct system_descriptor gdt[NGDT] __aligned (16);
 /* ========================================== */
 int
 main (int argc, char **argv)
 {
-  struct message *req;
-  struct keyboard_read kbd_rd;
-  struct read_reply readreply;
-  int from;
+  struct read_char_rq req;
+  struct channel *from;
 
   create_new_gdt (gdt, NGDT * sizeof (struct system_descriptor));
   interrupt_init ();
 
-  /*
-  pic_init ();
-  ioapic_init ();
-  lapic_init();
-  kbd_init ();
-  */
-
-#if 0
-  for (i = 0 ; i < cpuinfo->cpuid ; i++) printk("\n");
-  cprintk ("This is the keyboard driver!! %d\n", 0xE, argc);
-#endif
-
   cli ();
 
   while (1) {
-    from = msg_receive (ANY);
+    from = cnl_receive_any ();
 
-    req = &cpuinfo->msg_input[from];
-    memcpy (&kbd_rd, req->data, sizeof (struct keyboard_read));
+    memcpy(&req, from->data, sizeof(struct read_char_rq));
 
-    wait_for_completed_request(kbd_rd.channel, kbd_rd.count);
+    wait_for_completed_request((char*)from->data, req.count);
 
     cli ();
 
-    readreply.from = kbd_rd.from;
-    readreply.type = TYPE_CHAR;
-    readreply.count = kbd_rd.count;
-    readreply.channel = kbd_rd.channel;
-
-    msg_send (FS, READ_ACK, &readreply, sizeof(struct read_reply));
-    msg_receive (FS);
+    cnl_reply(from, req.count);
   }
 
   for (;;);

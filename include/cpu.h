@@ -22,6 +22,7 @@ struct file_descriptor {
 	uint32_t type;    /* Type of the file (normal file, char, block ...) */
 	uint32_t length;  /* File length */
 	uint64_t dst;     /* Cpuid of the destination (for CHAR or BLOCK fds) */
+	/* TODO Use a union for offset/channel */
 	uint64_t offset;  /* Offset where the file is located starting from
 			   * the beginning of the file */
 };
@@ -186,6 +187,7 @@ struct vm_proc {
   phys_addr_t vm_vmxon_ptr;  // VMXON pointer   (must be 4KB aligned)
 
   struct file_descriptor *vm_fds;
+  virt_addr_t *vm_channels;
 };
 
 struct vmm_proc {
