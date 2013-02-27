@@ -1,5 +1,7 @@
 #include <lib_mem.h>
-#include <printf.h>
+#include <debug.h>
+#include <asmfunc.h>
+#include <panic.h>
 phys_addr_t
 virt2phys (struct cpu_info *cpuinfo, virt_addr_t vaddr)
 {
@@ -7,11 +9,11 @@ virt2phys (struct cpu_info *cpuinfo, virt_addr_t vaddr)
   size_t offset;
 
 #if 0
-  printf ("vm_start = %x vm_end = %x\n", cpuinfo->vm_info.vm_start_vaddr,
+  DEBUG ("id = %d vm_start = %x vm_end = %x\n", 0xA, cpuinfo->cpuid, cpuinfo->vm_info.vm_start_vaddr,
       cpuinfo->vm_info.vm_end_vaddr);
-  printf ("vm_start = %x vm_end = %x\n", cpuinfo->vm_info.vm_start_paddr,
+  DEBUG ("vm_start = %x vm_end = %x\n", 0xA, cpuinfo->vm_info.vm_start_paddr,
       cpuinfo->vm_info.vm_end_paddr);
-  printf ("vaddr = %x\n", vaddr);
+  DEBUG ("vaddr = %x\n", 0x4, vaddr);
 #endif
   if (vaddr >= cpuinfo->vm_info.vm_code_vaddr &&
       vaddr < cpuinfo->vm_info.vm_data_vaddr) {
@@ -39,8 +41,8 @@ virt2phys (struct cpu_info *cpuinfo, virt_addr_t vaddr)
     paddr = cpuinfo->vm_info.vm_stack_paddr + offset;
     return paddr;
   } else {
-    printf ("%s: Virt2Phys: address out of range!", __FILE__);
-    for (;;);
+    panic ("virt2phys: Virt2Phys: address out of range!");
   }
+  return (phys_addr_t)0;
 }
 

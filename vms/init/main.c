@@ -15,9 +15,13 @@ vm_main (void)
 {
   int i;
 
+#if 0
   for (i = 0 ; i < cpuinfo->cpuid ; i++) DEBUG ("\n", 0x7);
+  DEBUG ("This is init %d\n", 0xA, cpuinfo->cpuid);
+  halt ();
+#endif
 
-  if (cpuinfo->cpuid == 3) {
+  if (cpuinfo->cpuid == 4) {
     DEBUG  ("THIS IS CHILD!\n", 0x2);
     while (1) {__asm__ __volatile__ ("cli;pause;\n\t");}
   }

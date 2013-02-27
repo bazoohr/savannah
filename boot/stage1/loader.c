@@ -104,6 +104,7 @@ boot_loader (unsigned long magic, unsigned long addr)
   phys_addr_t vmm_elf_addr          = 0;
   phys_addr_t pm_elf_addr           = 0;
   phys_addr_t fs_elf_addr           = 0;
+  phys_addr_t rs_elf_addr           = 0;
   phys_addr_t init_elf_addr         = 0;
   phys_addr_t initrd_elf_addr       = 0;
   size_t memory_size                = 0;
@@ -143,6 +144,7 @@ boot_loader (unsigned long magic, unsigned long addr)
     }
     mod = (multiboot_module_t*)mbi->mods_addr;
     /* ================================ */
+    /* Stage2 */
     boot_stage2_elf_addr = (phys_addr_t)mod->mod_start;
     if (mod->mod_end > 0x200000) {
       printf ("ERROR: loaded module overlaps with stage2 start address\n");
@@ -150,6 +152,7 @@ boot_loader (unsigned long magic, unsigned long addr)
     }
     mod++;
     /* ================================ */
+    /* Loading bootaps.S */
     boot_aps_bin_addr = (phys_addr_t)mod->mod_start;
     if (mod->mod_end > 0x200000) {
       printf ("ERROR: loaded module overlaps with VMM start address\n");
@@ -176,6 +179,14 @@ boot_loader (unsigned long magic, unsigned long addr)
     /* ================================ */
     /* FS is loaded here */
     fs_elf_addr = (phys_addr_t)mod->mod_start;
+    if (mod->mod_end > 0x200000) {
+      printf ("ERROR: loaded module overlaps with VMM start address\n");
+      halt ();
+    }
+    mod++;
+    /* ================================ */
+    /* Reincarnation server is loaded here */
+    rs_elf_addr = (phys_addr_t)mod->mod_start;
     if (mod->mod_end > 0x200000) {
       printf ("ERROR: loaded module overlaps with VMM start address\n");
       halt ();
@@ -214,6 +225,7 @@ boot_loader (unsigned long magic, unsigned long addr)
   stage2_args.vmm_elf_addr         = vmm_elf_addr;
   stage2_args.pm_elf_addr          = pm_elf_addr;
   stage2_args.fs_elf_addr          = fs_elf_addr;
+  stage2_args.rs_elf_addr          = rs_elf_addr;
   stage2_args.init_elf_addr        = init_elf_addr;
   stage2_args.initrd_elf_addr      = initrd_elf_addr;
   stage2 (&stage2_args);    /* Call stage2 */

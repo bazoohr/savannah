@@ -14,6 +14,7 @@ boot_stage2="boot_stage2"
 vmm="vmm"
 pm="pm"
 fs="fs"
+rs="rs"
 init="init"
 initrd="initrd.img"
 usrlib="libos.a"
@@ -46,6 +47,13 @@ for opt do
       exit 1;
     fi
     fs="$optarg"
+  ;;
+  --rs-name=*)
+    if test "$optarg" = ""; then
+      echo "rs name can not be empty string!";
+      exit 1;
+    fi
+    rs="$optarg"
   ;;
   --init-name=*)
     if test "$optarg" = ""; then
@@ -111,6 +119,7 @@ if test "$show_help" = "yes"; then
   echo "--vmm-name          Change default vmm name. Default vmm name is \"vmm.bin\"."
   echo "--pm-name           Change default pm name. Default pm name is \"pm\"."
   echo "--fs-name           Change default fs name. Default fs name is \"fs\"."
+  echo "--rs-name           Change default rsnation server name. Default fs name is \"rs\"."
   echo "--init-name         Change default init name. Default fs name is \"init\"."
   echo "--initrd-name       Change default initrd name. Default fs name is \"initrd.img\"."
   echo "--boot_stage1-name  Change default loader name. Default loader name is \"stage1.bin\"."
@@ -187,6 +196,7 @@ echo "export BOOT_STAGE2 = $boot_stage2"     >> $output
 echo "export VMM         = $vmm"     >> $output
 echo "export PM          = $pm"     >> $output
 echo "export FS          = $fs"     >> $output
+echo "export RS          = $rs"     >> $output
 echo "export INIT        = $init"     >> $output
 echo "export INITRD      = $initrd"     >> $output
 echo "export IMAGE       = $image_name" >> $output

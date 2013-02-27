@@ -27,16 +27,19 @@ SECTIONS
 			*(.text)
 			_etext = .;
 		}:text
+  . = ALIGN (0x1000);
 	.data :
 		{
 			*(.data)
 			_edata = .;
 		}:data
+  . = ALIGN (0x1000);
 	.rodata :
 		{
 			*(.rodata)
 			_erodata = .;
 		}:rodata
+  . = ALIGN (0x1000);
 	.bss :
 		{
 			*(.bss)

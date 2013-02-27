@@ -135,11 +135,11 @@ mp_bootothers (void)
                         "movq %2, %%rdi\n\t"
                         "movq %4, %%rax\n\t"
                         "jmp *%%rax\n\t"::
-                        "r"(get_cpu_info (0)->vmm_info.vmm_page_tables),
-                        "r"(get_cpu_info(0)->vmm_info.vmm_regs.rsp),
-                        "r"(get_cpu_info (0)),
+                        "r"(get_cpu_info (RS)->vmm_info.vmm_page_tables),
+                        "r"(get_cpu_info(RS)->vmm_info.vmm_regs.rsp),
+                        "r"(get_cpu_info (RS)),
                         "r"(CPU_INFO_PTR_ADDR),
-                        "r"(get_cpu_info (0)->vmm_info.vmm_start_vaddr)
+                        "r"(get_cpu_info (RS)->vmm_info.vmm_start_vaddr)
                         );
   /* We MUST NOT get to this point */
   panic ("Failed to run VMM on BootStrap Processor");
