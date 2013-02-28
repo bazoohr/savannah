@@ -15,6 +15,7 @@ vms/pm/include/asm_frame_const.h
 vms/pm/pm
 vms/init/init
 vms/init/include/asm_frame_const.h
+vms/rs/rs
 lib/include/asm_cpu_const.h
 drivers/keyboard/include/asm_boot_stage2_args_const.h
 drivers/keyboard/include/asm_frame_const.h
