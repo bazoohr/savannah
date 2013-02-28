@@ -25,7 +25,7 @@ ASFLAGS += -no-integrated-as
 endif
 # ===================================
 ifeq ($(DEBUG),yes)
-CFLAGS += -D__DEBUG__
+CFLAGS  += -D__DEBUG__
 ASFLAGS += -D__DEBUG__
 endif
 # ===================================

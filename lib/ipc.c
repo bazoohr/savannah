@@ -188,6 +188,7 @@ msg_reply(const int from, const int to, const int number, const void *data, cons
   struct message *inbox;
 
   if (! check_server()) {
+    panic ("Only Servers can use msg_reply!");
     return;
   }
 

@@ -7,8 +7,10 @@
 #include <panic.h>
 /* ================================================== */
 static struct cpu_info *cpuinfo_table[MAX_CPUS];
-/* ================================================== */
 static uint64_t ncpus = 0;
+/* ================================================== */
+static bool first_time = true;
+static struct cpu_info *cpuinfo_pool;
 /* ================================================== */
 uint64_t
 rdmsr (uint32_t ecx)
@@ -98,7 +100,7 @@ tlb_flush_global (void)
 	if (cr4 & CR4_PGE) {
 		lcr4(cr4 & ~CR4_PGE);
 		lcr4(cr4);
-	} else 
+	} else
 		lcr3(rcr3());
 }
 /* ================================================== */
@@ -128,9 +130,6 @@ halt(void)
     __asm__ __volatile__ ("cli;hlt\n");
   }
 }
-/* ================================================== */
-static bool first_time = true;
-static struct cpu_info *cpuinfo_pool;
 /* ================================================== */
 void
 allocate_cpuinfo_pool (void)

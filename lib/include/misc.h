@@ -3,7 +3,6 @@
 
 #include <types.h>
 
-void wait_ready(void);
 int check_server(void);
 bool is_driver(cpuid_t id);
 

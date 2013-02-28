@@ -5,6 +5,8 @@
 #include <string.h>
 #include <config.h>
 #include <macro.h>
+#include <asmfunc.h> /* TODO: remove this after debug! */
+#include <debug.h> /* TODO: remove this after debug! */
 
 struct block_node {
   phys_addr_t b_start_addr;

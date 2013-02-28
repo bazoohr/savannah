@@ -237,22 +237,10 @@ load_all_vmms (phys_addr_t vmm_elf_addr, phys_addr_t boot_stage2_end_addr)
                  VMM_PAGE_NORMAL, MAP_UPDATE);
 
   }
-  /* =============================================== */
-  /* XXX:
-   *    After booting the system, NOT all cpus have
-   *    VMs to run, therefore we have to somehow indicate
-   *    which VMMs should launch a VM and which should not.
-   *    if both start virtual & physical addresses of a VM
-   *    are zero, VMM will not try to launch any VM.
-   */
-  for (i = ALWAYS_BUSY; i < get_ncpus (); i++) {
-    get_cpu_info (i)->vm_info.vm_start_vaddr = 0;
-    get_cpu_info (i)->vm_info.vm_start_paddr = 0;
-  }
 #undef VIRT2PHYS
 }
 static void
-load_vms_others (cpuid_t cpuid, phys_addr_t vm_elf_paddr)
+load_other_vms (cpuid_t cpuid, phys_addr_t vm_elf_paddr)
 {
   size_t vm_size;     /* VMM's Code + data + rodata + bss + stack */
   int ph_num;          /* VMM's number of program headers */
@@ -378,7 +366,7 @@ load_vms_others (cpuid_t cpuid, phys_addr_t vm_elf_paddr)
 #endif
 }
 static void
-load_vms_pm_fs (cpuid_t cpuid, phys_addr_t vm_elf_paddr)
+load_server_vms (cpuid_t cpuid, phys_addr_t vm_elf_paddr)
 {
   Elf64_Ehdr *elf_hdr;  /* Start address of executable */
   Elf64_Phdr *s;
@@ -552,7 +540,7 @@ load_vms_pm_fs (cpuid_t cpuid, phys_addr_t vm_elf_paddr)
 }
 /* ========================================== */
 static void
-ept_map_memory_others (struct cpu_info *curr_cpu_info)
+ept_map_memory_other (struct cpu_info *curr_cpu_info)
 {
   map_memory (&curr_cpu_info->vm_info.vm_page_tables,
       0, (virt_addr_t)((virt_addr_t)_1GB_ * 4),
@@ -638,7 +626,7 @@ ept_map_memory_others (struct cpu_info *curr_cpu_info)
 }
 /* ========================================== */
 static void
-ept_map_memory_pm_fs (struct cpu_info *curr_cpu_info)
+ept_map_memory_server (struct cpu_info *curr_cpu_info)
 {
   map_memory (&curr_cpu_info->vm_info.vm_page_tables,
       0, (virt_addr_t)((virt_addr_t)_1GB_ * 4),
@@ -655,16 +643,29 @@ ept_map_memory_pm_fs (struct cpu_info *curr_cpu_info)
 static void
 load_all_vms (phys_addr_t *vms_array, phys_addr_t boot_stage2_end_addr)
 {
-  load_vms_pm_fs (PM, vms_array[PM]);
-  load_vms_pm_fs (FS, vms_array[FS]);
-  load_vms_others (RS, vms_array[RS]);
-  load_vms_others (INIT, vms_array[INIT]);
+  int i;
+  struct cpu_info *curr_cpu_info;
 
-  ept_map_memory_pm_fs (get_cpu_info (PM));
-  ept_map_memory_pm_fs (get_cpu_info (FS));
-  ept_map_memory_others (get_cpu_info (RS));
-  ept_map_memory_others (get_cpu_info (INIT));
+  /* Order of loading is important. Don't change it! */
+  load_server_vms (RS, vms_array[RS]);
+  load_server_vms (PM, vms_array[PM]);
+  load_server_vms (FS, vms_array[FS]);
+  load_other_vms (INIT, vms_array[INIT]);
 
+  ept_map_memory_server (get_cpu_info (RS));
+  ept_map_memory_server (get_cpu_info (PM));
+  ept_map_memory_server (get_cpu_info (FS));
+  ept_map_memory_other  (get_cpu_info (INIT));
+
+  /*
+   * We save a pointer to cpu_info structure of each CPU
+   * in rdi registers. This way we let VMs about their
+   * cpu information.
+   */
+  for (i = 0; i < ALWAYS_BUSY; i++) {
+    curr_cpu_info = get_cpu_info (i);
+    curr_cpu_info->vm_info.vm_regs.rdi = (phys_addr_t)curr_cpu_info;
+  }
 #if 0
   cprintk ("PM: msg_ready %x msg_input %x msg_output = %x\n", 0xA, get_cpu_info (PM)->msg_ready, get_cpu_info (PM)->msg_input, get_cpu_info(PM)->msg_output);
   cprintk ("FS: msg_ready %x msg_input %x msg_output = %x\n", 0xA, get_cpu_info (FS)->msg_ready, get_cpu_info (FS)->msg_input, get_cpu_info(FS)->msg_output);

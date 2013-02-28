@@ -341,56 +341,57 @@ vm_main (void)
     phys_addr_t f;
 
     switch(m->number) {
-    case OPEN_IPC:
-      if (is_driver(m->from)) {
-        r = -1;
-        msg_reply(FS, m->from, OPEN_IPC, &r, sizeof(int));
+      case OPEN_IPC:
+        if (is_driver(m->from)) {
+          r = -1;
+          msg_reply(FS, m->from, OPEN_IPC, &r, sizeof(int));
+          break;
+        }
+        memcpy(&opentmp, m->data, sizeof(struct open_ipc));
+        local_open(opentmp.pathname, opentmp.flags, m->from, &openreply);
+        msg_reply(FS, m->from, OPEN_IPC, &openreply, sizeof(struct open_reply));
         break;
-      }
-      memcpy(&opentmp, m->data, sizeof(struct open_ipc));
-      local_open(opentmp.pathname, opentmp.flags, m->from, &openreply);
-      msg_reply(FS, m->from, OPEN_IPC, &openreply, sizeof(struct open_reply));
-      break;
-    case READ_IPC:
-      memcpy(&readtmp, m->data, sizeof(struct read_ipc));
-      r = local_read(readtmp.fd, readtmp.buf, readtmp.count, m->from);
-      if (get_type(readtmp.fd, m->from) == TYPE_FILE) {
-        readreply.type = TYPE_FILE;
-        readreply.count = r;
-	readreply.channel = NULL;
-        msg_reply(FS, m->from, READ_IPC, &readreply, sizeof(struct read_reply));
-      }
-      break;
-    case CLOSE_IPC:
-      memcpy(&closetmp, m->data, sizeof(struct close_ipc));
-      r = local_close(closetmp.fd, m->from);
-      msg_reply(FS, m->from, CLOSE_IPC, &r, sizeof(int));
-      break;
-    case LOAD_IPC:
-      if (m->from != PM) {
-        f = 0;
+      case READ_IPC:
+        memcpy(&readtmp, m->data, sizeof(struct read_ipc));
+        r = local_read(readtmp.fd, readtmp.buf, readtmp.count, m->from);
+        if (get_type(readtmp.fd, m->from) == TYPE_FILE) {
+          readreply.type = TYPE_FILE;
+          readreply.count = r;
+          readreply.channel = NULL;
+          msg_reply(FS, m->from, READ_IPC, &readreply, sizeof(struct read_reply));
+        }
+        break;
+      case CLOSE_IPC:
+        memcpy(&closetmp, m->data, sizeof(struct close_ipc));
+        r = local_close(closetmp.fd, m->from);
+        msg_reply(FS, m->from, CLOSE_IPC, &r, sizeof(int));
+        break;
+      case LOAD_IPC:
+        if (m->from != PM) {
+          f = 0;
+          msg_reply(FS, m->from, LOAD_IPC, &f, sizeof(phys_addr_t));
+          break;
+        }
+        f = local_load(m->data);
         msg_reply(FS, m->from, LOAD_IPC, &f, sizeof(phys_addr_t));
         break;
-      }
-      f = local_load(m->data);
-      msg_reply(FS, m->from, LOAD_IPC, &f, sizeof(phys_addr_t));
-      break;
-    case WRITE_IPC:
-      writeipc = (struct write_ipc*)m->data;
-      local_write(writeipc->fd, writeipc->buf, writeipc->count, m->from);
-      break;
-    case READ_ACK:
-      reply = (struct read_reply *)m->data;
-      msg_reply(FS, reply->from, READ_IPC, reply, sizeof(struct read_reply));
-      msg_reply(FS, KBD, READ_IPC, reply, sizeof(struct read_reply));
-      break;
-    case WRITE_ACK:
-      writereply = (struct write_reply *)m->data;
-      msg_reply(FS, writereply->from, WRITE_IPC, writereply, sizeof(struct write_reply));
-      msg_reply(FS, CONSOLE, WRITE_IPC, writereply, sizeof(struct write_reply));
-      break;
-    default:
-      DEBUG ("FS: Warning, unknown request %d\n", 0xD, m->number);
+      case WRITE_IPC:
+        writeipc = (struct write_ipc*)m->data;
+        local_write(writeipc->fd, writeipc->buf, writeipc->count, m->from);
+        break;
+      case READ_ACK:
+        reply = (struct read_reply *)m->data;
+        msg_reply(FS, reply->from, READ_IPC, reply, sizeof(struct read_reply));
+        msg_reply(FS, KBD, READ_IPC, reply, sizeof(struct read_reply));
+        break;
+      case WRITE_ACK:
+        writereply = (struct write_reply *)m->data;
+        msg_reply(FS, writereply->from, WRITE_IPC, writereply, sizeof(struct write_reply));
+        msg_reply(FS, CONSOLE, WRITE_IPC, writereply, sizeof(struct write_reply));
+        break;
+      default:
+        DEBUG ("FS: Warning, unknown request %d\n", 0xD, m->number);
+        break;
     }
   }
 

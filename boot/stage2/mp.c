@@ -105,21 +105,8 @@ mp_bootothers (void)
 
     lapic_startaps (cpu->lapic_id);
 
-    while (!cpu->msg_ready[0])
+    while (!cpu->ready)
       /* Wait*/;
-
-    cpu->msg_ready[0] = false;
-  }
-  /*
-   * TODO: Find a better place to put this loop; Probably the best
-   *       place would be PM code.
-   * NOTE:
-   *       We are leaving this loop here, so that if we changed the
-   *       page tables at sometime, it will (MAYBE) break, and helps
-   *       us finding the bug.
-   */
-  for (i = 0 ; i < get_ncpus () ; i++) {
-    get_cpu_info (i)->ready = 1;
   }
   /*
    * XXX:

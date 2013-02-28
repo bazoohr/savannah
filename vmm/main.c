@@ -9,6 +9,7 @@
 #include <ipc.h>
 #include <config.h>
 #include <gdt.h>
+#include <panic.h>
 /* ========================================== */
 struct system_descriptor gdt[NGDT] __aligned (16);
 /* ========================================== */
@@ -19,22 +20,16 @@ vmm_main (void)
 
   interrupt_init ();
 
-  if (cpuinfo->vm_info.vm_start_vaddr == 0) {
+  cpuinfo->ready = true;
 
-    if (cpuinfo->vm_info.vm_start_paddr != 0) {
-      DEBUG ("VMM[%d]: misconfigured VM information\n", 0x4, cpuinfo->cpuid);
-      halt ();
-    }
-
-    cpuinfo->msg_ready[0] = true;
-
-    while(! cpuinfo->ready);
-
+  if (cpuinfo->cpuid != RS) {
+    msg_receive (RS);
+  }
+  if (! cpuinfo->vmm_info.vmm_has_vm) {
     msg_receive (PM);
   }
   /* ================================== */
   vmx_init ();
   /* ================================== */
-  DEBUG ("We should NEVER get here!\n", 0x4);
-  halt ();
+  panic ("VMM fatal: I MUST NEVER exit!!");
 }

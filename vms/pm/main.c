@@ -269,7 +269,7 @@ local_channel (const struct channel_ipc * const req)
     panic ("PM: The second end of the channel needs to be always a driver");
   }
 
-  channel = (phys_addr_t)alloc_mem_pages (pages (CHANNEL_SIZE, USER_VMS_PAGE_SIZE));
+  channel = (phys_addr_t)alloc_clean_mem_pages (pages (CHANNEL_SIZE, USER_VMS_PAGE_SIZE));
   if (channel == 0) {
     panic ("PM: Failed to alloced memory!");
   }
