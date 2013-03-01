@@ -8,15 +8,18 @@
 #include <printk.h>
 #include <cpu.h>
 #include <memory.h>
-
+#include <cpuinfo.h>
+/* ============================================= */
 #define IOAPICPA   0xFEC00000	// Default physical address of IO APIC
-
+/* ============================================= */
 #define MP_PROC    0x00         // One per processor
 #define MP_BUS     0x01         // One per bus
 #define MP_IOAPIC  0x02         // One per I/O APIC
 #define MP_IOINTR  0x03         // One per bus interrupt source
 #define MP_LINTR   0x04         // One per system interrupt source
-
+/* ============================================= */
+struct cpu_info * add_cpu ();
+/* ============================================= */
 struct mp_fptr {
 	uint8_t signature[4];       // "_MP_"
 	uint32_t physaddr;          // phys addr of MP config table
@@ -51,7 +54,6 @@ struct mp_proc {
     uint32_t feature;		// feature flags from CPUID instruction
     uint8_t reserved[8];
 };
-
 struct mp_ioapic {
     uint8_t type;		// entry type (2)
     uint8_t apicno;		// I/O APIC id
@@ -59,14 +61,13 @@ struct mp_ioapic {
     uint8_t flags;		// I/O APIC flags
     uint32_t addr;		// I/O APIC address
 };
-
 struct mp_bus {
     uint8_t type;		// entry type(1)
     uint8_t busid;		// bus id
     char busstr[6];		// string which identifies the type of this bus
 };
-
-uint8_t
+/* ============================================= */
+static uint8_t
 sum (uint8_t *a, uint32_t length)
 {
 	uint8_t s = 0;
@@ -76,8 +77,8 @@ sum (uint8_t *a, uint32_t length)
 	}
 	return s;
 }
-
-struct mp_fptr *
+/* ============================================= */
+static struct mp_fptr *
 mp_search (phys_addr_t pa, int len)
 {
 	uint8_t *start = (uint8_t *)(pa);
@@ -91,7 +92,7 @@ mp_search (phys_addr_t pa, int len)
 
 	return 0;
 }
-
+/* ============================================= */
 void
 mp_bootothers (void)
 {
@@ -131,6 +132,7 @@ mp_bootothers (void)
   /* We MUST NOT get to this point */
   panic ("Failed to run VMM on BootStrap Processor");
 }
+/* ============================================= */
 void
 mp_init(void)
 {

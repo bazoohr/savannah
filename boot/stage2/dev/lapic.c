@@ -10,7 +10,7 @@
 #include <cpu.h>
 #include <mp.h>
 #include <interrupt.h>
-#include <cpu.h>
+#include <cpuinfo.h>
 
 uint32_t
 lapic_read(uint32_t off)

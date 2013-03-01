@@ -11,12 +11,10 @@
 #include <gdt.h>
 #include <panic.h>
 /* ========================================== */
-struct system_descriptor gdt[NGDT] __aligned (16);
-/* ========================================== */
 void
 vmm_main (void)
 {
-  create_new_gdt (gdt, NGDT * sizeof (struct system_descriptor));
+  create_default_gdt ();
 
   interrupt_init ();
 

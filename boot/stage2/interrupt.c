@@ -1,6 +1,5 @@
 #include <trap.h>
 #include <isr.h>
-#include <segment.h>
 #include <dev/ioapic.h>
 #include <dev/pic.h>
 #include <asmfunc.h>

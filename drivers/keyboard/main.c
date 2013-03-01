@@ -16,7 +16,6 @@
 #include <ipc.h>
 #include <string.h>
 #include <channel.h>
-struct system_descriptor gdt[NGDT] __aligned (16);
 /* ========================================== */
 int
 main (int argc, char **argv)
@@ -24,7 +23,7 @@ main (int argc, char **argv)
   struct read_char_rq req;
   struct channel *from;
 
-  create_new_gdt (gdt, NGDT * sizeof (struct system_descriptor));
+  create_default_gdt ();
   interrupt_init ();
 
   cli ();

@@ -53,7 +53,7 @@ cont:
   movl 4(%esp), %ebx
   movl $0x1000, BOOT_STAGE2_PGTB(%ebx)
 
-  movl 4(%esp), %edi  /* Save kernel arguments. */
+  movl 4(%esp), %edi  /* Save stage2 arguments. */
   /* Going to enable long-mode */
 	movl %cr4, %eax
 	btsl $5, %eax
@@ -88,7 +88,7 @@ cont:
 start_64:
   /*
    * XXX:
-   *     RDI contains kernel arguments. Don't change its contents.
+   *     RDI contains stage2 arguments. Don't change its contents.
    */
   movq $(bootdata - GDT), %rax     /* 0x18 is data selector, look at GDT */
   movq %rax, %ds       /* Load data selector into ds, es, fs, gs*/
@@ -105,14 +105,14 @@ start_64:
    *
    * movq $cpus + CPU_STACK + KNL_STACK_SIZE, %rsp
    */
-  /* Setup BSP's kernel stack (BSP's cpuid = 0) */
+  /* Setup BSP's stage2 stack (BSP's cpuid = 0) */
   movq $0xA0000, %rsp
   movq %rsp, %rbp
-  /* Switch to kernel's new GDT */
-  pushq %rdi      /* Save rdi (kernel Arguments) */
-  callq create_new_gdt
-  popq %rdi       /* Reload rdi (kernel Arguments) */
-  /* Now we call main () of kernel */
+  /* Switch to stage2's new GDT */
+  pushq %rdi      /* Save rdi (stage2's Arguments) */
+  callq create_default_gdt
+  popq %rdi       /* Reload rdi (stage2's Arguments) */
+  /* Now we call main () of stage2's main */
   movq $0, %rax
   movl %edi, %eax
   movq %rax, %rdi

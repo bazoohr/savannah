@@ -31,7 +31,7 @@ pages (size_t sz, size_t pgsz)
   return (sz / pgsz + ((sz % pgsz > 0) ? 1 : 0));
 }
 /* ================================================= */
-struct cpu_info * __inline
+static struct cpu_info * __inline
 get_cpu_info (const cpuid_t cpuid)
 {
   phys_addr_t cpuinfo_base_paddr;

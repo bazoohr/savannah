@@ -35,11 +35,8 @@ exec (char *path, char **argv)
 
   strncpy(exec_args.path, path, len);
   exec_args.path[len] = '\0';
-  if (argv != NULL) {
-    exec_args.argv = (char **)virt2phys (cpuinfo, (virt_addr_t)argv);
-  } else {
-    exec_args.argv = NULL;
-  }
+
+  exec_args.argv = argv != NULL ? (char **)virt2phys (cpuinfo, (virt_addr_t)argv) : NULL;
 
   /* Save the content of %rdi into RDI_IDX in cpuinfo */
   __asm__ __volatile__ (
@@ -51,6 +48,14 @@ exec (char *path, char **argv)
       [VM_REGS_RAX_IDX]"i"(offsetof (struct regs, rax))
   );
   /* Save the content of cpuinfo in %rdi */
+  /*
+   * TODO:
+   *     We most probably in future need to save some other registers
+   *     including all segment registers, cr3, cr4, ... so that if exec
+   *     fails we correctly restore the state of current executing VM.
+   *
+   *     At the moment, we are not going to cover those situations.
+   */
   __asm__ __volatile__ (
       "pushfq;popq %%rax;movq %%rax, %c[VM_REGS_RFLAGS_IDX](%0)\n\t"
       "movq $exec_resume, %c[VM_REGS_RIP_IDX](%0)\n\t"

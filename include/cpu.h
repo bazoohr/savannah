@@ -234,9 +234,6 @@ struct cpu_info {
   struct message *msg_output;
   bool * volatile msg_ready;
 };
-struct cpu_info * add_cpu ();
-struct cpu_info * get_cpu_info (cpuid_t cpuid);
-uint64_t get_ncpus (void);
 
 #endif
 /* ===============================================
