@@ -186,10 +186,6 @@ load_all_vmms (phys_addr_t vmm_elf_addr, phys_addr_t boot_stage2_end_addr)
         curr_cpu_info->vmm_info.vmm_stack_paddr, curr_cpu_info->vmm_info.vmm_end_paddr);
 #endif
 
-    /* Message Box */
-    curr_cpu_info->msg_input  = get_msg_input(curr_cpu);
-    curr_cpu_info->msg_output = get_msg_output(curr_cpu);
-    curr_cpu_info->msg_ready  = get_msg_ready(curr_cpu);
   } /* For */
 
   for (curr_cpu = 0; curr_cpu < get_ncpus (); curr_cpu++) {
@@ -249,7 +245,7 @@ load_all_vmms (phys_addr_t vmm_elf_addr, phys_addr_t boot_stage2_end_addr)
    *    if both start virtual & physical addresses of a VM
    *    are zero, VMM will not try to launch any VM.
    */
-  for (i = NUMBER_SERVERS; i < get_ncpus (); i++) {
+  for (i = ALWAYS_BUSY; i < get_ncpus (); i++) {
     get_cpu_info (i)->vm_info.vm_start_vaddr = 0;
     get_cpu_info (i)->vm_info.vm_start_paddr = 0;
   }
@@ -691,6 +687,7 @@ set_vm_args (struct boot_stage2_args *boot_args)
 void
 boot_stage2_main (struct boot_stage2_args *boot_args)
 {
+  int i;
   phys_addr_t vms_elf_array[ALWAYS_BUSY];
 
   vms_elf_array[RS] = boot_args->rs_elf_addr;
@@ -709,14 +706,23 @@ boot_stage2_main (struct boot_stage2_args *boot_args)
   msg_output = (struct message *)calloc_align (sizeof (uint8_t), get_ncpus() * _4KB_, _2MB_);
   msg_ready = (bool *)calloc_align (sizeof (uint8_t), get_ncpus() * _4KB_, _2MB_);
 
+  for (i = 0; i < get_ncpus (); i++) {
+    struct cpu_info *cpu;
+
+    cpu = get_cpu_info (i);
+    cpu->msg_input  = get_msg_input(i);
+    cpu->msg_output = get_msg_output(i);
+    cpu->msg_ready  = get_msg_ready(i);
+  }
+
   interrupt_init ();
 
   pic_init ();
   ioapic_init ();
   lapic_init();
   kbd_init ();
-  load_all_vmms (boot_args->vmm_elf_addr, boot_args->boot_stage2_end_addr);
   load_all_vms (vms_elf_array, boot_args->boot_stage2_end_addr);
+  load_all_vmms (boot_args->vmm_elf_addr, boot_args->boot_stage2_end_addr);
   /* NOTE:
    *  Since we are setting the PM->last_used_addr, no one after this function
    *  call should allocate any more memory before PM is booted.
