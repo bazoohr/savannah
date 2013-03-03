@@ -39,6 +39,7 @@ tools/gen_asm_frame_const_h
 bin/login
 bin/test
 bin/testfs
+bin/testcnl
 
 tools/create_initrd
 

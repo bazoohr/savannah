@@ -15,6 +15,7 @@ puts (char *str)
 	write(1, str, strlen(str));
 }
 
+#if 0
 static void
 put_hex (uint64_t num)
 {
@@ -37,13 +38,14 @@ put_hex (uint64_t num)
 		putc (buffer[i--]);
 	}
 }
+#endif
 
 static void
 sn_put_hex (char *buf, uint64_t num, int *idx, const size_t max)
 {
 	aint i;
-	char digits[] __aligned (0x10) = "0123456789ABCDEF";
-	char buffer[16] __aligned (0x10);
+	char digits[] = "0123456789ABCDEF";
+	char buffer[16];
 
 	memset (buffer, 0, sizeof buffer);
 
@@ -62,6 +64,7 @@ sn_put_hex (char *buf, uint64_t num, int *idx, const size_t max)
     (*idx)++;
 	}
 }
+#if 0
 static void
 put_decimal (int num)
 {
@@ -88,12 +91,12 @@ put_decimal (int num)
 		putc (buffer[i] + '0');
 	}
 }
-
+#endif
 static void
 sn_put_decimal (char *buf, int num, int *idx, const size_t max)
 {
-  char buffer[20] __aligned (0x10);
-  bool negative __aligned (0x10) = false;
+  char buffer[20];
+  bool negative = false;
   aint pos = 0;
   aint i;
 
@@ -120,10 +123,55 @@ sn_put_decimal (char *buf, int num, int *idx, const size_t max)
   }
 }
 
-void snprintf (char *buf, const char *fmt, const size_t n, ...)
+void
+vsnprintf (char *buf, const char *fmt, const size_t n, va_list ap)
 {
-	va_list p __aligned (0x10);
-	char ch __aligned (0x10);
+  int i;
+  char ch;
+
+  if (n == 0)
+    return;
+
+  if (n == 1) {
+    buf[0] = '\0';
+    return;
+  }
+
+  i = 0;
+  while ((ch = *fmt++) != '\0' && i < n - 1){
+    if (ch != '%'){
+      buf[i++] = ch;
+      continue;
+    }
+
+    switch (*fmt++) {
+      case 'c':
+        buf[i++] = (char)(va_arg (ap, int));
+        break;
+      case 'x':
+        sn_put_hex (buf, va_arg (ap, long), &i, n - 1);
+        break;
+      case 'd':
+        sn_put_decimal (buf, va_arg (ap, int), &i, n - 1);
+        break;
+      case 's': {
+                  char *tmp = (char*)va_arg (ap, char*);
+                  while (i < n - 1 && (buf[i++] = *tmp++));
+                  if (i < n - 1) i--;  /* Remove '\0' from buf */
+                  break;
+                }
+      default:
+                break;
+    }
+  }
+
+  buf[i] = '\0';
+}
+void
+snprintf (char *buf, const char *fmt, const size_t n, ...)
+{
+	va_list p;
+	char ch;
   int i;
 
   if (n == 0)
@@ -145,7 +193,7 @@ void snprintf (char *buf, const char *fmt, const size_t n, ...)
 
     switch (*fmt++) {
       case 'c':
-        buf[i] = (char)(va_arg (p, int));
+        buf[i++] = (char)(va_arg (p, int));
         break;
       case 'x':
         sn_put_hex (buf, va_arg (p, long), &i, n - 1);
@@ -156,6 +204,7 @@ void snprintf (char *buf, const char *fmt, const size_t n, ...)
       case 's': {
                   char *tmp = (char*)va_arg (p, char*);
                   while (i < n - 1 && (buf[i++] = *tmp++));
+                  if (i < n - 1) i--;  /* Remove '\0' from buf */
                   break;
                 }
       default:
@@ -168,36 +217,16 @@ void snprintf (char *buf, const char *fmt, const size_t n, ...)
 	va_end (p);
 }
 
-void printf (const char* fmt, ...)
+void
+printf (const char* fmt, ...)
 {
-	va_list p __aligned (0x10);
-	char ch __aligned (0x10);
+	va_list ap;
+  char buffer[1024];
 
-	va_start (p, fmt);
+	va_start (ap, fmt);
 
-	while ((ch = *fmt++) != '\0') {
-		if (ch != '%'){
-			putc (ch);
-			continue;
-		}
+  vsnprintf (buffer, fmt, 1024, ap);
+  puts (buffer);
 
-		switch (*fmt++){
-			case 'c':
-				putc (va_arg (p, int));
-				break;
-			case 'x':
-				put_hex (va_arg (p, long));
-				break;
-			case 'd':
-				put_decimal (va_arg (p, int));
-				break;
-			case 's':
-				puts (va_arg (p, char*));
-				break;
-			default:
-				break;
-		}
-	}
-
-	va_end (p);
+	va_end (ap);
 }

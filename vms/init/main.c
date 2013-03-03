@@ -35,10 +35,10 @@ vm_main (void)
   }
   DEBUG  ("DONE!\n", 0xA);
   /* Launching junk driver */
-  DEBUG  ("Starting junk driver... ", 0xF);
+  DEBUG  ("Starting flooding deamon... ", 0xF);
   pid = fork();
   if (pid == -1) {
-    panic  ("init %d: Failed to fork for junk driver!\n", __LINE__);
+    panic  ("init %d: Failed to fork for flooding deamon!\n", __LINE__);
   } else if (pid == 0) {
     exec("junk", NULL);
     DEBUG ("FAILED!", 0x4);

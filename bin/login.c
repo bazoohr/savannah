@@ -10,9 +10,10 @@ readline (char *buf, size_t size)
 {
   int i = 0;
   char ch = 0;
+
   while (ch != '\n' && i < size) {
     read (0, &ch, 1);
-    printf("%c", ch);
+    printf ("%c", ch);
     buf[i] = ch;
     i++;
   }

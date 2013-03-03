@@ -1,14 +1,4 @@
 * How to build the system?
-  Its so simple. just run
-
-  $./install.sh
-
-  The script will do everything for you. Then you need to use qemu to
-  launch the OS
-
-  $qemu-system-x86_64 -cdrom vuos.iso
-
-  If you want to compile it manually you have to first run
 
   $./configure
 
@@ -16,10 +6,9 @@
 
   $make
 
-  if you want to compile the operating system and run it, you have to
-  run
+  if you want to compile and create an ISO image to run, use
 
   $make install
 
   This will compile the operating system, and create an ISO image that you
-  can use to run the OS.
+  can use to run the OS. You can use Bochs emulator to run this ISO image.
