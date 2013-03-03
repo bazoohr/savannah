@@ -74,17 +74,17 @@ void debug_con_puts (const char *str, int color)
 		debug_con_putc (ch, color);
 }
 /* ============================= */
-void change_cursor_pos (int new_x, int new_y)
+void debug_change_cursor_pos (int new_x, int new_y)
 {
   y = new_y;
   x = new_x;
-	pos = SCR_START + (x << 1) + y * (COLUMNS << 1);
+  pos = SCR_START + (x << 1) + y * (COLUMNS << 1);
 }
 /* ============================= */
-void get_cursor_pos (virt_addr_t xptr, virt_addr_t yptr)
+void debug_get_cursor_pos (uint32_t *xptr, uint32_t *yptr)
 {
-	*(uint32_t*)xptr = x;
-	*(uint32_t*)yptr = y;
+	*xptr = x;
+	*yptr = y;
 }
 /* ============================= */
 void debug_con_init ()

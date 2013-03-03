@@ -15,7 +15,7 @@
 void debug_con_putc (int ch, int color);
 void debug_con_puts (const char *str, int color);
 void debug_con_init ();
-void change_cursor_pos (int new_x, int new_y);
-void get_cursor_pos (phys_addr_t xptr, phys_addr_t yptr);
+void debug_change_cursor_pos (int new_x, int new_y);
+void debug_get_cursor_pos (uint32_t *xptr, uint32_t *yptr);
 
 #endif  /* __DEBUG_CONSOL_H */

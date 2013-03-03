@@ -11,6 +11,7 @@
 #include <debug.h>
 #include <channel.h>
 #include <vuos/vuos.h>
+#include <stdlib.h>
 /* ========================================== */
 int
 main (int argc, char **argv)
@@ -20,7 +21,16 @@ main (int argc, char **argv)
   struct channel *from;
   void *write_data;
 
-  con_init ();
+  int x;
+  int y;
+
+  if (argc < 3) {
+    panic ("Too few arguments for console driver!");
+  }
+  x = atoi (argv[1]);
+  y = atoi (argv[2]);
+
+  con_init (x, y);
 
   while (1) {
     from = cnl_receive_any ();

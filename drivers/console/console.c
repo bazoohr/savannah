@@ -109,10 +109,9 @@ void puts (const char *str, int color)
     putc (ch, color);
 }
 /* ============================= */
-void con_init ()
+void con_init (uint32_t xpos, uint32_t ypos)
 {
-  //con_clear ();
-  y = 0;
-  x = 0;
+  y = ypos;
+  x = xpos;
   con_cursor ();
 }

@@ -22,7 +22,10 @@ drivers/keyboard/include/asm_boot_stage2_args_const.h
 drivers/keyboard/include/asm_frame_const.h
 drivers/keyboard/include/asm_cpu_const.h
 drivers/keyboard/keyboard
-
+drivers/junk/include/asm_boot_stage2_args_const.h
+drivers/junk/include/asm_cpu_const.h
+drivers/junk/include/asm_frame_const.h
+drivers/junk/junk
 drivers/console/console
 drivers/console/include/asm_boot_stage2_args_const.h
 drivers/console/include/asm_cpu_const.h

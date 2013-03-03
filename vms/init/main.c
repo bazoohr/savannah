@@ -27,9 +27,8 @@ vm_main (void)
   DEBUG  ("Starting keyboard driver... ", 0xF);
   int pid = fork ();
   if (pid == -1) {
-    DEBUG  ("init %d: Failed to fork for keyboard driver!\n", 0x4, __LINE__);
+    panic  ("init %d: Failed to fork for keyboard driver!\n", __LINE__);
   } else if (pid == 0) {
-    for (i = 0 ; i < cpuinfo->cpuid ; i++) DEBUG("\n", 0x7);
     exec("keyboard", NULL);
     DEBUG ("FAILED!", 0x4);
     halt ();
@@ -39,9 +38,8 @@ vm_main (void)
   DEBUG  ("Starting junk driver... ", 0xF);
   pid = fork();
   if (pid == -1) {
-    DEBUG  ("init %d: Failed to fork for junk driver!\n", 0x4, __LINE__);
+    panic  ("init %d: Failed to fork for junk driver!\n", __LINE__);
   } else if (pid == 0) {
-    for (i = 0 ; i < cpuinfo->cpuid ; i++) DEBUG("\n", 0x7);
     exec("junk", NULL);
     DEBUG ("FAILED!", 0x4);
     halt ();
@@ -51,19 +49,27 @@ vm_main (void)
   DEBUG  ("Starting console driver... ", 0xF);
   pid = fork();
   if (pid == -1) {
-    DEBUG  ("init %d: Failed to fork for console driver!\n", 0x4, __LINE__);
+    panic  ("init %d: Failed to fork for console driver!\n", __LINE__);
   } else if (pid == 0) {
-    for (i = 0 ; i < cpuinfo->cpuid ; i++) DEBUG("\n", 0x7);
-    exec("console", NULL);
+    char x_str[3];
+    char y_str[3];
+    char *console_args[] = {x_str, y_str, NULL};
+    uint32_t x_int;
+    uint32_t y_int;
+    debug_get_cursor_pos (&x_int, &y_int);
+    y_int += 1;  /* We will print one more lines */
+    snprintf (x_str, "%d", 3, x_int);
+    snprintf (y_str, "%d", 3, y_int);
+    exec("console", console_args);
     DEBUG ("FAILED!", 0x4);
     halt ();
   }
   DEBUG  ("DONE!\n", 0xA);
-
+  /* Launching login */
   DEBUG  ("Starting login... ", 0xF);
   pid = fork();
   if (pid == -1) {
-    DEBUG  ("init %d: Failed to fork for login!\n", 0x4, __LINE__);
+    panic  ("init %d: Failed to fork for login!\n", __LINE__);
   } else if (pid == 0) {
     for (i = 0 ; i < cpuinfo->cpuid ; i++) DEBUG("\n", 0x7);
     exec("login", NULL);

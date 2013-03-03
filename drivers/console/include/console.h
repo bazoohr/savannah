@@ -14,7 +14,7 @@
 
 void putc (int ch, int color);
 void puts (const char *str, int color);
-void con_init ();
+void con_init (uint32_t xpos, uint32_t ypos);
 void change_cursor_pos (int new_x, int new_y);
 void get_cursor_pos (phys_addr_t xptr, phys_addr_t yptr);
 
