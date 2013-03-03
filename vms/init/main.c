@@ -8,8 +8,9 @@
 #include <ipc.h>
 #include <fs.h>
 #include <pm.h>
+#include <panic.h>
+#include <stdlib.h>
 
-int test = 0x123;
 void
 vm_main (void)
 {
@@ -21,41 +22,55 @@ vm_main (void)
   halt ();
 #endif
 
-  if (cpuinfo->cpuid == 4) {
-    DEBUG  ("THIS IS CHILD!\n", 0x2);
-    while (1) {__asm__ __volatile__ ("cli;pause;\n\t");}
-  }
-
+  DEBUG ("init......\n", 0xF);
+  /* Launching keyboard driver */
+  DEBUG  ("Starting keyboard driver... ", 0xF);
   int pid = fork ();
   if (pid == -1) {
-    DEBUG  ("Failed to fork!\n", 0x4);
+    DEBUG  ("init %d: Failed to fork for keyboard driver!\n", 0x4, __LINE__);
   } else if (pid == 0) {
     for (i = 0 ; i < cpuinfo->cpuid ; i++) DEBUG("\n", 0x7);
-    char *string[] = {"Hamid", "Francesco", NULL};
-    DEBUG  ("I am the keyboard child pid = %d test = %x cpuid = %d\n", 0xD, pid, test, cpuinfo->cpuid);
-    exec("keyboard", string);
+    exec("keyboard", NULL);
+    DEBUG ("FAILED!", 0x4);
+    halt ();
   }
-
+  DEBUG  ("DONE!\n", 0xA);
+  /* Launching junk driver */
+  DEBUG  ("Starting junk driver... ", 0xF);
   pid = fork();
   if (pid == -1) {
-    DEBUG  ("Failed to fork!\n", 0x4);
+    DEBUG  ("init %d: Failed to fork for junk driver!\n", 0x4, __LINE__);
   } else if (pid == 0) {
     for (i = 0 ; i < cpuinfo->cpuid ; i++) DEBUG("\n", 0x7);
-    DEBUG  ("I am the console child pid = %d test = %x cpuid = %d\n", 0xD, pid, test, cpuinfo->cpuid);
+    exec("junk", NULL);
+    DEBUG ("FAILED!", 0x4);
+    halt ();
+  }
+  DEBUG  ("DONE!\n", 0xA);
+  /* Launching console driver */
+  DEBUG  ("Starting console driver... ", 0xF);
+  pid = fork();
+  if (pid == -1) {
+    DEBUG  ("init %d: Failed to fork for console driver!\n", 0x4, __LINE__);
+  } else if (pid == 0) {
+    for (i = 0 ; i < cpuinfo->cpuid ; i++) DEBUG("\n", 0x7);
     exec("console", NULL);
+    DEBUG ("FAILED!", 0x4);
+    halt ();
   }
+  DEBUG  ("DONE!\n", 0xA);
 
-  for (i = 0 ; i < cpuinfo->cpuid ; i++) DEBUG("\n", 0x7);
-  DEBUG  ("parent: child's PID = %d test = %x cpuid = %d\n", 0xD, pid, test, cpuinfo->cpuid);
-
+  DEBUG  ("Starting login... ", 0xF);
   pid = fork();
   if (pid == -1) {
-    DEBUG  ("Failed to fork!\n", 0x4);
+    DEBUG  ("init %d: Failed to fork for login!\n", 0x4, __LINE__);
   } else if (pid == 0) {
     for (i = 0 ; i < cpuinfo->cpuid ; i++) DEBUG("\n", 0x7);
-    DEBUG  ("I am the login child pid = %d test = %x cpuid = %d\n", 0xD, pid, test, cpuinfo->cpuid);
     exec("login", NULL);
+    DEBUG ("FAILED!", 0x4);
+    halt ();
   }
+  DEBUG  ("DONE!\n", 0xA);
 
   while (1) {__asm__ __volatile__ ("cli;pause;\n\t");}
 }

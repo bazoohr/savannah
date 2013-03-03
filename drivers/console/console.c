@@ -22,6 +22,7 @@ static void con_cursor ()
   outb((unsigned char )((loc >> 8) & 0xFF), 0x3D5);
 }
 /* ============================= */
+#if 0
 static void con_clear ()
 {
   int i;
@@ -31,6 +32,7 @@ static void con_clear ()
     vga[i] = ' ';
   }
 }
+#endif
 /* ============================= */
 static void scroll ()
 {
@@ -109,7 +111,7 @@ void puts (const char *str, int color)
 /* ============================= */
 void con_init ()
 {
-  con_clear ();
+  //con_clear ();
   y = 0;
   x = 0;
   con_cursor ();

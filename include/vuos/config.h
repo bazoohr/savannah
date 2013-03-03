@@ -24,7 +24,8 @@
 #define INIT  3
 
 #define KBD   4
-#define CONSOLE 5
+#define JUNK  5
+#define CONSOLE 6  /* Console MUST be the last one */
 
 #define BSP_PAGE_SIZE  _2MB_
 #define SRVR_VMS_PAGE_SIZE _2MB_

@@ -12,5 +12,5 @@ int check_server(void)
 
 bool is_driver(cpuid_t id)
 {
-  return (id == KBD || id == CONSOLE) ? true : false;
+  return (id == KBD || id == CONSOLE || id == JUNK) ? true : false;
 }
