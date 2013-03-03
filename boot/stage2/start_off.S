@@ -8,7 +8,7 @@
 #include <asm_boot_stage2_args_const.h>
 #include <asm_cpu_const.h>
 #include <const.h>
-#include <config.h>
+#include <vuos/config.h>
 .code32
 .section .text
 .align 0x10

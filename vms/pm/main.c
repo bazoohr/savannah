@@ -9,13 +9,13 @@
 #include <pm.h>
 #include <fs.h>
 #include <pm_args.h>
-#include <config.h>
 #include <pmap.h>
 #include <elf.h>
 #include <panic.h>
 #include <macro.h>
 #include <debug.h>
 #include <misc.h>
+#include <vuos/vuos.h>
 /* ================================================= */
 #define ALWAYS_BUSY (NUMBER_SERVERS + NUMBER_USER_VMS)
 /* ================================================= */
@@ -209,14 +209,14 @@ remove_channel_list (phys_addr_t channel)
     for (j = 0 ; j < MAX_CHANNELS ; j++) {
       if (info->vm_info.vm_channels[j] == channel) {
         found = j;
-	for (k = j ; k < MAX_CHANNELS - 1 ; k++) {
+        for (k = j ; k < MAX_CHANNELS - 1 ; k++) {
           if (info->vm_info.vm_channels[k] == 0) {
             break;
-	  }
+          }
 
           info->vm_info.vm_channels[k] = info->vm_info.vm_channels[k + 1];
-	  info->vm_info.vm_channels[k + 1] = 0;
-	}
+          info->vm_info.vm_channels[k + 1] = 0;
+        }
       }
     }
   }
@@ -257,20 +257,20 @@ local_channel (const struct channel_ipc * const req)
   cpu1 = get_cpu_info (req->end1);
   cpu2 = get_cpu_info (req->end2);
 
-  if (cpu1->vmm_info.vmm_has_vm == false) {
+  if (unlikely (cpu1->vmm_info.vmm_has_vm == false)) {
     panic ("PM: creating channel failed! VM1 does not exist! VM1 = %d & VM2 = %d!\n", cpu1->cpuid, cpu2->cpuid);
   }
 
-  if (cpu2->vmm_info.vmm_has_vm == false) {
+  if (unlikely (cpu2->vmm_info.vmm_has_vm == false)) {
     panic ("PM: creating channel failed! VM2 does not exist! VM1 = %d & VM2 = %d!\n", cpu1->cpuid, cpu2->cpuid);
   }
 
-  if (!is_driver(cpu2->cpuid)) {
+  if (unlikely (!is_driver(cpu2->cpuid))) {
     panic ("PM: The second end of the channel needs to be always a driver");
   }
 
   channel = (phys_addr_t)alloc_clean_mem_pages (pages (CHANNEL_SIZE, USER_VMS_PAGE_SIZE));
-  if (channel == 0) {
+  if (unlikely (channel == 0)) {
     panic ("PM: Failed to alloced memory!");
   }
 
@@ -659,13 +659,13 @@ local_exit (struct cpu_info * const info, const struct exit_ipc * const exit_arg
   int i;
   struct cpu_info *parent_info;
 
-  if (info == NULL) {
+  if (unlikely (info == NULL)) {
     DEBUG ("Exit: No cpu info provided!\n", 0x4);
     halt ();
   }
 
 
-  if (info->vm_info.vm_code_paddr)
+  if (likely (info->vm_info.vm_code_paddr))
     free_mem_pages (info->vm_info.vm_code_paddr);
   if (info->vm_info.vm_data_paddr)
     free_mem_pages (info->vm_info.vm_data_paddr);
@@ -673,17 +673,17 @@ local_exit (struct cpu_info * const info, const struct exit_ipc * const exit_arg
     free_mem_pages (info->vm_info.vm_rodata_paddr);
   if (info->vm_info.vm_bss_paddr)
     free_mem_pages (info->vm_info.vm_bss_paddr);
-  if (info->vm_info.vm_stack_paddr)
+  if (likely (info->vm_info.vm_stack_paddr))
     free_mem_pages (info->vm_info.vm_stack_paddr);
   free_page_tables (info->vm_info.vm_page_tables);
   free_page_tables (info->vm_info.vm_ept);
 
   parent_info = get_cpu_info (info->vm_info.vm_parent);
-  if (!parent_info) {
+  if (unlikely (!parent_info)) {
     panic ("PM (local_exit): failed to get cpu information!");
   }
 
-  if (info->vm_info.vm_fds) {
+  if (likely (info->vm_info.vm_fds)) {
     /* Free pages allocated for channels */
     for (i = 0; i < MAX_FD; i++) {
       if (info->vm_info.vm_fds[i].type == TYPE_CHAR) {
@@ -696,7 +696,7 @@ local_exit (struct cpu_info * const info, const struct exit_ipc * const exit_arg
     info->vm_info.vm_fds = NULL;
   }
 
-  if (info->vm_info.vm_channels) {
+  if (likely (info->vm_info.vm_channels)) {
     free_mem_pages ((virt_addr_t)info->vm_info.vm_channels);
     info->vm_info.vm_channels = 0;
   }
@@ -727,12 +727,13 @@ local_waitpid (struct cpu_info * const info,
 {
   struct cpu_info *child;
 
-  if (info == NULL) {
+  if (unlikely (info == NULL)) {
     DEBUG ("Exit: No cpu info provided!\n", 0x4);
     halt ();
   }
 
-  if (waitpid_args->wait_for < -1 || waitpid_args->wait_for > MAX_CPUS) {
+  if (unlikely (waitpid_args->wait_for < -1 ||
+                waitpid_args->wait_for > MAX_CPUS)) {
     DEBUG ("PM %s: waiting for invalid PID %d\n", 0x4, __func__, waitpid_args->wait_for);
     reply->child_pid = -1;
     return;
@@ -758,7 +759,7 @@ local_waitpid (struct cpu_info * const info,
     int i;
     for (i = ALWAYS_BUSY; i < MAX_CPUS; i++) {
       child = get_cpu_info (i);
-      if (!child) {
+      if (unlikely (!child)) {
         panic ("PM %s: Failed to get cpu information!\n", __func__);
       }
 

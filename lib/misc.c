@@ -1,6 +1,6 @@
 #include <misc.h>
 #include <cpuinfo.h>
-#include <config.h>
+#include <vuos/vuos.h>
 
 int check_server(void)
 {

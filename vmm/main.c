@@ -7,9 +7,9 @@
 #include <cpu.h>
 #include <vmx.h>
 #include <ipc.h>
-#include <config.h>
 #include <gdt.h>
 #include <panic.h>
+#include <vuos/config.h>
 /* ========================================== */
 void
 vmm_main (void)

@@ -1,17 +1,22 @@
 #include <fs.h>
 #include <ipc.h>
 #include <string.h>
-#include <config.h>
+#include <vuos/vuos.h>
 #include <panic.h>
 #include <channel.h>
+#include <vuos/vuos.h>
 
 #include <lib_mem.h>
 #include <debug.h>
 
 void open_std()
 {
-  open("stdin", O_RDONLY);
-  open("stdout", O_RDWR);
+  if (open("stdin", O_RDONLY) < 0) {
+    panic ("Failed to open stdin for VM %d\n", cpuinfo->cpuid);
+  }
+  if (open("stdout", O_RDWR) < 0) {
+    panic ("Failed to open stdout for VM %d\n", cpuinfo->cpuid);
+  }
 }
 
 int open(const char *pathname, int flags)
@@ -48,7 +53,7 @@ int read_char(int fd, void *buf, int count)
   struct channel *cnl = (struct channel *)cpuinfo->vm_info.vm_fds[fd].offset;
   struct read_char_rq req;
 
-  if (count >= (_4KB_ - offsetof(struct channel, data) - sizeof(struct read_char_rq))) {
+  if (unlikely (count >= (_4KB_ - offsetof(struct channel, data) - sizeof(struct read_char_rq)))) {
     panic ("Count too large!");
   }
 
@@ -95,7 +100,7 @@ int write_char(int fd, void *buf, int count)
   struct channel *cnl = (struct channel *)cpuinfo->vm_info.vm_fds[fd].offset;
   struct read_char_rq req;
 
-  if (count >= (_4KB_ - offsetof(struct channel, data) - sizeof(struct read_char_rq))) {
+  if (unlikely (count >= (_4KB_ - offsetof(struct channel, data) - sizeof(struct read_char_rq)))) {
     panic ("Count too large!");
   }
 
@@ -112,7 +117,7 @@ int write_char(int fd, void *buf, int count)
 
 int write(int fd, void *buf, int count)
 {
-  if (cpuinfo->vm_info.vm_fds[fd].type == 0) {
+  if (unlikely (cpuinfo->vm_info.vm_fds[fd].type == 0)) {
     panic ("Type is worng!");
   }
 

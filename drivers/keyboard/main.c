@@ -9,13 +9,13 @@
 #include <dev/ioapic.h>
 #include <dev/lapic.h>
 #include <panic.h>
-#include <config.h>
 #include <cpuinfo.h>
 #include <gdt.h>
 #include <fs.h>
 #include <ipc.h>
 #include <string.h>
 #include <channel.h>
+#include <vuos/vuos.h>
 /* ========================================== */
 int
 main (int argc, char **argv)

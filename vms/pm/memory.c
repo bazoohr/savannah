@@ -3,10 +3,8 @@
 #include <page.h>
 #include <panic.h>
 #include <string.h>
-#include <config.h>
+#include <vuos/vuos.h>
 #include <macro.h>
-#include <asmfunc.h> /* TODO: remove this after debug! */
-#include <debug.h> /* TODO: remove this after debug! */
 
 struct block_node {
   phys_addr_t b_start_addr;
@@ -41,8 +39,8 @@ init_block_node (void)
 
   block_node_array = (struct block_node *)first_free_addr;
 
-  if (all_nodes * sizeof (struct block_node) > available_free_memory) {
-    panic ("memory manager fatal (%s): Not enough memory!\n", __func__);
+  if (unlikely (all_nodes * sizeof (struct block_node) > available_free_memory)) {
+    panic ("memory manager fatal (%s:%d): Not enough memory!\n", __func__, __LINE__);
   }
 
   block_node_array_last_idx = all_nodes;
@@ -64,24 +62,23 @@ alloc_block_node (phys_addr_t paddr)
   int idx;
   struct block_node *block;
   /* ---------------------------- */
-  if (paddr & 0xFFF) {
-    panic ("memory manager fatal (%s): memory address %x is not 4KB aligned!\n", __func__, paddr);
+  if (unlikely (paddr & 0xFFF)) {
+    panic ("memory manager fatal (%s:%d): memory address %x is not 4KB aligned!\n", __func__, __LINE__, paddr);
   }
   /* ---------------------------- */
-  if (paddr < first_free_addr) {
-    panic ("memory manager fatal (%s): physical address %x under range!", __func__, paddr);
+  if (unlikely (paddr < first_free_addr)) {
+    panic ("memory manager fatal (%s:%d): physical address %x under range!", __func__, __LINE__, paddr);
   }
   /* ---------------------------- */
   idx = (paddr - first_free_addr) / USER_VMS_PAGE_SIZE;
-  if (idx > block_node_array_last_idx) {
-    panic ("memory manager fatal (%s): block index %d is over block array size", __func__, idx);
+  if (unlikely (idx > block_node_array_last_idx)) {
+    panic ("memory manager fatal (%s:%d): block index %d is over block array size", __func__, __LINE__, idx);
   }
   /* ---------------------------- */
   block = &block_node_array[idx];
-  if (block->b_avl == false) {
-    panic ("memory manager fatal (%s): block %x is already allocated!", __func__, block);
+  if (unlikely (block->b_avl == false)) {
+    panic ("memory manager fatal (%s:%d): block %x is already allocated!", __func__, __LINE__, block);
   }
-  /* ---------------------------- */
   return block;
 }
 
@@ -90,8 +87,8 @@ init_block_list (void)
 {
   size_t all_pages = available_free_memory / USER_VMS_PAGE_SIZE;
   blist = alloc_block_node (first_free_addr);
-  if (blist == NULL) {
-    panic ("memory manager fatal (%s): Failed to initialize memory!\n", __func__);
+  if (unlikely (blist == NULL)) {
+    panic ("memory manager fatal (%s:%d): Failed to initialize memory!\n", __func__, __LINE__);
   }
 
   blist->b_start_addr = first_free_addr;
@@ -112,7 +109,7 @@ alloc_mem_pages (size_t n)
    * Requesting for zero pages does not
    * make any sense :)
    */
-  if (n == 0) {
+  if (unlikely (n == 0)) {
     return (phys_addr_t)0;
   }
 
@@ -136,6 +133,7 @@ alloc_mem_pages (size_t n)
       new_node->b_pages      = current_node->b_pages - n;
       new_node->pre          = current_node;
       new_node->next         = current_node->next;
+      if (current_node->next) current_node->next->pre = new_node;
       new_node->b_avl        = true;
 
       current_node->b_pages = n;
@@ -143,6 +141,7 @@ alloc_mem_pages (size_t n)
       current_node->next = new_node;
 
       found_block = current_node->b_start_addr;
+
       break;
     }
   } /* While */
@@ -158,7 +157,7 @@ alloc_clean_mem_pages (size_t n)
 
   found_block = alloc_mem_pages (n);
 
-  if (found_block > 0) {
+  if (likely (found_block > 0)) {
     memset ((void *)found_block, 0, n * USER_VMS_PAGE_SIZE);
   }
 
@@ -184,53 +183,62 @@ free_mem_pages (phys_addr_t paddr)
   int idx;
   struct block_node *block;
   /* ---------------------------- */
-  if (paddr & 0xFFF) {
-    panic ("memory manager fatal (%s): memory address %x is not 4KB aligned!\n", __func__, paddr);
+  if (unlikely (paddr & 0xFFF)) {
+    panic ("Memory manager fatal (%s:%d): memory address %x is not 4KB aligned!\n", __func__, __LINE__, paddr);
   }
   /* ---------------------------- */
-  if (paddr < first_free_addr) {
-    panic ("memory manager fatal (%s): physical address %x under range!", __func__, paddr);
+  if (unlikely (paddr < first_free_addr)) {
+    panic ("Memory manager fatal (%s:%d): physical address %x under range!", __func__, __LINE__, paddr);
   }
   /* ---------------------------- */
   idx = (paddr - first_free_addr) / _4KB_;
-  if (idx > block_node_array_last_idx) {
-    panic ("memory manager fatal (%s): block index %d is over block array size", __func__, idx);
+  if (unlikely (idx > block_node_array_last_idx)) {
+    panic ("Memory manager fatal (%s:%d): block index %d is over block array size", __func__, __LINE__, idx);
   }
   /* ---------------------------- */
   block = &block_node_array[idx];
-  if (block->b_avl) {
-    panic ("memory manager fatal (%s): Can't free a free block!", __func__);
+  if (unlikely (block->b_avl)) {
+    panic ("Memory manager fatal (%s:%d): Can't free a free memory block!", __func__, __LINE__);
   }
 
-  if (!block->b_avl) {
-    /*
-     * In order to avoid defragmentation, we try to fusion free blocks
-     * together.
-     */
-    if (block->pre && block->pre->b_avl) {
-      block = block->pre;
-      block->b_pages += block->next->b_pages;
-      block->next->b_avl = true;
-      //free_block_node (block->next);
-      block->next = block->next->next;
-      if (block->next) {
-        block->next->pre = block;
-      }
+  /*
+   * In order to avoid defragmentation, we try to fusion free blocks
+   * together.
+   */
+  if (block->next && block->next->b_avl) {
+    struct block_node *next_node;
+
+    next_node = block->next;
+
+    if (unlikely (next_node == blist)) {
+      panic ("Memory manager fatal (%s:%d): Memory block list is corrupted!!", __func__, __LINE__);
     }
-    if (block->next && block->next->b_avl) {
-      block->b_pages += block->next->b_pages;
-      block->next->b_avl = true;
-      //free_block_node (block->next);
-      block->next = block->next->next;
-      if (block->next) {
-        block->next->pre = block;
-      }
+    if (unlikely (next_node->pre != block)) {
+      panic ("Memory Manager fatal (%s:%d): Memory block list is corrupted!!", __func__, __LINE__);
     }
-    /* The block is now free */
-    block->b_avl = true;
-  } else {
-    panic ("memory manager fata (%s): Can't free a free block address %x!\n", __func__, paddr);
+
+    block->b_pages += next_node->b_pages;
+    block->next = next_node->next;
+    if (next_node->next) next_node->next->pre = block;
+    next_node->b_avl = true;
   }
+
+  if (block->pre && block->pre->b_avl) {
+    struct block_node *previous_node;
+
+    previous_node = block->pre;
+
+    if (unlikely (previous_node->next != block)) {
+      panic ("Memory Manager fatal (%s:%d): Memory block list is corrupted!!", __func__, __LINE__);
+    }
+
+    previous_node->b_pages += block->b_pages;
+    previous_node->next = block->next;
+    if (block->next) block->next->pre = previous_node;
+    previous_node->b_avl = true;
+  }
+  /* The block is now free */
+  block->b_avl = true;
 }
 
 void

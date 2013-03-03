@@ -8,7 +8,7 @@
 #include <string.h>
 #include <cpuinfo.h>
 #include <ipc.h>
-#include <config.h>
+#include <vuos/vuos.h>
 
 static int cpu_has_vmx()
 {

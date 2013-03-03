@@ -9,7 +9,7 @@
 #include <string.h>
 #include <boot_stage2_args.h>
 #include <cpu.h>
-#include <config.h>
+#include <vuos/config.h>
 #include "screen.h"
 #include "bootio.h"
 #include "multiboot.h"

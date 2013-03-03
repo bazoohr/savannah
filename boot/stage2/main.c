@@ -21,9 +21,9 @@
 #include <memory.h>
 #include <macro.h>
 #include <pm_args.h>
-#include <config.h>
 #include <asmfunc.h>
 #include <cpuinfo.h>
+#include <vuos/vuos.h>
 /* ========================================== */
 static struct message *msg_input;
 static struct message *msg_output;

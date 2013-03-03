@@ -3,9 +3,9 @@
 #include <string.h>
 #include <lib_mem.h>
 #include <debug.h>
-#include <config.h>
 #include <fs.h>
 #include <misc.h>
+#include <vuos/vuos.h>
 /* ========================================================= */
 int
 fork_internal (virt_addr_t register_array_vaddr)

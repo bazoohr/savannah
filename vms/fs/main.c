@@ -7,37 +7,41 @@
 #include <fs.h>
 #include <string.h>
 #include <panic.h>
-#include <config.h>
 #include <misc.h>
 #include <pm.h>
 #include <debug.h>
+#include <vuos/vuos.h>
 
 char *filesystem;
 
-struct cpu_info *
+static inline struct cpu_info *
 get_cpu_info (cpuid_t cpuid)
 {
-  if (cpuid > MAX_CPUS) {
+  phys_addr_t base;
+
+  if (unlikely (cpuid > MAX_CPUS)) {
     return NULL;
   }
 
-  struct cpu_info *base = (struct cpu_info *)((phys_addr_t)cpuinfo - (cpuinfo->cpuid * _4KB_));
+  base = ((phys_addr_t)cpuinfo - (cpuinfo->cpuid * _4KB_));
 
-  return (struct cpu_info *)((phys_addr_t)base + cpuid * _4KB_);
+  return (struct cpu_info *)(base + cpuid * _4KB_);
 }
 
-struct file_descriptor *
+static inline struct file_descriptor *
 get_fds (int from)
 {
-  if (from > MAX_CPUS)
+  struct cpu_info *cpuinfo;
+
+  if (unlikely (from > MAX_CPUS))
     return NULL;
 
-  struct cpu_info *cpuinfo = get_cpu_info(from);
+  cpuinfo = get_cpu_info(from);
 
   return cpuinfo->vm_info.vm_fds;
 }
 
-void
+static void
 local_open_char(const char *pathname, int from, struct open_reply *openreply)
 {
   int fd;
@@ -46,7 +50,7 @@ local_open_char(const char *pathname, int from, struct open_reply *openreply)
   struct message *pm_reply;
   struct file_descriptor *fds;
 
-  if (from > MAX_CPUS || from < 0) {
+  if (unlikely (from > MAX_CPUS || from < 0)) {
     openreply->fd = -1;
     return;
   }
@@ -93,8 +97,8 @@ local_open_char(const char *pathname, int from, struct open_reply *openreply)
   openreply->channel = (void *)fds[fd].offset;
 }
 
-void
-local_open(const char *pathname, int flags, int from, struct open_reply *openreply)
+static void
+local_open (const char *pathname, int flags, int from, struct open_reply *openreply)
 {
   int i;
   int fd;
@@ -161,11 +165,11 @@ local_read_char (int fd, int count, int from)
   int to;
   struct file_descriptor *fds;
 
-  if (fd > MAX_FD) {
+  if (unlikely (fd > MAX_FD)) {
     DEBUG ("local_read_char: TOO big fd value %d!", 0x4, fd);
     halt ();
   }
-  if (from > MAX_CPUS || from < 0) {
+  if (unlikely (from > MAX_CPUS || from < 0)) {
     DEBUG  ("local_read_char: \"from\" = %d not valid!", 0x4, from);
     halt ();
   }
@@ -212,9 +216,9 @@ local_read_file (int fd, void *buf, int count, int from)
 }
 
 static int
-get_type(int fd, int from)
+get_type (int fd, int from)
 {
-  if (fd > MAX_FD || fd < 0)
+  if (unlikely (fd > MAX_FD || fd < 0))
     return -1;
 
   struct file_descriptor *fds;
@@ -230,14 +234,14 @@ get_type(int fd, int from)
   return fds[fd].type;
 }
 
-int
+static int
 local_read(int fd, void *buf, int count, int from)
 {
   struct file_descriptor *fds;
   int type;
 
   type = get_type(fd, from);
-  if (type < 0)
+  if (unlikely (type < 0))
     return -1;
 
   fds = get_fds(from);
@@ -257,7 +261,7 @@ local_read(int fd, void *buf, int count, int from)
   return -1;
 }
 
-void
+static void
 local_write(int fd, void *buf, int count, int from)
 {
   struct console_write cwrite;
@@ -276,11 +280,11 @@ local_write(int fd, void *buf, int count, int from)
   msg_reply (from, CONSOLE, WRITE_IPC, &cwrite, sizeof(struct console_write));
 }
 
-int
+static int
 local_close(int fd, int from)
 {
   struct file_descriptor *fds;
-  if (fd > MAX_FD)
+  if (unlikely (fd > MAX_FD))
     return -1;
 
   fds = get_fds(from);
@@ -288,6 +292,11 @@ local_close(int fd, int from)
     return 0;
   }
 
+  /*
+   * TODO:
+   *    Why don't we free the memory allocated
+   *    for channels here????????
+   */
   fds[fd].type = 0;
   fds[fd].length = 0;
   fds[fd].offset = 0;
@@ -295,7 +304,7 @@ local_close(int fd, int from)
   return 0;
 }
 
-phys_addr_t
+static phys_addr_t
 local_load(char *path)
 {
   int i;

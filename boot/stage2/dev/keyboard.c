@@ -5,7 +5,7 @@
 #include <dev/ioapic.h>
 #include <dev/lapic.h>
 #include <isr.h>
-#include <config.h>
+#include <vuos/config.h>
 
 #define NOP 0
 #define KBD_DATA_PORT  0x60

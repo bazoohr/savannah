@@ -7,7 +7,7 @@
 #include <cdef.h>
 #include <const.h>
 #include <message.h>
-#include <config.h>
+#include <vuos/config.h>
 
 struct header {
 	char name[32];    /* File name */
