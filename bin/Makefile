@@ -26,7 +26,10 @@ OBJ2 = $(subst .S,.o,$(filter %.S,$(SRC2))) $(subst .c,.o,$(filter %.c,$(SRC2)))
 SRC3 = testfs.c start_off.S
 OBJ3 = $(subst .S,.o,$(filter %.S,$(SRC3))) $(subst .c,.o,$(filter %.c,$(SRC3)))
 
-all: login test testfs
+SRC4 = testcnl.c start_off.S
+OBJ4 = $(subst .S,.o,$(filter %.S,$(SRC3))) $(subst .c,.o,$(filter %.c,$(SRC4)))
+
+all: login test testfs testcnl
 
 login: $(OBJ)
 	$(call silent_command, $(LD) $(LDFLAGS) -o $@ $(OBJ) $(LIBDIR)/$(USRLIB), "    LINK  $(MYDIR)$@")
@@ -34,6 +37,8 @@ test: $(OBJ2)
 	$(call silent_command, $(LD) $(LDFLAGS) -o $@ $(OBJ2) $(LIBDIR)/$(USRLIB), "    LINK  $(MYDIR)$@")
 testfs: $(OBJ3)
 	$(call silent_command, $(LD) $(LDFLAGS) -o $@ $(OBJ3) $(LIBDIR)/$(USRLIB), "    LINK  $(MYDIR)$@")
+testcnl: $(OBJ4)
+	$(call silent_command, $(LD) $(LDFLAGS) -o $@ $(OBJ4) $(LIBDIR)/$(USRLIB), "    LINK  $(MYDIR)$@")
 
 -include $(subst .c,.d,$(filter %.c,$(SRC)))
 

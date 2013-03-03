@@ -53,6 +53,15 @@ vm_main (void)
     DEBUG  ("Failed to fork!\n", 0x4);
   } else if (pid == 0) {
     for (i = 0 ; i < cpuinfo->cpuid ; i++) DEBUG("\n", 0x7);
+    DEBUG  ("I am the junk child pid = %d test = %x cpuid = %d\n", 0xD, pid, test, cpuinfo->cpuid);
+    exec("junk", NULL);
+  }
+
+  pid = fork();
+  if (pid == -1) {
+    DEBUG  ("Failed to fork!\n", 0x4);
+  } else if (pid == 0) {
+    for (i = 0 ; i < cpuinfo->cpuid ; i++) DEBUG("\n", 0x7);
     DEBUG  ("I am the login child pid = %d test = %x cpuid = %d\n", 0xD, pid, test, cpuinfo->cpuid);
     exec("login", NULL);
   }

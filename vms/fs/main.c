@@ -45,8 +45,15 @@ local_open_char(const char *pathname, int from, struct open_reply *openreply)
   struct channel_ipc msg;
   struct message *pm_reply;
   struct file_descriptor *fds;
+  int i;
 
   if (from > MAX_CPUS || from < 0) {
+    openreply->fd = -1;
+    return;
+  }
+
+  fds = get_fds(from);
+  if (fds == 0) {
     openreply->fd = -1;
     return;
   }
@@ -57,16 +64,17 @@ local_open_char(const char *pathname, int from, struct open_reply *openreply)
   } else if (strcmp (pathname, "stdout") == 0) {
     fd = 1;
     dst = CONSOLE;
+  } else if (strcmp (pathname, "junkfd") == 0) {
+    // Find the lowest available fd
+    for (i = 2 ; i < MAX_FD ; i++)
+      if (fds[i].offset == 0)
+        break;
+    fd = i;
+    dst = JUNK;
   } else {
     fd = -1;  /* JUST to SHUT UP GCC */
     DEBUG ("FS: Unknown char file!", 0x4);
     halt ();
-  }
-
-  fds = get_fds(from);
-  if (fds == 0) {
-    openreply->fd = -1;
-    return;
   }
 
   /* If the file is already open! */
@@ -102,7 +110,7 @@ local_open(const char *pathname, int flags, int from, struct open_reply *openrep
   int num_files;
   struct file_descriptor *fds;
 
-  if (strcmp(pathname, "stdin") == 0 || strcmp(pathname, "stdout") == 0)
+  if (strcmp(pathname, "stdin") == 0 || strcmp(pathname, "stdout") == 0 || strcmp(pathname, "junkfd") == 0)
     return local_open_char(pathname, from, openreply);
 
   fds = get_fds(from);
