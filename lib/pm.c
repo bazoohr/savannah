@@ -29,7 +29,24 @@ exec (char *path, char **argv)
 {
   struct exec_ipc exec_args;
   size_t len;
-  struct regs registers;
+  /*
+   * XXX:
+   *    Why static volatile???????
+   *
+   *    Actually we don't need neither static nor volatile normally. But
+   *    Clang version 3.0 (Maybe other older version, we don't know)
+   *    suffer from a bug that cause some stupid optimizations. For example
+   *    in this case, despite the fact that we are using variable "registers"
+   *    in this function, and pass its pointer to another function, it assums
+   *    this variable as "unused!!!", and performs its own stupid optimizations
+   *    on that.
+   *    The good news is that this problem is already fixed in version 3.2.0.
+   *    Therefore we use "static volatile" to cheat Clang! This way it can not
+   *    make any wrong!! assumptions about this variable.
+   *
+   *    GCC works just fine in this case.
+   */
+  volatile static struct regs registers;
 
   len = strlen(path) > MAX_PATH ? MAX_PATH : strlen(path);
 
