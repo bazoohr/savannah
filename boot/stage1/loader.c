@@ -13,26 +13,10 @@
 #include "screen.h"
 #include "bootio.h"
 #include "multiboot.h"
-#include "asm.h"
+#include "asmfunc.h"
+#include "cpu_check.h"
 
 #define CHECK_FLAG(flags,bit)   ((flags) & (1 << (bit)))
-void
-cpuid(uint32_t info, uint32_t *eaxp, uint32_t *ebxp,
-      uint32_t *ecxp, uint32_t *edxp)
-{
-	uint32_t eax, ebx, ecx, edx;
-	__asm volatile("cpuid"
-		: "=a" (eax), "=b" (ebx), "=c" (ecx), "=d" (edx)
-		: "a" (info));
-	if (eaxp)
-		*eaxp = eax;
-	if (ebxp)
-		*ebxp = ebx;
-	if (ecxp)
-		*ecxp = ecx;
-	if (edxp)
-		*edxp = edx;
-}
 
 static struct boot_stage2_args stage2_args;
 /*
@@ -112,8 +96,8 @@ boot_loader (unsigned long magic, unsigned long addr)
 
   clrscr ();  /* Clear the screen. */
   /* Does CPU have longmode? */
-  if (has_long_mode () == false) {
-    printf ("ERROR: Your system is not supporting long mode!\n");
+  if (has_longmode () == false) {
+    printf ("ERROR: Your system does not supporting longmode!\n");
     halt ();
   }
   if (has_x87_and_media_support () == true) {
