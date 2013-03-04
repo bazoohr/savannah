@@ -46,7 +46,7 @@ testcnl: $(OBJ4)
 .PHONY: clean
 .PHONY: distclean
 clean:
-	$(call silent_command, rm -f dev/*.o dev/*.d *.o *.d login test testfs, "    CLEAN $(MYDIR)")
+	$(call silent_command, rm -f dev/*.o dev/*.d *.o *.d login test testfs testcnl, "    CLEAN $(MYDIR)")
 distclean:
-	$(call silent_command, rm -f dev/*.o dev/*.d *.o *.d login test testfs, "    CLEAN ALL $(MYDIR)")
+	$(call silent_command, rm -f dev/*.o dev/*.d *.o *.d login test testfs testcnl, "    CLEAN ALL $(MYDIR)")
 	$(call silent_command, rm -f include/asm_frame_const.h include/asm_procregs_const.h include/asm_kernel_args_const.h)
