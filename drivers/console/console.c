@@ -11,10 +11,9 @@
 static uint64_t y;
 static uint64_t x;
 /* ============================= */
-// TODO: Fix this! It does not seems to work.
 static void con_cursor ()
 {
-  uint16_t loc = (y * 80) + x;
+  uint16_t loc = (y * COLUMNS) + x;
 
   outb(0x0F, 0x3D4);
   outb((unsigned char)(loc & 0xFF), 0x3D5);
@@ -45,7 +44,7 @@ static void scroll ()
     }
 
     for (i = (LINES - 1) * COLUMNS ; i < LINES * COLUMNS ; i++) {
-      vga[i] = ' ';
+      vga[i] = (uint16_t)(' ' | (0xF << 8));
     }
 
     y = LINES - 1;

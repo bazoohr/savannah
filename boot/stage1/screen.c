@@ -10,8 +10,10 @@ void clrscr (void)
 {
   int i;
 
-  for (i = 0; i < COLUMNS * LINES * 2; i++)
+  for (i = 0; i < COLUMNS * LINES * 2; i += 2) {
     *(video + i) = 0;
+    *(video + i + 1) = 0xF;
+  }
 
   xpos = 0;
   ypos = 0;
