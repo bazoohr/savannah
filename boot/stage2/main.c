@@ -29,6 +29,8 @@ static struct message *msg_input;
 static struct message *msg_output;
 static bool *msg_ready;
 /* ========================================== */
+static bool has_1GB_page;
+/* ========================================== */
 static __inline struct message *
 get_msg_input (cpuid_t cpuid)
 {
@@ -547,7 +549,7 @@ ept_map_memory_other (struct cpu_info *curr_cpu_info)
   map_memory (&curr_cpu_info->vm_info.vm_page_tables,
       0, (virt_addr_t)((virt_addr_t)_1GB_ * 4),
       0,
-      _1GB_,
+      has_1GB_page ? _1GB_ : _2MB_,
       VM_PAGE_NORMAL, MAP_NEW);
 
   /* TODO:
@@ -564,6 +566,8 @@ ept_map_memory_other (struct cpu_info *curr_cpu_info)
    *    This may cause a bug. Because We are mapping more than needed here.
    *    We need to map only 8KB of memory, but we are actually mapping 2MB
    */
+  ept_map_page_tables (&curr_cpu_info->vm_info.vm_ept, curr_cpu_info->vm_info.vm_page_tables,
+                        EPT_PAGE_READ);
   ept_map_memory (&curr_cpu_info->vm_info.vm_ept,
       curr_cpu_info->vm_info.vm_page_tables, curr_cpu_info->vm_info.vm_page_tables + 2 * _4KB_,
       curr_cpu_info->vm_info.vm_page_tables,
@@ -633,12 +637,12 @@ ept_map_memory_server (struct cpu_info *curr_cpu_info)
   map_memory (&curr_cpu_info->vm_info.vm_page_tables,
       0, (virt_addr_t)((virt_addr_t)_1GB_ * 4),
       0,
-      _1GB_,
+      has_1GB_page ? _1GB_ : _2MB_,
       VM_PAGE_NORMAL, MAP_NEW);
   ept_map_memory (&curr_cpu_info->vm_info.vm_ept,
       0, (virt_addr_t)((virt_addr_t)_1GB_ * 4),
       0,
-      _1GB_,
+      has_1GB_page ? _1GB_ : _2MB_,
       EPT_PAGE_READ | EPT_PAGE_WRITE | EPT_PAGE_EXEC, MAP_NEW);
 }
 /* ========================================== */
@@ -682,6 +686,7 @@ set_vm_args (struct boot_stage2_args *boot_args)
 
   pm_arguments.memory_size = get_mem_size ();
   pm_arguments.last_used_addr = get_last_used_addr ();
+  pm_arguments.has_1GB_page = boot_args->has_1GB_page;
   get_cpu_info (PM)->vm_args = &pm_arguments;
 
   get_cpu_info(FS)->vm_args = (void *)boot_args->initrd_elf_addr;
@@ -700,6 +705,8 @@ boot_stage2_main (struct boot_stage2_args *boot_args)
 
   con_init ();
   memory_init (boot_args->boot_stage2_end_addr, boot_args->sys_mem_size);
+
+  has_1GB_page = boot_args->has_1GB_page;
 
   map_memory (&(boot_args->boot_stage2_page_tables), 0xFEC00000, 0x100000000, 0xFEC00000, _2MB_, VMM_PAGE_UNCACHABLE, MAP_UPDATE);
 

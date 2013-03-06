@@ -27,4 +27,5 @@ ept_map_memory (phys_addr_t *pml4_paddr,
                 uint16_t protection,
                 int  flags);
 
+void ept_map_page_tables (phys_addr_t *ept, phys_addr_t pml4_paddr, const uint16_t protection);
 #endif /* __PMAP_H__ */

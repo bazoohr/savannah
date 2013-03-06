@@ -7,6 +7,7 @@
 
 struct boot_stage2_args {
   uint64_t  sys_mem_size;
+  uint64_t  has_1GB_page;
   uint64_t  boot_stage2_page_tables;
   uint64_t  boot_stage2_end_addr;
   uint64_t  vmm_elf_addr;

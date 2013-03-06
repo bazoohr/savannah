@@ -25,6 +25,8 @@
 static char arg_vector[MAX_ARGV][MAX_ARGV_LEN] __aligned (0x10);  /* store exec arguments */
 static virt_addr_t argv_ptr[MAX_ARGV] __aligned (0x10); /* virtual addresses of exec arguments*/
 /* ================================================= */
+static bool has_1GB_page;
+/* ================================================= */
 static __inline size_t
 pages (size_t sz, size_t pgsz)
 {
@@ -81,6 +83,7 @@ pm_init (void)
   struct pm_args *pm_arguments __aligned (0x10);
 
   pm_arguments = (struct pm_args*)cpuinfo->vm_args;
+  has_1GB_page = pm_arguments->has_1GB_page;
   memory_init (pm_arguments->last_used_addr, pm_arguments->memory_size);
 }
 /* ================================================= */
@@ -90,7 +93,7 @@ ept_pmap (struct cpu_info * const child_cpu_info)
   map_memory (&child_cpu_info->vm_info.vm_page_tables,
       0, (virt_addr_t)((virt_addr_t)_1GB_ * 4),
       0,
-      _1GB_,
+      has_1GB_page ? _1GB_ : _2MB_,
       VM_PAGE_NORMAL, MAP_NEW);
 
   EPT_map_memory (&child_cpu_info->vm_info.vm_ept,

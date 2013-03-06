@@ -92,6 +92,7 @@ boot_loader (unsigned long magic, unsigned long addr)
   phys_addr_t init_elf_addr         = 0;
   phys_addr_t initrd_elf_addr       = 0;
   size_t memory_size                = 0;
+  bool support_1GB_page             = 0;
   void (*stage2)(struct boot_stage2_args *);
 
   clrscr ();  /* Clear the screen. */
@@ -106,10 +107,8 @@ boot_loader (unsigned long magic, unsigned long addr)
     printf ("ERROR: Your system does not support X87 and media instructions.\n");
     halt ();
   }
-  if (has_1GBpage () == false) {
-    printf ("ERROR: Your processor does not support 1GB pages!\n");
-    halt ();
-  }
+  /* Do we support 1GB pages? */
+  support_1GB_page = has_1GBpage () ? true : false;
   /* Are mem_* valid? */
   if (CHECK_FLAG (mbi->flags, 0)) {
     memory_size = mbi->mem_upper;    /* Size of memory in KB */
@@ -205,6 +204,7 @@ boot_loader (unsigned long magic, unsigned long addr)
   load_stage2 (boot_stage2_elf_addr, &stage2, &boot_stage2_end_addr);
   /* we pass several arguments to stage2 */
   stage2_args.sys_mem_size         = memory_size;           /* First argument: size of memory */
+  stage2_args.has_1GB_page         = (uint64_t)support_1GB_page;
   stage2_args.boot_stage2_end_addr = boot_stage2_end_addr;  /* Third argument: start address of page tables */
   stage2_args.vmm_elf_addr         = vmm_elf_addr;
   stage2_args.pm_elf_addr          = pm_elf_addr;
