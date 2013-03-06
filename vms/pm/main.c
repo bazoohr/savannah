@@ -94,8 +94,8 @@ ept_pmap (struct cpu_info * const child_cpu_info)
       VM_PAGE_NORMAL, MAP_NEW);
 
   EPT_map_memory (&child_cpu_info->vm_info.vm_ept,
-      0, _1MB_,
-      0,
+      0xB8000, 0xB9000,  /* Just for debugging purposes */
+      0xB8000,
       USER_VMS_PAGE_SIZE,
       EPT_PAGE_READ | EPT_PAGE_WRITE, MAP_NEW);  /* XXX: Why do we need write access here? */
   EPT_map_memory (&child_cpu_info->vm_info.vm_ept,

@@ -416,7 +416,7 @@ void host_entry()
 		}
 	} else {
 		DEBUG ("HOOOOOOOOOSSSSSSSSSTTTTTTTTT!!!!!!!!!!!!!\n", 0xA);
-		DEBUG ("Exited because of %d\n", 0xF, reason);
+		DEBUG ("Exited because of %d\n", 0x4, reason);
 		while(1);
 	}
 }
