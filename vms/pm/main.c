@@ -797,6 +797,10 @@ vm_main (void)
 {
   pm_init ();
 
+  int i;
+  for (i = 1; i < cpuinfo->ncpus; i++) {
+    msg_reply (PM, i, 1, NULL, 0);
+  }
 #if 0
   int i;
   for (i = 0 ; i < cpuinfo->cpuid; i++) DEBUG ("\n", 0x7);

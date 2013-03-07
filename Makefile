@@ -54,7 +54,6 @@ install: build-all
 		module /boot/grub/$(VMM)\n\
 		module /boot/grub/$(PM)\n\
 		module /boot/grub/$(FS)\n\
-		module /boot/grub/$(RS)\n\
 		module /boot/grub/$(INIT)\n\
 		module /boot/grub/$(INITRD)\n" > /tmp/menu.lst
 	@rm -rf /tmp/iso
@@ -69,7 +68,6 @@ install: build-all
 	@cp vmm/$(VMM) /tmp/iso/boot/grub
 	@cp vms/pm/$(PM) /tmp/iso/boot/grub
 	@cp vms/fs/$(FS) /tmp/iso/boot/grub
-	@cp vms/rs/$(RS) /tmp/iso/boot/grub
 	@cp vms/init/$(INIT) /tmp/iso/boot/grub
 	@cp initrd/$(INITRD) /tmp/iso/boot/grub
 	@genisoimage -quiet -input-charset ascii -R -b boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4 \

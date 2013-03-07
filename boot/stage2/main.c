@@ -653,12 +653,10 @@ load_all_vms (phys_addr_t *vms_array, phys_addr_t boot_stage2_end_addr)
   struct cpu_info *curr_cpu_info;
 
   /* Order of loading is important. Don't change it! */
-  load_server_vms (RS, vms_array[RS]);
   load_server_vms (PM, vms_array[PM]);
   load_server_vms (FS, vms_array[FS]);
   load_other_vms (INIT, vms_array[INIT]);
 
-  ept_map_memory_server (get_cpu_info (RS));
   ept_map_memory_server (get_cpu_info (PM));
   ept_map_memory_server (get_cpu_info (FS));
   ept_map_memory_other  (get_cpu_info (INIT));
@@ -698,7 +696,6 @@ boot_stage2_main (struct boot_stage2_args *boot_args)
   int i;
   phys_addr_t vms_elf_array[ALWAYS_BUSY];
 
-  vms_elf_array[RS] = boot_args->rs_elf_addr;
   vms_elf_array[PM] = boot_args->pm_elf_addr;
   vms_elf_array[FS] = boot_args->fs_elf_addr;
   vms_elf_array[INIT] = boot_args->init_elf_addr;

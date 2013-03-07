@@ -14,9 +14,8 @@
 void
 vm_main (void)
 {
-  int i;
-
 #if 0
+  int i;
   for (i = 0 ; i < cpuinfo->cpuid ; i++) DEBUG ("\n", 0x7);
   DEBUG ("This is init %d\n", 0xA, cpuinfo->cpuid);
   halt ();
@@ -71,7 +70,6 @@ vm_main (void)
   if (pid == -1) {
     panic  ("init %d: Failed to fork for login!\n", __LINE__);
   } else if (pid == 0) {
-    for (i = 0 ; i < cpuinfo->cpuid ; i++) DEBUG("\n", 0x7);
     exec("login", NULL);
     DEBUG ("FAILED!", 0x4);
     halt ();

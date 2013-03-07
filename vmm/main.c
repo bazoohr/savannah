@@ -20,8 +20,8 @@ vmm_main (void)
 
   cpuinfo->ready = true;
 
-  if (cpuinfo->cpuid != RS) {
-    msg_receive (RS);
+  if (cpuinfo->cpuid != PM) {
+    msg_receive (PM);
   }
   if (! cpuinfo->vmm_info.vmm_has_vm) {
     msg_receive (PM);
