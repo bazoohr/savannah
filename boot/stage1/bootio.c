@@ -1,6 +1,7 @@
 #include <types.h>
 #include "screen.h"
 #include "bootio.h"
+#include "stdarg32.h"
 /* Convert the integer D to a string and save the string in BUF. If
 BASE is equal to 'd', interpret that D is decimal, and if BASE is
 equal to 'x', interpret that D is hexadecimal. */
@@ -45,11 +46,11 @@ static void itoa (char *buf, int base, int d)
 function printf. */
 void printf (const char *format, ...)
 {
-  char **arg = (char **) &format;
+  va_list ap;
   int c;
   char buf[20];
 
-  arg++;
+  va_start (ap, format);
 
   while ((c = *format++) != 0) {
     if (c != '%')
@@ -62,12 +63,12 @@ void printf (const char *format, ...)
         case 'd':
         case 'u':
         case 'x':
-          itoa (buf, c, *((int *) arg++));
+          itoa (buf, c, va_arg (ap, int));
           p = buf;
           goto string;
           break;
         case 's':
-          p = *arg++;
+          p = va_arg (ap, char *);
           if (! p)
             p = "(null)";
         string:
@@ -75,7 +76,7 @@ void printf (const char *format, ...)
             putchar (*p++);
           break;
         default:
-          putchar (*((int *) arg++));
+          putchar (va_arg (ap, int));
       }
     }
   }

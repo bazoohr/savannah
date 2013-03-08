@@ -78,6 +78,36 @@ load_stage2 (phys_addr_t stage2_elf_addr,
   memset ((void*)((phys_addr_t)s->p_vaddr), 0, s->p_memsz);
   *stage2_end_addr = s->p_vaddr + s->p_memsz;    /* Shows where stage2 ends! */
 }
+static void
+check_cpu_features (void)
+{
+  char *cpu_x87_and_media_check_result;
+  /* Does CPU have longmode? */
+  if (! cpu_has_longmode ()) {
+    printf ("ERROR: Your system does not supporting longmode!");
+    halt ();
+  }
+  /* Support for x87, MMX, SSE, ... */
+  if ((cpu_x87_and_media_check_result = cpu_has_x87_and_media_support ()) != NULL) {
+    printf ("%s", cpu_x87_and_media_check_result);
+    halt ();
+  }
+  /* Check for msr */
+  if (! cpu_has_msr ()) {
+    printf ("ERROR: Your cpu does not support MSR!");
+    halt ();
+  }
+  /* Check for VMX */
+  if (! cpu_has_vmx ()) {
+    printf ("ERROR: Your cpu does not support VMX!");
+    halt ();
+  }
+  /* Check physical address extention */
+  if (! cpu_has_physical_address_extention ()) {
+    printf ("ERROR: Your cpu does not support physical address extention!");
+    halt ();
+  }
+}
 void
 boot_loader (unsigned long magic, unsigned long addr)
 {
@@ -95,19 +125,12 @@ boot_loader (unsigned long magic, unsigned long addr)
   void (*stage2)(struct boot_stage2_args *);
 
   clrscr ();  /* Clear the screen. */
-  /* Does CPU have longmode? */
-  if (has_longmode () == false) {
-    printf ("ERROR: Your system does not supporting longmode!\n");
-    halt ();
-  }
-  if (has_x87_and_media_support () == true) {
-    enable_x87_and_media ();
-  } else {
-    printf ("ERROR: Your system does not support X87 and media instructions.\n");
-    halt ();
-  }
+  /* Make sure cpu has all needed features */
+  check_cpu_features ();
   /* Do we support 1GB pages? */
-  support_1GB_page = has_1GBpage () ? true : false;
+  support_1GB_page = cpu_has_1GBpage () ? true : false;
+  /* Enable x87 & its extentions */
+  enable_x87_and_media ();
   /* Are mem_* valid? */
   if (CHECK_FLAG (mbi->flags, 0)) {
     memory_size = mbi->mem_upper;    /* Size of memory in KB */

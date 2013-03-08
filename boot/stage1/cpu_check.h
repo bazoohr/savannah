@@ -4,7 +4,7 @@
 #include "asmfunc.h"
 
 static inline bool
-has_longmode (void)
+cpu_has_longmode (void)
 {
   uint32_t eax;
   uint32_t edx;
@@ -19,8 +19,8 @@ has_longmode (void)
   return false;
 }
 
-static inline bool
-has_x87_and_media_support (void)
+static inline char *
+cpu_has_x87_and_media_support (void)
 {
   uint32_t eax;
   uint32_t ecx;
@@ -28,16 +28,34 @@ has_x87_and_media_support (void)
 
   cpuid (1, &eax, NULL, &ecx, &edx);
 
-  if ((edx & (1 << 0))  &&  /* x87 */
-      (edx & (1 << 25)) &&  /* sse */
-      (edx & (1 << 26)) &&  /* sse2 */
-      (ecx & (1 << 0))  &&  /* sse3 */
-      (edx & (1 << 23)) &&  /* mmx */
-      (edx & (1 << 24))     /* fxsave/fxstore */
-     ) {
-    return true;
+  if (! (edx & (1 << 0))) {
+    return "ERROR: Your CPU does not support x87!";
   }
-  return false;
+  if (!(edx & (1 << 25))) {
+    return "ERROR: Your CPU does not support SSE!";
+  }
+  if (!(edx & (1 << 26))) {
+    return "ERROR: Your CPU does not support SSE2!";
+  }
+  if (!(ecx & (1 << 0))) {
+    return "ERROR: Your CPU does not support SSE3!";
+  }
+  if (!(ecx & (1 << 9))) {
+    return "ERROR: Your CPU does not support SSSE3!";
+  }
+  if (!(ecx & (1 << 19))) {
+    return "ERROR: Your CPU does not support SSE4.1!";
+  }
+  if (!(ecx & (1 << 20))) {
+    return "ERROR: Your CPU does not support SSE4.2!";
+  }
+  if (!(edx & (1 << 23))) {
+    return "ERROR: Your CPU does not support MMX!";
+  }
+  if (!(edx & (1 << 24))) {
+    return "ERROR: Your CPU does not support fxsave/fxstore!";
+  }
+  return NULL;
 }
 
 static inline void
@@ -63,12 +81,36 @@ enable_x87_and_media (void)
 }
 
 static inline bool
-has_1GBpage (void)
+cpu_has_1GBpage (void)
 {
   uint32_t edx;
 
   cpuid (0x80000001, NULL, NULL, NULL, &edx);
 
   return (edx & (1 << 26)) ? true : false;
+}
+
+
+static inline int
+cpu_has_vmx (void)
+{
+	uint32_t ecx;
+	cpuid (1, NULL, NULL, &ecx, NULL);
+	return (ecx & (1 << 5));
+}
+
+static inline int
+cpu_has_msr (void)
+{
+	uint32_t edx;
+	cpuid (1, NULL, NULL, NULL, &edx);
+	return (edx & (1 << 5));
+}
+static inline bool
+cpu_has_physical_address_extention (void)
+{
+	uint32_t edx;
+	cpuid (1, NULL, NULL, NULL, &edx);
+	return (edx & (1 << 6));
 }
 #endif /* __CPU_CHECK_H__ */
