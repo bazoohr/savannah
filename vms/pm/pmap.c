@@ -90,10 +90,6 @@ map_memory (phys_addr_t *pml4_paddr,
     panic ("Second Boot Stage: Undefined memory map flag!");
   }
 
-  if (protection != VMM_PAGE_UNCACHABLE && protection != VMM_PAGE_NORMAL) {
-    panic ("Second Boot Stage: Undefined VMM page protection!");
-  }
-
   memory_region_size =  memory_region_end_vaddr - memory_region_start_vaddr;
 
   pages = memory_region_size / page_size + (memory_region_size % page_size ? 1 : 0);
@@ -160,11 +156,12 @@ map_memory (phys_addr_t *pml4_paddr,
 }
 /* =============================================== */
 void
-EPT_map_memory (phys_addr_t *pml4_paddr,
+ept_map_memory (phys_addr_t *pml4_paddr,
                 virt_addr_t memory_region_start_vaddr,
                 virt_addr_t memory_region_end_vaddr,
                 phys_addr_t memory_region_start_paddr,
                 uint32_t page_size,
+                uint8_t mtype,
                 uint16_t protection,
                 int  flags)
 {
@@ -294,11 +291,11 @@ EPT_map_memory (phys_addr_t *pml4_paddr,
     }
     if (page_size == _4KB_) {
       pte = (page_table_entry_t *)((phys_addr_t)pde[pde_idx] & ~0xFFF);
-      pte[pte_idx] = (phys_addr_t)paddr | protection;
+      pte[pte_idx] = (phys_addr_t)paddr | (mtype << 3) | protection;
     } else if (page_size == _2MB_) {
-      pde[pde_idx] = (phys_addr_t)paddr | protection;
+      pde[pde_idx] = (phys_addr_t)paddr | (mtype << 3) | protection;
     } else {  /* 1GB Pages */
-      pdpe[pdpe_idx] = (phys_addr_t)paddr | protection;
+      pdpe[pdpe_idx] = (phys_addr_t)paddr | (mtype << 3) | protection;
     }
 
     page++;
@@ -364,11 +361,12 @@ ept_map_page_tables (phys_addr_t *ept, phys_addr_t pml4_paddr, const uint16_t pr
   }
 
   pml4 = (page_table_entry_t *)pml4_paddr;
-  EPT_map_memory (ept,
+  ept_map_memory (ept,
       (virt_addr_t)pml4,
       (virt_addr_t)pml4 + PAGE_TABLE_SIZE,
       (phys_addr_t)pml4,
       USER_VMS_PAGE_SIZE,
+      EPT_MTYPE_WT,
       protection,
       MAP_UPDATE);
 
@@ -376,11 +374,12 @@ ept_map_page_tables (phys_addr_t *ept, phys_addr_t pml4_paddr, const uint16_t pr
     pdpe = (page_table_entry_t *)((phys_addr_t)pml4[pml4_idx] & ~0xFFF);
 
     if (pdpe) {
-      EPT_map_memory (ept,
+      ept_map_memory (ept,
           (virt_addr_t)pdpe,
           (virt_addr_t)pdpe + PAGE_TABLE_SIZE,
           (phys_addr_t)pdpe,
           USER_VMS_PAGE_SIZE,
+          EPT_MTYPE_WT,
           protection,
           MAP_UPDATE);
       /*
@@ -393,22 +392,24 @@ ept_map_page_tables (phys_addr_t *ept, phys_addr_t pml4_paddr, const uint16_t pr
         if (pdpe[pdpe_idx] && !(pdpe[pdpe_idx] & PAGE_PSE)) {  /* page < 1GB */
           pde = (page_table_entry_t *)((phys_addr_t)pdpe[pdpe_idx] & ~0xFFF);
           if (pde) {
-            EPT_map_memory (ept,
+            ept_map_memory (ept,
                 (virt_addr_t)pde,
                 (virt_addr_t)pde + PAGE_TABLE_SIZE,
                 (phys_addr_t)pde,
                 USER_VMS_PAGE_SIZE,
+                EPT_MTYPE_WT,
                 protection,
                 MAP_UPDATE);
             for (pde_idx = 0; pde_idx < PAGE_TABLE_ENTRIES; pde_idx++) {
               if (pde[pde_idx] && !(pde[pde_idx] & PAGE_PSE)) { /* page < 2MB */
                 phys_addr_t pte = ((phys_addr_t)pde[pde_idx] & ~0xFFF);
 
-                EPT_map_memory (ept,
+                ept_map_memory (ept,
                     (virt_addr_t)pte,
                     (virt_addr_t)pte + PAGE_TABLE_SIZE,
                     (phys_addr_t)pte,
                     USER_VMS_PAGE_SIZE,
+                    EPT_MTYPE_WT,
                     protection,
                     MAP_UPDATE);
               } /* 4KB if */

@@ -48,6 +48,7 @@ typedef uint64_t page_table_entry_t;
 
 #define PAGE_PRESENT  (1 << _PAGE_BIT_PRESENT)
 #define PAGE_PSE      (1 << _PAGE_BIT_PSE)
+#define PAGE_PWT      (1 << _PAGE_BIT_PWT)
 #define PAGE_RW       (1 << _PAGE_BIT_RW)
 #define PAGE_USR      (1 << _PAGE_BIT_USER)
 #define PAGE_GLOBAL   (1 << _PAGE_BIT_GLOBAL)

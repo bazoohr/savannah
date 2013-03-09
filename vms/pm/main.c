@@ -91,102 +91,121 @@ static __inline void
 ept_pmap (struct cpu_info * const child_cpu_info)
 {
   map_memory (&child_cpu_info->vm_info.vm_page_tables,
-      0, (virt_addr_t)((virt_addr_t)_1GB_ * 4),
+      0, (virt_addr_t)((virt_addr_t)_1GB_ * 3),
       0,
       has_1GB_page ? _1GB_ : _2MB_,
-      VM_PAGE_NORMAL, MAP_NEW);
-
-  EPT_map_memory (&child_cpu_info->vm_info.vm_ept,
+      PAGE_PRESENT | PAGE_RW | PAGE_PWT, MAP_NEW);
+      /* Map Last 1GB as uncachable memory for MMIO */
+  map_memory (&child_cpu_info->vm_info.vm_page_tables,
+      (virt_addr_t)((virt_addr_t)_1GB_ * 3), (virt_addr_t)((virt_addr_t)_1GB_ * 4),
+      (virt_addr_t)((virt_addr_t)_1GB_ * 3),
+      has_1GB_page ? _1GB_ : _2MB_,
+      PAGE_PRESENT | PAGE_RW | PAGE_PCD, MAP_UPDATE);
+  ept_map_memory (&child_cpu_info->vm_info.vm_ept,
       0xB8000, 0xB9000,  /* Just for debugging purposes */
       0xB8000,
       USER_VMS_PAGE_SIZE,
-      EPT_PAGE_READ | EPT_PAGE_WRITE, MAP_NEW);  /* XXX: Why do we need write access here? */
-  EPT_map_memory (&child_cpu_info->vm_info.vm_ept,
+      EPT_MTYPE_WT,
+      EPT_PAGE_READ | EPT_PAGE_WRITE, MAP_NEW);
+  ept_map_memory (&child_cpu_info->vm_info.vm_ept,
       0xFEC00000, ((phys_addr_t)0x100000000),
       0xFEC00000,
       USER_VMS_PAGE_SIZE,
+      EPT_MTYPE_UC,
       EPT_PAGE_READ | EPT_PAGE_WRITE, MAP_UPDATE);  /* XXX: Why do we need write access here? */
 
   ept_map_page_tables (&child_cpu_info->vm_info.vm_ept, child_cpu_info->vm_info.vm_page_tables, EPT_PAGE_READ);
 
-  EPT_map_memory (&child_cpu_info->vm_info.vm_ept,
+  ept_map_memory (&child_cpu_info->vm_info.vm_ept,
       (phys_addr_t)child_cpu_info, (phys_addr_t)child_cpu_info + _4KB_,
       (phys_addr_t)child_cpu_info,
       USER_VMS_PAGE_SIZE,
+      EPT_MTYPE_WT,
       EPT_PAGE_READ, MAP_UPDATE);
-  EPT_map_memory (&child_cpu_info->vm_info.vm_ept,
+  ept_map_memory (&child_cpu_info->vm_info.vm_ept,
       (phys_addr_t)child_cpu_info->msg_input, (phys_addr_t)child_cpu_info->msg_input + _4KB_,
       (phys_addr_t)child_cpu_info->msg_input,
       USER_VMS_PAGE_SIZE,
+      EPT_MTYPE_WT,
       EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
-  EPT_map_memory (&child_cpu_info->vm_info.vm_ept,
+  ept_map_memory (&child_cpu_info->vm_info.vm_ept,
       (phys_addr_t)child_cpu_info->msg_output, (phys_addr_t)child_cpu_info->msg_output + _4KB_,
       (phys_addr_t)child_cpu_info->msg_output,
       USER_VMS_PAGE_SIZE,
+      EPT_MTYPE_WT,
       EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
-  EPT_map_memory (&child_cpu_info->vm_info.vm_ept,
+  ept_map_memory (&child_cpu_info->vm_info.vm_ept,
       (phys_addr_t)child_cpu_info->msg_ready, (phys_addr_t)child_cpu_info->msg_ready + _4KB_,
       (phys_addr_t)child_cpu_info->msg_ready,
       USER_VMS_PAGE_SIZE,
+      EPT_MTYPE_WT,
       EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
 
   if (child_cpu_info->vm_info.vm_code_size > 0) {
-    EPT_map_memory (&child_cpu_info->vm_info.vm_ept,
+    ept_map_memory (&child_cpu_info->vm_info.vm_ept,
         child_cpu_info->vm_info.vm_code_vaddr, child_cpu_info->vm_info.vm_code_vaddr + child_cpu_info->vm_info.vm_code_size,
         child_cpu_info->vm_info.vm_code_paddr,
         USER_VMS_PAGE_SIZE,
+        EPT_MTYPE_WT,
         EPT_PAGE_READ | EPT_PAGE_EXEC, MAP_UPDATE);
   }
   if (child_cpu_info->vm_info.vm_data_size > 0) {
-    EPT_map_memory (&child_cpu_info->vm_info.vm_ept,
+    ept_map_memory (&child_cpu_info->vm_info.vm_ept,
         child_cpu_info->vm_info.vm_data_vaddr, child_cpu_info->vm_info.vm_data_vaddr + child_cpu_info->vm_info.vm_data_size,
         child_cpu_info->vm_info.vm_data_paddr,
         USER_VMS_PAGE_SIZE,
+        EPT_MTYPE_WT,
         EPT_PAGE_READ | EPT_PAGE_EXEC, MAP_UPDATE);
   }
   if (child_cpu_info->vm_info.vm_rodata_size > 0) {
-    EPT_map_memory (&child_cpu_info->vm_info.vm_ept,
+    ept_map_memory (&child_cpu_info->vm_info.vm_ept,
         child_cpu_info->vm_info.vm_rodata_vaddr, child_cpu_info->vm_info.vm_rodata_vaddr + child_cpu_info->vm_info.vm_rodata_size,
         child_cpu_info->vm_info.vm_rodata_paddr,
         USER_VMS_PAGE_SIZE,
+        EPT_MTYPE_WT,
         EPT_PAGE_READ, MAP_UPDATE);
   }
   if (child_cpu_info->vm_info.vm_bss_size > 0) {
-    EPT_map_memory (&child_cpu_info->vm_info.vm_ept,
+    ept_map_memory (&child_cpu_info->vm_info.vm_ept,
         child_cpu_info->vm_info.vm_bss_vaddr, child_cpu_info->vm_info.vm_bss_vaddr + child_cpu_info->vm_info.vm_bss_size,
         child_cpu_info->vm_info.vm_bss_paddr,
         USER_VMS_PAGE_SIZE,
+        EPT_MTYPE_WT,
         EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
   }
   if (child_cpu_info->vm_info.vm_stack_size > 0) {
-    EPT_map_memory (&child_cpu_info->vm_info.vm_ept,
+    ept_map_memory (&child_cpu_info->vm_info.vm_ept,
         child_cpu_info->vm_info.vm_stack_vaddr, child_cpu_info->vm_info.vm_stack_vaddr + child_cpu_info->vm_info.vm_stack_size,
         child_cpu_info->vm_info.vm_stack_paddr,
         USER_VMS_PAGE_SIZE,
+        EPT_MTYPE_WT,
         EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
   }
   if (child_cpu_info->vm_info.vm_fds > 0) {
-    EPT_map_memory (&child_cpu_info->vm_info.vm_ept,
+    ept_map_memory (&child_cpu_info->vm_info.vm_ept,
         (phys_addr_t)child_cpu_info->vm_info.vm_fds, (phys_addr_t)child_cpu_info->vm_info.vm_fds + _4KB_,
         (phys_addr_t)child_cpu_info->vm_info.vm_fds,
         USER_VMS_PAGE_SIZE,
+        EPT_MTYPE_WT,
         EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
     int i;
     for (i = 0 ; i < MAX_FD ; i++) {
       if (child_cpu_info->vm_info.vm_fds[i].offset != 0) {
-        EPT_map_memory (&child_cpu_info->vm_info.vm_ept,
+        ept_map_memory (&child_cpu_info->vm_info.vm_ept,
             (phys_addr_t)child_cpu_info->vm_info.vm_fds[i].offset, (phys_addr_t)child_cpu_info->vm_info.vm_fds[i].offset + _4KB_,
             (phys_addr_t)child_cpu_info->vm_info.vm_fds[i].offset,
             USER_VMS_PAGE_SIZE,
+            EPT_MTYPE_WT,
             EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
       }
     }
   }
   if (child_cpu_info->vm_info.vm_channels > 0) {
-    EPT_map_memory (&child_cpu_info->vm_info.vm_ept,
+    ept_map_memory (&child_cpu_info->vm_info.vm_ept,
         (phys_addr_t)child_cpu_info->vm_info.vm_channels, (phys_addr_t)child_cpu_info->vm_info.vm_channels + _4KB_,
         (phys_addr_t)child_cpu_info->vm_info.vm_channels,
         USER_VMS_PAGE_SIZE,
+        EPT_MTYPE_WT,
         EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
   }
 }
@@ -277,16 +296,18 @@ local_channel (const struct channel_ipc * const req)
     panic ("PM: Failed to alloced memory!");
   }
 
-  EPT_map_memory (&cpu1->vm_info.vm_ept,
+  ept_map_memory (&cpu1->vm_info.vm_ept,
       channel,  channel + CHANNEL_SIZE,
       channel,
       USER_VMS_PAGE_SIZE,
+      EPT_MTYPE_WT,
       EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
 
-  EPT_map_memory (&cpu2->vm_info.vm_ept,
+  ept_map_memory (&cpu2->vm_info.vm_ept,
       channel,  channel + CHANNEL_SIZE,
       channel,
       USER_VMS_PAGE_SIZE,
+      EPT_MTYPE_WT,
       EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
 
   add_channel_list(cpu2, channel);
