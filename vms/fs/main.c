@@ -11,6 +11,7 @@
 #include <pm.h>
 #include <debug.h>
 #include <vuos/vuos.h>
+#include <channel.h>
 
 char *filesystem;
 
@@ -288,6 +289,58 @@ local_write(int fd, void *buf, int count, int from)
   msg_reply (from, CONSOLE, WRITE_IPC, &cwrite, sizeof(struct console_write));
 }
 
+/* XXX This code is very similar in PM, if any modification is done here
+ *     it should probably be replaced also in PM.
+ */
+static int
+local_close_char(int fd, int from)
+{
+  virt_addr_t cnl_offset = get_cpu_info(from)->vm_info.vm_fds[fd].offset;
+  struct channel *cnl = (struct channel *)cnl_offset;
+  struct message *pm_reply;
+  struct channel_close_ipc tmp;
+  uint64_t msg = CLOSE_CHANNEL;
+  int reply_data;
+  int dst;
+
+  memcpy((void*)cnl->data, &msg, sizeof (uint64_t));
+
+  cnl_send(cnl);
+  cnl_receive((virt_addr_t)cnl);
+
+  tmp.cnl = cnl_offset;
+
+  msg_send (PM, CHANNEL_CLOSE_IPC, &tmp, sizeof (struct channel_close_ipc));
+  msg_receive (PM);
+
+  pm_reply = &cpuinfo->msg_input[PM];
+
+  reply_data = (int)pm_reply->data[0];
+
+  if (reply_data != 0) {
+    panic("FS: The reply (%d) from PM when closing the channel is not 0", reply_data);
+  }
+
+  get_cpu_info(from)->vm_info.vm_fds[fd].offset = 0;
+
+  /* TODO: Find a better way to save the dst, maybe in the fd structure */
+  switch (fd) {
+    case 0:
+      dst = KBD;
+      break;
+    case 1:
+      dst = CONSOLE;
+      break;
+    default: /* If it is not KBD nor CONSOLE the only driver available is JUNK now */
+      dst = JUNK;
+  }
+
+  const int r = 0;
+  msg_reply (FS, dst, CHANNEL_CLOSE_IPC, &r, sizeof (int));
+
+  return 0;
+}
+
 static int
 local_close(int fd, int from)
 {
@@ -296,15 +349,14 @@ local_close(int fd, int from)
     return -1;
 
   fds = get_fds(from);
-  if (fds == 0) {
-    return 0;
+  if (unlikely (fds == 0)) {
+    return -1;
   }
 
-  /*
-   * TODO:
-   *    Why don't we free the memory allocated
-   *    for channels here????????
-   */
+  if (fds[fd].type == TYPE_CHAR) {
+    local_close_char(fd, from);
+  }
+
   fds[fd].type = 0;
   fds[fd].length = 0;
   fds[fd].offset = 0;

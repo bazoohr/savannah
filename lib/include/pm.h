@@ -9,6 +9,7 @@
 #define EXIT_IPC    3
 #define WAITPID_IPC 4
 #define CHANNEL_IPC 5
+#define CHANNEL_CLOSE_IPC 6
 
 #define MAX_PATH 32
 
@@ -38,6 +39,10 @@ struct waitpid_reply {
 struct channel_ipc {
   cpuid_t end1;
   cpuid_t end2;
+};
+
+struct channel_close_ipc {
+  virt_addr_t cnl;
 };
 
 int fork (void);

@@ -16,6 +16,7 @@
 #include <debug.h>
 #include <misc.h>
 #include <vuos/vuos.h>
+#include <channel.h>
 /* ================================================= */
 #define ALWAYS_BUSY (NUMBER_SERVERS + NUMBER_USER_VMS)
 /* ================================================= */
@@ -237,8 +238,9 @@ remove_channel_list (phys_addr_t channel)
           }
 
           info->vm_info.vm_channels[k] = info->vm_info.vm_channels[k + 1];
-          info->vm_info.vm_channels[k + 1] = 0;
         }
+	// Just to be sure that there is always a 0 at the end.
+	info->vm_info.vm_channels[k + 1] = 0;
       }
     }
   }
@@ -313,6 +315,13 @@ local_channel (const struct channel_ipc * const req)
   add_channel_list(cpu2, channel);
 
   return channel;
+}
+/* ================================================= */
+static void
+local_channel_close (const virt_addr_t channel)
+{
+  remove_channel_list(channel);
+  free_mem_pages (channel);
 }
 /* ================================================= */
 static pid_t
@@ -677,6 +686,48 @@ local_exec (struct cpu_info * const info, const struct exec_ipc * const exec_arg
   return 0;
 }
 /* ================================================= */
+/* XXX This code is very similar in FS, if any modification is done here
+ *     it should probably be replaced also in FS.
+ */
+static int
+close_channel(int fd, int from)
+{
+  virt_addr_t cnl_offset = get_cpu_info(from)->vm_info.vm_fds[fd].offset;
+  struct channel *cnl = (struct channel *)cnl_offset;
+  uint64_t msg = CLOSE_CHANNEL;
+  int dst;
+
+  memcpy((void*)cnl->data, &msg, sizeof (uint64_t));
+
+  cnl_send(cnl);
+  cnl_receive((virt_addr_t)cnl);
+
+  local_channel_close(cnl_offset);
+
+  get_cpu_info(from)->vm_info.vm_fds[fd].offset = 0;
+
+  /* TODO: Find a better way to save the dst, maybe in the fd structure */
+  switch (fd) {
+    case 0:
+      dst = KBD;
+      break;
+    case 1:
+      dst = CONSOLE;
+      break;
+    default: /* If it is not KBD nor CONSOLE the only driver available is JUNK now */
+      dst = JUNK;
+  }
+
+  const int r = 0;
+  /*
+   * Leave FS here, I know it's a kind of man-in-the-middle attack, but this way
+   * the driver can just wait from a message from FS instead from ANY.
+   */
+  msg_reply (FS, dst, CHANNEL_CLOSE_IPC, &r, sizeof (int));
+
+  return 0;
+}
+/* ================================================= */
 static void
 local_exit (struct cpu_info * const info, const struct exit_ipc * const exit_args)
 {
@@ -711,16 +762,14 @@ local_exit (struct cpu_info * const info, const struct exit_ipc * const exit_arg
     /* Free pages allocated for channels */
     for (i = 0; i < MAX_FD; i++) {
       if (info->vm_info.vm_fds[i].type == TYPE_CHAR) {
-        remove_channel_list(info->vm_info.vm_fds[i].offset);
-        free_mem_pages (info->vm_info.vm_fds[i].offset);
-        info->vm_info.vm_fds[i].offset = 0;
+        close_channel(i, info->cpuid);
       }
     }
     free_mem_pages ((phys_addr_t)info->vm_info.vm_fds);
     info->vm_info.vm_fds = NULL;
   }
 
-  if (likely (info->vm_info.vm_channels)) {
+  if (unlikely (info->vm_info.vm_channels)) {
     free_mem_pages ((virt_addr_t)info->vm_info.vm_channels);
     info->vm_info.vm_channels = 0;
   }
@@ -831,6 +880,7 @@ vm_main (void)
   while (1) {
     struct message *m __aligned (0x10) = msg_check();
     struct waitpid_reply wait_reply;
+    struct channel_close_ipc *ccipc;
     pid_t r;
     phys_addr_t channel;
 
@@ -861,6 +911,12 @@ vm_main (void)
         channel = local_channel ((struct channel_ipc *)m->data);
         msg_reply (PM, m->from, CHANNEL_IPC, &channel, sizeof (phys_addr_t));
         break;
+      case CHANNEL_CLOSE_IPC:
+	ccipc = (struct channel_close_ipc *)m->data;
+	local_channel_close (ccipc->cnl);
+	r = 0;
+	msg_reply (PM, m->from, CHANNEL_CLOSE_IPC, &r, sizeof (pid_t));
+	break;
       default:
         DEBUG ("PM: Warning, unknown request %d from %d\n", 0xD, m->number, m->from);
     }
