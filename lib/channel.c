@@ -35,7 +35,7 @@ void __inline
 cnl_send(struct channel *cnl)
 {
   if (cnl == NULL) {
-    panic("No channel specified");
+    panic("CPU %d: cnl_send: No channel specified", cpuinfo->cpuid);
   }
 
   cnl->ready_reply = false;
@@ -113,7 +113,7 @@ void
 cnl_reply(struct channel *cnl, const int count)
 {
   if (cnl == 0) {
-    panic("No channel specified");
+    panic("CPU %d: cnl_reply: No channel specified", cpuinfo->cpuid);
   }
 
   /*

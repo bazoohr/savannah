@@ -3,6 +3,11 @@
 
 #include <types.h>
 
+/*
+ * Magic number if the channel is going to be closed.
+ */
+#define CLOSE_CHANNEL 0x87654321
+
 struct channel {
   bool ready_send;
   bool ready_reply;

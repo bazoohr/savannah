@@ -180,6 +180,7 @@ msg_check()
  * box, so at the moment this function fills its 'msg_input' box the
  * 'msg_receive' will return and the process can read the result.
  */
+/* TODO : Change the name!!! */
 void
 msg_reply(const int from, const int to, const int number, const void *data, const int size)
 {
