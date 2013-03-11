@@ -1,9 +1,10 @@
 #ifndef __CPU_CHECK_H__
 #define __CPU_CHECK_H__
 
+#include <cdef.h>
 #include "asmfunc.h"
 
-static inline bool
+static __inline bool
 cpu_has_longmode (void)
 {
   uint32_t eax;
@@ -19,7 +20,7 @@ cpu_has_longmode (void)
   return false;
 }
 
-static inline char *
+static __inline char *
 cpu_has_x87_and_media_support (void)
 {
   uint32_t eax;
@@ -58,7 +59,7 @@ cpu_has_x87_and_media_support (void)
   return NULL;
 }
 
-static inline void
+static __inline void
 enable_x87_and_media (void)
 {
   __asm__ __volatile__ (
@@ -80,7 +81,7 @@ enable_x87_and_media (void)
       );
 }
 
-static inline bool
+static __inline bool
 cpu_has_1GBpage (void)
 {
   uint32_t edx;
@@ -91,7 +92,7 @@ cpu_has_1GBpage (void)
 }
 
 
-static inline int
+static __inline int
 cpu_has_vmx (void)
 {
 	uint32_t ecx;
@@ -99,14 +100,14 @@ cpu_has_vmx (void)
 	return (ecx & (1 << 5));
 }
 
-static inline int
+static __inline int
 cpu_has_msr (void)
 {
 	uint32_t edx;
 	cpuid (1, NULL, NULL, NULL, &edx);
 	return (edx & (1 << 5));
 }
-static inline bool
+static __inline bool
 cpu_has_physical_address_extention (void)
 {
 	uint32_t edx;

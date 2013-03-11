@@ -34,7 +34,7 @@ pages (size_t sz, size_t pgsz)
   return (sz / pgsz + ((sz % pgsz > 0) ? 1 : 0));
 }
 /* ================================================= */
-static struct cpu_info * __inline
+static __inline struct cpu_info *
 get_cpu_info (const cpuid_t cpuid)
 {
   phys_addr_t cpuinfo_base_paddr;
@@ -366,32 +366,52 @@ local_fork (const struct cpu_info * const info, const struct fork_ipc * const fo
 
   child_cpu_info->vm_info.vm_end_vaddr = parent_cpu_info->vm_info.vm_end_vaddr;
   child_cpu_info->vm_info.vm_end_paddr = parent_cpu_info->vm_info.vm_end_paddr;
-
-  child_cpu_info->vm_info.vm_code_paddr = (phys_addr_t)alloc_mem_pages (pages (parent_cpu_info->vm_info.vm_code_size, USER_VMS_PAGE_SIZE));
+  /* code */
   child_cpu_info->vm_info.vm_code_vaddr = parent_cpu_info->vm_info.vm_code_vaddr;
   child_cpu_info->vm_info.vm_code_size  = parent_cpu_info->vm_info.vm_code_size;
-  memcpy ((void*)child_cpu_info->vm_info.vm_code_paddr, (void*)parent_cpu_info->vm_info.vm_code_paddr, parent_cpu_info->vm_info.vm_code_size);
-
+  if (likely (reallocable (parent_cpu_info->vm_info.vm_code_paddr))) {
+    child_cpu_info->vm_info.vm_code_paddr = (phys_addr_t)realloc_mem_block (parent_cpu_info->vm_info.vm_code_paddr);
+  } else {
+    child_cpu_info->vm_info.vm_code_paddr = (phys_addr_t)alloc_mem_pages (pages (parent_cpu_info->vm_info.vm_code_size, USER_VMS_PAGE_SIZE));
+    memcpy ((void*)child_cpu_info->vm_info.vm_code_paddr, (void*)parent_cpu_info->vm_info.vm_code_paddr, parent_cpu_info->vm_info.vm_code_size);
+  }
+  /* data */
   child_cpu_info->vm_info.vm_data_paddr = (phys_addr_t)alloc_mem_pages (pages (parent_cpu_info->vm_info.vm_data_size, USER_VMS_PAGE_SIZE));
   child_cpu_info->vm_info.vm_data_vaddr = parent_cpu_info->vm_info.vm_data_vaddr;
   child_cpu_info->vm_info.vm_data_size  = parent_cpu_info->vm_info.vm_data_size;
   memcpy ((void*)child_cpu_info->vm_info.vm_data_paddr, (void*)parent_cpu_info->vm_info.vm_data_paddr, parent_cpu_info->vm_info.vm_data_size);
-
-  child_cpu_info->vm_info.vm_rodata_paddr = (phys_addr_t)alloc_mem_pages (pages (parent_cpu_info->vm_info.vm_rodata_size, USER_VMS_PAGE_SIZE));
+  /* Rodata */
   child_cpu_info->vm_info.vm_rodata_vaddr = parent_cpu_info->vm_info.vm_rodata_vaddr;
   child_cpu_info->vm_info.vm_rodata_size  = parent_cpu_info->vm_info.vm_rodata_size;
-  memcpy ((void*)child_cpu_info->vm_info.vm_rodata_paddr, (void*)parent_cpu_info->vm_info.vm_rodata_paddr, parent_cpu_info->vm_info.vm_rodata_size);
-
-  child_cpu_info->vm_info.vm_bss_paddr = (phys_addr_t)alloc_clean_mem_pages (pages (parent_cpu_info->vm_info.vm_bss_size, USER_VMS_PAGE_SIZE));
+  if (likely (reallocable (parent_cpu_info->vm_info.vm_rodata_paddr))) {
+    child_cpu_info->vm_info.vm_rodata_paddr = (phys_addr_t)alloc_mem_pages (pages (parent_cpu_info->vm_info.vm_rodata_size, USER_VMS_PAGE_SIZE));
+  } else {
+    child_cpu_info->vm_info.vm_rodata_paddr = (phys_addr_t)alloc_mem_pages (pages (parent_cpu_info->vm_info.vm_rodata_size, USER_VMS_PAGE_SIZE));
+    memcpy ((void*)child_cpu_info->vm_info.vm_rodata_paddr, (void*)parent_cpu_info->vm_info.vm_rodata_paddr, parent_cpu_info->vm_info.vm_rodata_size);
+  }
+  /* bss */
+  /* We don't allocate clean pages here for bss, because anyways we're going to copy parent's data into that. */
+  child_cpu_info->vm_info.vm_bss_paddr = (phys_addr_t)alloc_mem_pages (pages (parent_cpu_info->vm_info.vm_bss_size, USER_VMS_PAGE_SIZE));
   child_cpu_info->vm_info.vm_bss_vaddr = parent_cpu_info->vm_info.vm_bss_vaddr;
   child_cpu_info->vm_info.vm_bss_size  = parent_cpu_info->vm_info.vm_bss_size;
   memcpy ((void*)child_cpu_info->vm_info.vm_bss_paddr, (void*)parent_cpu_info->vm_info.vm_bss_paddr, parent_cpu_info->vm_info.vm_bss_size);
-
+  /* stack */
   child_cpu_info->vm_info.vm_stack_paddr = (phys_addr_t)alloc_mem_pages (pages (parent_cpu_info->vm_info.vm_stack_size, USER_VMS_PAGE_SIZE));
   child_cpu_info->vm_info.vm_stack_vaddr = parent_cpu_info->vm_info.vm_stack_vaddr;
   child_cpu_info->vm_info.vm_stack_size  = parent_cpu_info->vm_info.vm_stack_size;
-  memcpy ((void*)child_cpu_info->vm_info.vm_stack_paddr, (void*)parent_cpu_info->vm_info.vm_stack_paddr, parent_cpu_info->vm_info.vm_stack_size);
-
+  struct regs *parent_regs = (struct regs *)fork_args->register_array_paddr;
+  void *child_rsp_paddr  = (void*)virt2phys (child_cpu_info, parent_regs->rsp);
+  void *parent_rsp_paddr = (void*)virt2phys (parent_cpu_info, parent_regs->rsp);
+  if (unlikely (child_rsp_paddr == NULL)) {
+    panic ("fork fatal: virt2phys failed for child stack");
+  }
+  if (unlikely (parent_rsp_paddr == NULL)) {
+    panic ("fork fatal: virt2phys failed for parent stack");
+  }
+  memcpy (child_rsp_paddr,
+          parent_rsp_paddr,
+          parent_cpu_info->vm_info.vm_stack_vaddr + parent_cpu_info->vm_info.vm_stack_size -
+          parent_regs->rsp);
   /* Allocate memory for FDs if the process is not a driver */
   if (!is_driver(child_cpu_info->cpuid)) {
     child_cpu_info->vm_info.vm_fds = (struct file_descriptor*)alloc_clean_mem_pages (pages (MAX_FD * sizeof(struct file_descriptor), USER_VMS_PAGE_SIZE));
