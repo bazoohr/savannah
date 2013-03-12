@@ -4,7 +4,6 @@
 static struct gate_descriptor idt[NIDT] __aligned (16);
 static struct descriptor_register idtr;
 
-
 static void
 setgate (int idx, phys_addr_t handler, int typ, int dpl, int ist)
 {

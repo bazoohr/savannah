@@ -2,6 +2,7 @@
 
 .globl _start
 _start:
+  hlt
   /*
    * RDI contains a pointer to struct cpu_info of
    * this cpu.

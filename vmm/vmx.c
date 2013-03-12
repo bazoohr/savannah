@@ -236,6 +236,7 @@ setup_vmcs_config (struct vmcs_config *vmcs_conf)
 	return 0;
 }
 /* ============================================= */
+#if 0
 static void
 enable_cr4_vme ()
 {
@@ -259,6 +260,33 @@ static void msr_lock()
 	} else {
 		DEBUG("MSR Already locked\n", 0xB);
 	}
+}
+#endif
+#define X86_CR4_VMXE    0x00002000 /* enable VMX virtualization */
+static void
+msr_lock(void)
+{
+	uint64_t old, test_bits;
+	int i;
+
+	if (rcr4() & X86_CR4_VMXE) {
+		panic("VMXE is already set!");
+		return;
+	}
+
+	old = rdmsr(MSR_IA32_FEATURE_CONTROL);
+
+	test_bits = FEATURE_CONTROL_LOCKED;
+	test_bits |= FEATURE_CONTROL_VMXON_ENABLED_OUTSIDE_SMX;
+
+	if ((old & test_bits) != test_bits) {
+		/* enable and lock */
+		wrmsr(MSR_IA32_FEATURE_CONTROL, old | test_bits);
+	} else {
+		for (i = 0 ; i < cpuinfo->cpuid ; i++) DEBUG ("\n", 0xB);
+		DEBUG ("MSR Already Locked on CPU %d\n", 0xB, cpuinfo->cpuid);
+	}
+	lcr4(rcr4() | X86_CR4_VMXE); /* FIXME: not cpu hotplug safe */
 }
 
 static void
@@ -473,11 +501,11 @@ setup_vmcs (void)
   vmx_vmwrite (GUEST_ACTIVITY_STATE, 0);
 
   vmx_vmwrite (GUEST_CS_AR_BYTES, 0xA09B);
-  vmx_vmwrite (GUEST_ES_AR_BYTES, 0xC093);
-  vmx_vmwrite (GUEST_SS_AR_BYTES, 0xC093);
-  vmx_vmwrite (GUEST_DS_AR_BYTES, 0xC093);
-  vmx_vmwrite (GUEST_FS_AR_BYTES, 0xC093);
-  vmx_vmwrite (GUEST_GS_AR_BYTES, 0xC093);
+  vmx_vmwrite (GUEST_ES_AR_BYTES, 0xA093);
+  vmx_vmwrite (GUEST_SS_AR_BYTES, 0xA093);
+  vmx_vmwrite (GUEST_DS_AR_BYTES, 0xA093);
+  vmx_vmwrite (GUEST_FS_AR_BYTES, 0xA093);
+  vmx_vmwrite (GUEST_GS_AR_BYTES, 0xA093);
   vmx_vmwrite (GUEST_LDTR_AR_BYTES, 0x00010000);
   vmx_vmwrite (GUEST_TR_AR_BYTES, 0x8b);
 
@@ -637,7 +665,7 @@ host_entry (void)
 			vmlaunch ();
 		}
 	} else {
-		DEBUG ("HOOOOOOOOOSSSSSSSSSTTTTTTTTT!!!!!!!!!!!!!\n", 0xA);
+		DEBUG ("HOOOOOOOOOSSSSSSSSSTTTTTTTTT!!!!!!!!!!!!! CPU id %d\n", 0xA, cpuinfo->cpuid);
 		DEBUG ("Exited because of %d\n", 0x4, reason);
 		while(1);
 	}
@@ -669,7 +697,7 @@ vmx_init (void)
 	/* TODO:
 	 * Make Sure A20 line is disabled here
 	 */
-	enable_cr4_vme();
+	//enable_cr4_vme();
 
 	enable_cr0();
 
@@ -682,6 +710,24 @@ vmx_init (void)
 	load_vmcs (cpuinfo->vm_info.vm_vmcs_ptr);
 
 	setup_vmcs ();
+
+	if (cpuinfo->cpuid == INIT) {
+		uint64_t *pml4 = NULL;
+		uint64_t *pdpe = NULL;
+		uint64_t *pde  = NULL;
+		uint64_t *pte  = NULL;
+
+		DEBUG ("\n\n\n\n\n", 0x4);
+
+		pml4 = (uint64_t*)cpuinfo->vm_info.vm_ept;
+		DEBUG ("pml4 = %x content = %x\n", 0xE, pml4, pml4[0]);
+		pdpe = (uint64_t*)(pml4[0] & ~0xFFF);
+		DEBUG ("pdpe = %x content = %x\n", 0xE, pdpe, pdpe[1]);
+		pde  = (uint64_t*)(pdpe[1] & ~0xFFF);
+		DEBUG ("pde  = %x content = %x\n", 0xE, pde, pde[0]);
+		pte  = (uint64_t*)(pde[0] & ~0xFFF);
+		DEBUG ("pte  = %x content = %x\n", 0xE, pte, *pte);
+	}
 
 	vmlaunch ();
 

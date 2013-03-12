@@ -104,6 +104,8 @@ mp_bootothers (void)
   for (i = 1; i < get_ncpus (); i++) {
     cpu = get_cpu_info (i);
 
+    cprintk("id = %d\n", 0x7, cpu->lapic_id);
+
     lapic_startaps (cpu->lapic_id);
 
     while (!cpu->ready)
@@ -133,6 +135,18 @@ mp_bootothers (void)
   panic ("Failed to run VMM on BootStrap Processor");
 }
 /* ============================================= */
+static int
+intel_get_core_number(void)
+{
+	uint32_t eax;
+
+	cpuid_count (0x4, 0, &eax, NULL, NULL, NULL);
+
+	//printk ("Real Logical IDs: %d\n", (eax >> 26) + 1);
+
+	return (eax >> 26) + 1;
+}
+/* ============================================= */
 void
 mp_init(void)
 {
@@ -146,6 +160,14 @@ mp_init(void)
 	if (! ((edx & (1 << 9)) && (rdmsr (0x1B) & (1<<11))))
 		panic("APIC is NOT supported!");
 
+	/* This code is printing the maximum number of addressable ID for
+	 * logical processors in a phyisical package.
+	 */
+	/*
+	cpuid (0x1, NULL, &ebx, NULL, NULL);
+	printk ("Logical IDs: %d\n", (ebx & 0x7F8000) >> 16);
+	*/
+
 	mp = mp_search(0xF0000, 0x10000);
 	if (!mp) {
 		panic("No MP floating pointer found");
@@ -155,39 +177,49 @@ mp_init(void)
 		panic("Legacy MP configurations not supported");
 	}
 
-  if (mp->imcrp & 0x80)
-    panic("PIC Mode not supported\n");
+	if (mp->imcrp & 0x80)
+		panic("PIC Mode not supported\n");
 
-  /*
-   * Because physaddr varibale is 32 bit and in 64-bit mode
-   * all pointers are 64 bit, GCC complains about the below assignment
-   * therefore to cheat it, we cast mp->physaddr to phys_addr_t.
-   */
+	/*
+	 * Because physaddr varibale is 32 bit and in 64-bit mode
+	 * all pointers are 64 bit, GCC complains about the below assignment
+	 * therefore to cheat it, we cast mp->physaddr to phys_addr_t.
+	 */
 	struct mp_conf *conf = (struct mp_conf *)((phys_addr_t)mp->physaddr);
 	if ((memcmp(conf->signature, "PCMP", 4) != 0)
-	    || (sum((uint8_t *) conf, conf->length) != 0)
-	    || (conf->version != 1 && conf->version != 4)) {
-    cprintk ("Bad Configuration Table %d %d %d\n", 0x4, memcmp(conf->signature, "PCMP", 4) != 0, sum((uint8_t *) conf, conf->length) != 0, conf->version != 1 && conf->version != 4);
-        __asm__ __volatile__ ("cli;hlt\n\t");
-        }
+			|| (sum((uint8_t *) conf, conf->length) != 0)
+			|| (conf->version != 1 && conf->version != 4)) {
+		cprintk ("Bad Configuration Table %d %d %d\n", 0x4, memcmp(conf->signature, "PCMP", 4) != 0, sum((uint8_t *) conf, conf->length) != 0, conf->version != 1 && conf->version != 4);
+		__asm__ __volatile__ ("cli;hlt\n\t");
+	}
 
-  struct mp_ioapic *ioapic_conf = NULL;
+	struct mp_ioapic *ioapic_conf = NULL;
 	uint8_t *start = (uint8_t *)(conf + 1);
 	uint8_t *p;
-  struct mp_proc *proc = NULL;
-  uint64_t curr_cpu= 0;
-  struct cpu_info *curr_cpu_info;
+	uint64_t curr_cpu= 0;
+	struct cpu_info *curr_cpu_info;
+	int number_cores = 0;
+	int i;
 
 
 	for (p = start ; p < ((uint8_t *) conf + conf->length) ; ) {
 		switch(*p) {
 			case MP_PROC:
-        proc = (struct mp_proc *)p;
-        curr_cpu_info = add_cpu ();
+				number_cores = intel_get_core_number();
 
-        curr_cpu_info->cpuid = curr_cpu;
-        curr_cpu_info->lapic_id = proc->apicid;
-				curr_cpu++;
+				cprintk("Number_cores: %d\n", 0x9, number_cores);
+
+				for (i = 0 ; i < number_cores ; i++) {
+					curr_cpu_info = add_cpu ();
+
+					curr_cpu_info->cpuid = curr_cpu;
+					curr_cpu_info->lapic_id = curr_cpu;
+
+					cprintk("lapic_id = %d\n", 0x8, curr_cpu_info->lapic_id);
+
+					curr_cpu++;
+				}
+
 				p += sizeof (struct mp_proc);
 				continue;
 			case MP_IOAPIC:
@@ -215,13 +247,13 @@ mp_init(void)
 		}
 	}
 
-  if (curr_cpu != get_ncpus ()) {
-    panic ("mp failed to properly detect all cpus!");
-  }
+	if (curr_cpu != get_ncpus ()) {
+		panic ("mp failed to properly detect all cpus!");
+	}
 	if (curr_cpu < MIN_CPUS) {
-//    cprintk ("%d CPUs found! That's too little for this operating system!\n", 0x4, ncpus);
-		panic ("Too little number of CPUs");
-  }
+		//    cprintk ("%d CPUs found! That's too little for this operating system!\n", 0x4, ncpus);
+		panic ("%d CPUs found. The minimum number is %d", curr_cpu, MIN_CPUS);
+	}
 
 	phys_addr_t ioapicpa;
 	if (ioapic_conf) {
