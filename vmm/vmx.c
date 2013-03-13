@@ -665,8 +665,9 @@ host_entry (void)
 			vmlaunch ();
 		}
   } else if (reason == 48) {
-    uint64_t guest_addr = vmx_vmread (GUEST_LINEAR_ADDRESS);
-    DEBUG ("ept violation core %d guest address = %x\n", 0x4, cpuinfo->cpuid, guest_addr);
+    uint64_t guest_laddr = vmx_vmread (GUEST_LINEAR_ADDRESS);
+    uint64_t guest_paddr = vmx_vmread (GUEST_PHYSICAL_ADDRESS);
+    DEBUG ("ept violation core %d guest linear addr = %x phys address = %x\n", 0x4, cpuinfo->cpuid, guest_laddr, guest_paddr);
     while (1) halt ();
 	} else {
 		DEBUG ("HOOOOOOOOOSSSSSSSSSTTTTTTTTT!!!!!!!!!!!!! CPU id %d\n", 0xA, cpuinfo->cpuid);
