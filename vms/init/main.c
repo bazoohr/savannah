@@ -20,10 +20,6 @@ vm_main (void)
   DEBUG ("This is init %d\n", 0xA, cpuinfo->cpuid);
   halt ();
 #endif
-  DEBUG ("init......\n", 0xF);
-  int *ptr = (int *)((phys_addr_t)0x100);
-  *ptr = 123;
-
   /* Launching keyboard driver */
   DEBUG  ("Starting keyboard driver... ", 0xF);
   int pid = fork ();

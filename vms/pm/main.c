@@ -116,7 +116,7 @@ ept_pmap (struct cpu_info * const child_cpu_info)
       EPT_MTYPE_UC,
       EPT_PAGE_READ | EPT_PAGE_WRITE, MAP_UPDATE);  /* XXX: Why do we need write access here? */
 
-  ept_map_page_tables (&child_cpu_info->vm_info.vm_ept, child_cpu_info->vm_info.vm_page_tables, EPT_PAGE_READ);
+  ept_map_page_tables (&child_cpu_info->vm_info.vm_ept, child_cpu_info->vm_info.vm_page_tables, EPT_PAGE_READ | EPT_PAGE_WRITE);
 
   ept_map_memory (&child_cpu_info->vm_info.vm_ept,
       (phys_addr_t)child_cpu_info, (phys_addr_t)child_cpu_info + _4KB_,
@@ -299,7 +299,6 @@ local_channel (const struct channel_ipc * const req)
     panic ("PM: Failed to alloced memory!");
   }
 
-  DEBUG ("channel address = %x\n", 0xA, channel);
   ept_map_memory (&cpu1->vm_info.vm_ept,
       channel,  channel + CHANNEL_SIZE,
       channel,

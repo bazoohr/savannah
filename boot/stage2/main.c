@@ -239,13 +239,6 @@ load_all_vmms (phys_addr_t vmm_elf_addr, phys_addr_t boot_stage2_end_addr)
                  curr_cpu_info->vmm_info.vmm_start_paddr,
                  _4KB_,
                  PAGE_PRESENT | PAGE_RW | PAGE_PWT, MAP_UPDATE);
-
-    /* XXX TESTING!!! */
-    map_memory (&curr_cpu_info->vmm_info.vmm_page_tables,
-        (phys_addr_t)get_cpu_info(INIT)->vm_info.vm_ept, (phys_addr_t)get_cpu_info(INIT)->vm_info.vm_ept + _2MB_,
-        (phys_addr_t)get_cpu_info(INIT)->vm_info.vm_ept,
-	_4KB_,
-                 PAGE_PRESENT | PAGE_RW | PAGE_PWT, MAP_UPDATE);
   }
 #undef VIRT2PHYS
 }
@@ -579,13 +572,7 @@ ept_map_memory_other (struct cpu_info *curr_cpu_info)
    *    We need to map only 8KB of memory, but we are actually mapping 2MB
    */
   ept_map_page_tables (&curr_cpu_info->vm_info.vm_ept, curr_cpu_info->vm_info.vm_page_tables,
-      EPT_PAGE_READ);
-  ept_map_memory (&curr_cpu_info->vm_info.vm_ept,
-      curr_cpu_info->vm_info.vm_page_tables, curr_cpu_info->vm_info.vm_page_tables + 2 * _4KB_,
-      curr_cpu_info->vm_info.vm_page_tables,
-      USER_VMS_PAGE_SIZE,
-      EPT_MTYPE_WT,
-      EPT_PAGE_READ, MAP_UPDATE);
+      EPT_PAGE_READ | EPT_PAGE_WRITE);
 
   ept_map_memory (&curr_cpu_info->vm_info.vm_ept,
       (phys_addr_t)curr_cpu_info, (phys_addr_t)curr_cpu_info + _4KB_,

@@ -104,8 +104,6 @@ mp_bootothers (void)
   for (i = 1; i < get_ncpus (); i++) {
     cpu = get_cpu_info (i);
 
-    cprintk("id = %d\n", 0x7, cpu->lapic_id);
-
     lapic_startaps (cpu->lapic_id);
 
     while (!cpu->ready)
@@ -207,15 +205,11 @@ mp_init(void)
 			case MP_PROC:
 				number_cores = intel_get_core_number();
 
-				cprintk("Number_cores: %d\n", 0x9, number_cores);
-
 				for (i = 0 ; i < number_cores ; i++) {
 					curr_cpu_info = add_cpu ();
 
 					curr_cpu_info->cpuid = curr_cpu;
 					curr_cpu_info->lapic_id = curr_cpu;
-
-					cprintk("lapic_id = %d\n", 0x8, curr_cpu_info->lapic_id);
 
 					curr_cpu++;
 				}

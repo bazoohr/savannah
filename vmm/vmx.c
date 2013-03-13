@@ -267,7 +267,6 @@ static void
 msr_lock(void)
 {
 	uint64_t old, test_bits;
-	int i;
 
 	if (rcr4() & X86_CR4_VMXE) {
 		panic("VMXE is already set!");
@@ -282,10 +281,8 @@ msr_lock(void)
 	if ((old & test_bits) != test_bits) {
 		/* enable and lock */
 		wrmsr(MSR_IA32_FEATURE_CONTROL, old | test_bits);
-	} else {
-		for (i = 0 ; i < cpuinfo->cpuid ; i++) DEBUG ("\n", 0xB);
-		DEBUG ("MSR Already Locked on CPU %d\n", 0xB, cpuinfo->cpuid);
 	}
+
 	lcr4(rcr4() | X86_CR4_VMXE); /* FIXME: not cpu hotplug safe */
 }
 
@@ -667,7 +664,11 @@ host_entry (void)
   } else if (reason == 48) {
     uint64_t guest_laddr = vmx_vmread (GUEST_LINEAR_ADDRESS);
     uint64_t guest_paddr = vmx_vmread (GUEST_PHYSICAL_ADDRESS);
+    uint64_t guest_rip = vmx_vmread (GUEST_RIP);
+    uint64_t guest_qualification = vmx_vmread (EXIT_QUALIFICATION);
     DEBUG ("ept violation core %d guest linear addr = %x phys address = %x\n", 0x4, cpuinfo->cpuid, guest_laddr, guest_paddr);
+    DEBUG ("guest rip = %x\n", 0x4, guest_rip);
+    DEBUG ("exit qualification = %x\n", 0x4, guest_qualification);
     while (1) halt ();
 	} else {
 		DEBUG ("HOOOOOOOOOSSSSSSSSSTTTTTTTTT!!!!!!!!!!!!! CPU id %d\n", 0xA, cpuinfo->cpuid);
@@ -716,6 +717,7 @@ vmx_init (void)
 
 	setup_vmcs ();
 
+#if 0
 	if (cpuinfo->cpuid == INIT) {
 		uint64_t *pml4 = NULL;
 		uint64_t *pdpe = NULL;
@@ -732,7 +734,16 @@ vmx_init (void)
 		DEBUG ("pde  = %x content = %x\n", 0xE, pde, pde[0]);
 		pte  = (uint64_t*)(pde[0] & ~0xFFF);
 		DEBUG ("pte  = %x content = %x\n", 0xE, pte, *pte);
+		DEBUG ("Init page table = %x\n", 0xE, cpuinfo->vm_info.vm_page_tables);
+		DEBUG ("Inside 0x141C000 = %x\n", 0xE, *(uint64_t*)0x141C000);
 	}
+
+	if (cpuinfo->cpuid == FS || cpuinfo->cpuid == INIT) {
+		uint64_t rip = vmx_vmread(GUEST_RIP);
+		DEBUG ("RIP %d cpuinfo = %x\n", 0xE, cpuinfo->cpuid, cpuinfo->vm_info.vm_regs.rip);
+		DEBUG ("RIP %d register = %x\n", 0xE, cpuinfo->cpuid, rip);
+	}
+#endif
 
 	vmlaunch ();
 

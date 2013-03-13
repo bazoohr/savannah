@@ -129,7 +129,6 @@ boot_loader (unsigned long magic, unsigned long addr)
   check_cpu_features ();
   /* Do we support 1GB pages? */
   support_1GB_page = cpu_has_1GBpage () ? true : false;
-  printf ("\n\n\n\n\n\n\n\n\n\n\n\n                   Support 1 GB page : %d", support_1GB_page);
   /* Enable x87 & its extentions */
   enable_x87_and_media ();
   /* Are mem_* valid? */

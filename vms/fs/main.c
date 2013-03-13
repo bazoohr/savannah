@@ -399,7 +399,6 @@ vm_main (void)
 #endif
 
   while (1) {
-    DEBUG ("\nFS is running\n", 0xE);
     struct message *m = msg_check();
     struct open_ipc opentmp;
     struct open_reply openreply;
