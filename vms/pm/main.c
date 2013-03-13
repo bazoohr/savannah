@@ -889,13 +889,10 @@ vm_main (void)
 {
   interrupt_init();
   pm_init ();
-  DEBUG ("This is pm %d\n\n", 0xE, 123);
-  DEBUG ("Next Line %d\n", 0xE, 1234);
 
   int i;
   for (i = 1; i < cpuinfo->ncpus; i++) {
     msg_reply (PM, i, 1, NULL, 0);
-  DEBUG ("inside the loop %d\n", 0xE, 1234);
   }
 #if 0
   int i;

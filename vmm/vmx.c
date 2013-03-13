@@ -664,6 +664,10 @@ host_entry (void)
 		} else {
 			vmlaunch ();
 		}
+  } else if (reason == 48) {
+    uint64_t guest_addr = vmx_vmread (GUEST_LINEAR_ADDRESS);
+    DEBUG ("ept violation core %d guest address = %x\n", 0x4, cpuinfo->cpuid, guest_addr);
+    while (1) halt ();
 	} else {
 		DEBUG ("HOOOOOOOOOSSSSSSSSSTTTTTTTTT!!!!!!!!!!!!! CPU id %d\n", 0xA, cpuinfo->cpuid);
 		DEBUG ("Exited because of %d\n", 0x4, reason);
