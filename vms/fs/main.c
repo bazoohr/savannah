@@ -12,6 +12,7 @@
 #include <debug.h>
 #include <vuos/vuos.h>
 #include <channel.h>
+#include <interrupt.h>
 
 char *filesystem;
 
@@ -387,6 +388,7 @@ local_load(char *path)
 void
 vm_main (void)
 {
+  interrupt_init();
   filesystem = cpuinfo->vm_args;
 
 #if 0
@@ -397,6 +399,7 @@ vm_main (void)
 #endif
 
   while (1) {
+    DEBUG ("\nFS is running\n", 0xE);
     struct message *m = msg_check();
     struct open_ipc opentmp;
     struct open_reply openreply;

@@ -240,6 +240,12 @@ load_all_vmms (phys_addr_t vmm_elf_addr, phys_addr_t boot_stage2_end_addr)
                  _4KB_,
                  PAGE_PRESENT | PAGE_RW | PAGE_PWT, MAP_UPDATE);
 
+    /* XXX TESTING!!! */
+    map_memory (&curr_cpu_info->vmm_info.vmm_page_tables,
+        (phys_addr_t)get_cpu_info(INIT)->vm_info.vm_ept, (phys_addr_t)get_cpu_info(INIT)->vm_info.vm_ept + _2MB_,
+        (phys_addr_t)get_cpu_info(INIT)->vm_info.vm_ept,
+	_4KB_,
+                 PAGE_PRESENT | PAGE_RW | PAGE_PWT, MAP_UPDATE);
   }
 #undef VIRT2PHYS
 }

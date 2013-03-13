@@ -131,6 +131,23 @@ static inline void cpuid (uint32_t function,
 	if (edxp)
 		*edxp = edx;
 }
+static inline void
+cpuid_count (uint32_t info, uint32_t count, uint32_t *eaxp, uint32_t *ebxp,
+             uint32_t *ecxp, uint32_t *edxp)
+{
+	uint32_t eax, ebx, ecx, edx;
+	__asm__ __volatile__ ("cpuid"
+		: "=a" (eax), "=b" (ebx), "=c" (ecx), "=d" (edx)
+		: "0" (info), "2"(count));
+	if (eaxp)
+		*eaxp = eax;
+	if (ebxp)
+		*ebxp = ebx;
+	if (ecxp)
+		*ecxp = ecx;
+	if (edxp)
+		*edxp = edx;
+}
 /* ================================================== */
 static inline void __noreturn
 halt(void)
