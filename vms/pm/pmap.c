@@ -6,6 +6,7 @@
 #include <debug.h>
 #include <macro.h>
 #include <pmap.h>
+#include <vuos/vuos.h>
 /* ========================================== */
 void
 map_memory (phys_addr_t *pml4_paddr,
@@ -31,12 +32,12 @@ map_memory (phys_addr_t *pml4_paddr,
   size_t pages;
   size_t memory_region_size;
 
-  if (memory_region_start_vaddr > memory_region_end_vaddr) {
-    panic ("mep_memory: memory start region can not be greater than end address");
+  if (unlikely (memory_region_start_vaddr > memory_region_end_vaddr)) {
+    panic ("MM fatal (%s,%d): start address greater than end address", __func__, __LINE__);
   }
 
-  if (memory_region_start_vaddr == memory_region_end_vaddr) {
-    panic ("Can't map a memory region of zero size!");
+  if (unlikely (memory_region_start_vaddr == memory_region_end_vaddr)) {
+    panic ("MM fatal (%s,%d): Can't map a memory region of zero size!", __func__, __LINE__);
   }
 
   /*
@@ -54,40 +55,44 @@ map_memory (phys_addr_t *pml4_paddr,
       protection |= PAGE_PSE;
       break;
     default:
-      panic ("Second Boot Stage: Bad page size!");
+      panic ("MM fatal (%s,%d): Bad page size!", __func__, __LINE__);
   }
 
-  if (page_size == _4KB_ && (paddr & (_4KB_ - 1))) {
-    panic ("Address %x is not 4KB aligned", paddr);
+  if (unlikely (page_size == _4KB_ && (paddr & (_4KB_ - 1)))) {
+    panic ("MM fatal (%s,%d): Address %x is not 4KB aligned", __func__, __LINE__, paddr);
   }
 
-  if (page_size == _2MB_ && (paddr & (_2MB_ - 1))) {
-    panic ("Address %x is not 2MB aligned", paddr);
+  if (unlikely (page_size == _2MB_ && (paddr & (_2MB_ - 1)))) {
+    panic ("MM fatal (%s,%d): Address %x is not 2MB aligned", __func__, __LINE__, paddr);
   }
 
-  if (page_size == _1GB_ && (paddr & (_1GB_ - 1))) {
-    panic ("Address %x is not 1GB aligned", paddr);
+  if (unlikely (page_size == _1GB_ && (paddr & (_1GB_ - 1)))) {
+    panic ("MM fatal (%s,%d): Address %x is not 1GB aligned", __func__, __LINE__, paddr);
   }
 
-  if (flags == MAP_NEW) {
+  /* TODO:
+   *     Instead of using (un)likely here, we can put swap this condition with
+   *     its else.
+   */
+  if (unlikely (flags == MAP_NEW)) {
     pml4 = (page_table_entry_t *)alloc_page_table ();
-    if (pml4 == NULL) {
-      panic ("BOOT STAGE2: Memory Allocation Failed line %d\n", __LINE__);
+    if (unlikely (pml4 == NULL)) {
+      panic ("MM fatal (%s,%d): Memory Allocation Failed line %d\n", __func__, __LINE__);
     }
 
     *pml4_paddr = (phys_addr_t)pml4;
 
-  } else if (flags == MAP_UPDATE) {
+  } else if (likely (flags == MAP_UPDATE)) {
     pml4 = (page_table_entry_t *)*pml4_paddr;
 
-    if ((pml4[0] & (PAGE_PRESENT | PAGE_RW)) == 0) {
+    if (unlikely ((pml4[0] & (PAGE_PRESENT | PAGE_RW)) == 0)) {
       DEBUG ("Warning:\nSecond Boot Stage: Invalid PML4 used to map VMM Pages!", 0x4);
     }
-    if (pml4[0] == 0) {
-      panic ("Second Boot Stage: Trying to update null page tables!");
+    if (unlikely (pml4[0] == 0)) {
+      panic ("MM fatal (%s,%d): Trying to update null page tables!", __func__, __LINE__);
     }
   } else {
-    panic ("Second Boot Stage: Undefined memory map flag!");
+    panic ("MM fatal (%s,%d): Undefined memory map flag!", __func__, __LINE__);
   }
 
   memory_region_size =  memory_region_end_vaddr - memory_region_start_vaddr;
@@ -112,8 +117,8 @@ map_memory (phys_addr_t *pml4_paddr,
 
     if (pml4[pml4_idx] == 0) {
       pdpe = (page_table_entry_t *)alloc_page_table ();
-      if (pdpe == NULL) {
-        panic ("BOOT STAGE2: Memory Allocation Failed line %d\n", __LINE__);
+      if (unlikely (pdpe == NULL)) {
+        panic ("MM fatal (%s,%d): Memory Allocation Failed!", __func__, __LINE__);
       }
 
       pml4[pml4_idx] = (phys_addr_t)pdpe | (PAGE_PRESENT | PAGE_RW);
@@ -122,8 +127,8 @@ map_memory (phys_addr_t *pml4_paddr,
     pdpe = (page_table_entry_t *)((phys_addr_t)pml4[pml4_idx] & ~0xFFF);
     if (pdpe[pdpe_idx] == 0 && page_size < _1GB_) {
       pde = (page_table_entry_t *)alloc_page_table ();
-      if (pde == NULL) {
-        panic ("BOOT STAGE2: Memory Allocation Failed line %d\n", __LINE__);
+      if (unlikely (pde == NULL)) {
+        panic ("MM fatal (%s,%d): Memory Allocation Failed", __func__,  __LINE__);
       }
 
       pdpe[pdpe_idx] = (phys_addr_t)pde | (PAGE_PRESENT | PAGE_RW);
@@ -133,8 +138,8 @@ map_memory (phys_addr_t *pml4_paddr,
 
       if (pde[pde_idx] == 0 && page_size < _2MB_) {
         pte = (page_table_entry_t *)alloc_page_table ();
-        if (pte == NULL) {
-          panic ("BOOT STAGE2: Memory Allocation Failed line %d\n", __LINE__);
+        if (unlikely (pte == NULL)) {
+          panic ("MM fatal (%s,%d): Memory Allocation Failed", __func__, __LINE__);
         }
 
         pde[pde_idx] = (phys_addr_t)pte | (PAGE_PRESENT | PAGE_RW);
@@ -180,12 +185,12 @@ ept_map_memory (phys_addr_t *pml4_paddr,
   size_t pages;
   size_t memory_region_size;
 
-  if (memory_region_start_vaddr > memory_region_end_vaddr) {
-    panic ("mep_memory: memory start region can not be greater than end address");
+  if (unlikely (memory_region_start_vaddr > memory_region_end_vaddr)) {
+    panic ("MM fatal (%s,%d): start address greater than end address", __func__, __LINE__);
   }
 
-  if (memory_region_start_vaddr == memory_region_end_vaddr) {
-    panic ("Can't map a memory region of zero size!");
+  if (unlikely (memory_region_start_vaddr == memory_region_end_vaddr)) {
+    panic ("MM fatal (%s,%d): Can't map a memory region of zero size!", __func__, __LINE__);
   }
 
   /*
@@ -203,40 +208,44 @@ ept_map_memory (phys_addr_t *pml4_paddr,
       protection |= EPT_PAGE_PSE;
       break;
     default:
-      panic ("Second Boot Stage: Bad page size!");
+      panic ("MM fatal (%s,%d): Bad page size!", __func__, __LINE__);
   }
 
-  if (page_size == _4KB_ && (paddr & (_4KB_ - 1))) {
-    panic ("Address %x is not 4KB aligned", paddr);
+  if (unlikely (page_size == _4KB_ && (paddr & (_4KB_ - 1)))) {
+    panic ("MM fatal (%s,%d): Address %x is not 4KB aligned", __func__, __LINE__, paddr);
   }
 
-  if (page_size == _2MB_ && (paddr & (_2MB_ - 1))) {
-    panic ("Address %x is not 2MB aligned", paddr);
+  if (unlikely (page_size == _2MB_ && (paddr & (_2MB_ - 1)))) {
+    panic ("MM fatal (%s,%d): Address %x is not 2MB aligned", __func__, __LINE__, paddr);
   }
 
-  if (page_size == _1GB_ && (paddr & (_1GB_ - 1))) {
-    panic ("Address %x is not 1GB aligned", paddr);
+  if (unlikely (page_size == _1GB_ && (paddr & (_1GB_ - 1)))) {
+    panic ("MM fatal (%s,%d): Address %x is not 1GB aligned", __func__, __LINE__, paddr);
   }
 
-  if (flags == MAP_NEW) {
+  /* TODO:
+   *     Instead of using (un)likely here, we can put swap this condition with
+   *     its else.
+   */
+  if (unlikely (flags == MAP_NEW)) {
     pml4 = (page_table_entry_t *)alloc_page_table ();
     if (pml4 == NULL) {
-      panic ("BOOT STAGE2: Memory Allocation Failed line %d\n", __LINE__);
+      panic ("MM fatal (%s,%d): Memory Allocation Failed line %d\n", __func__, __LINE__);
     }
 
     *pml4_paddr = (phys_addr_t)pml4;
 
-  } else if (flags == MAP_UPDATE) {
+  } else if (likely (flags == MAP_UPDATE)) {
     pml4 = (page_table_entry_t *)*pml4_paddr;
 
-    if ((pml4[0] & (PAGE_PRESENT | PAGE_RW)) == 0) {
+    if (unlikely ((pml4[0] & (PAGE_PRESENT | PAGE_RW)) == 0)) {
       DEBUG ("Warning:\nSecond Boot Stage: Invalid PML4 used to map VMM Pages!", 0x4);
     }
-    if (pml4[0] == 0) {
-      panic ("Second Boot Stage: Trying to update null page tables!");
+    if (unlikely (pml4[0] == 0)) {
+      panic ("MM fatal (%s,%d): Trying to update null page tables!", __func__, __LINE__);
     }
   } else {
-    panic ("Second Boot Stage: Undefined memory map flag!");
+    panic ("MM fatal (%s,%d): Undefined memory map flag!", __func__, __LINE__);
   }
 
   memory_region_size =  memory_region_end_vaddr - memory_region_start_vaddr;
@@ -261,8 +270,8 @@ ept_map_memory (phys_addr_t *pml4_paddr,
 
     if (pml4[pml4_idx] == 0) {
       pdpe = (page_table_entry_t *)alloc_page_table ();
-      if (pdpe == NULL) {
-        panic ("BOOT STAGE2: Memory Allocation Failed line %d\n", __LINE__);
+      if (unlikely (pdpe == NULL)) {
+        panic ("MM fatal (%s,%d): Memory Allocation Failed!", __func__, __LINE__);
       }
 
       pml4[pml4_idx] = (phys_addr_t)pdpe | (EPT_PAGE_READ | EPT_PAGE_WRITE | EPT_PAGE_EXEC);
@@ -271,8 +280,8 @@ ept_map_memory (phys_addr_t *pml4_paddr,
     pdpe = (page_table_entry_t *)((phys_addr_t)pml4[pml4_idx] & ~0xFFF);
     if (pdpe[pdpe_idx] == 0 && page_size < _1GB_) {
       pde = (page_table_entry_t *)alloc_page_table ();
-      if (pde == NULL) {
-        panic ("BOOT STAGE2: Memory Allocation Failed line %d\n", __LINE__);
+      if (unlikely (pde == NULL)) {
+        panic ("MM fatal (%s,%d): Memory Allocation Failed", __func__,  __LINE__);
       }
 
       pdpe[pdpe_idx] = (phys_addr_t)pde | (EPT_PAGE_READ | EPT_PAGE_WRITE | EPT_PAGE_EXEC);
@@ -282,8 +291,8 @@ ept_map_memory (phys_addr_t *pml4_paddr,
 
       if (pde[pde_idx] == 0 && page_size < _2MB_) {
         pte = (page_table_entry_t *)alloc_page_table ();
-        if (pte == NULL) {
-          panic ("BOOT STAGE2: Memory Allocation Failed line %d\n", __LINE__);
+        if (unlikely (pte == NULL)) {
+          panic ("MM fatal (%s,%d): Memory Allocation Failed", __func__, __LINE__);
         }
 
         pde[pde_idx] = (phys_addr_t)pte | (EPT_PAGE_READ | EPT_PAGE_WRITE | EPT_PAGE_EXEC);
@@ -356,7 +365,7 @@ ept_map_page_tables (phys_addr_t *ept, phys_addr_t pml4_paddr, const uint16_t pr
   int pdpe_idx;
   int pde_idx;
 
-  if (ept == NULL || pml4_paddr == 0) {
+  if (unlikely (ept == NULL || pml4_paddr == 0)) {
     panic ("ept_map_page_tables: page tables are not yet created!");
   }
 
