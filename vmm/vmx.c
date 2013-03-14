@@ -526,7 +526,14 @@ setup_vmcs (void)
   vmx_vmwrite (GUEST_GDTR_BASE, 0);
   vmx_vmwrite (GUEST_IDTR_BASE, 0);
 
-  vmx_vmwrite (EPT_POINTER, cpuinfo->vm_info.vm_ept | 0x6 | (3 << 3));
+  uint64_t eptp;
+
+  eptp = cpuinfo->vm_info.vm_ept;
+  eptp |= 0x6;         /* Type Write-Back (WB) */
+  eptp |= (3 << 3);    /* Page table of 4KB */
+  eptp &= (~(1 << 6)); /* Disable Accessed and Dirty flags bit */
+
+  vmx_vmwrite (EPT_POINTER, eptp);
 
   vmx_vmwrite (GUEST_RFLAGS, cpuinfo->vm_info.vm_regs.rflags);
 
@@ -666,9 +673,11 @@ host_entry (void)
     uint64_t guest_paddr = vmx_vmread (GUEST_PHYSICAL_ADDRESS);
     uint64_t guest_rip = vmx_vmread (GUEST_RIP);
     uint64_t guest_qualification = vmx_vmread (EXIT_QUALIFICATION);
+    uint64_t guest_eptp = vmx_vmread (EPT_POINTER);
     DEBUG ("ept violation core %d guest linear addr = %x phys address = %x\n", 0x4, cpuinfo->cpuid, guest_laddr, guest_paddr);
     DEBUG ("guest rip = %x\n", 0x4, guest_rip);
     DEBUG ("exit qualification = %x\n", 0x4, guest_qualification);
+    DEBUG ("EPTP = %x\n", 0x4, guest_eptp);
     while (1) halt ();
 	} else {
 		DEBUG ("HOOOOOOOOOSSSSSSSSSTTTTTTTTT!!!!!!!!!!!!! CPU id %d\n", 0xA, cpuinfo->cpuid);
@@ -695,6 +704,8 @@ check_cpu_vmx_features (struct vmcs_config *vmcs_config)
   if (! cpu_has_vmx_invvpid_single ()) {
     panic ("Your cpu does not support invpid single");
   }
+
+  
 }
 void
 vmx_init (void)

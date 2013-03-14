@@ -385,7 +385,7 @@ local_fork (const struct cpu_info * const info, const struct fork_ipc * const fo
   child_cpu_info->vm_info.vm_rodata_vaddr = parent_cpu_info->vm_info.vm_rodata_vaddr;
   child_cpu_info->vm_info.vm_rodata_size  = parent_cpu_info->vm_info.vm_rodata_size;
   if (likely (reallocable (parent_cpu_info->vm_info.vm_rodata_paddr))) {
-    child_cpu_info->vm_info.vm_rodata_paddr = (phys_addr_t)alloc_mem_pages (pages (parent_cpu_info->vm_info.vm_rodata_size, USER_VMS_PAGE_SIZE));
+    child_cpu_info->vm_info.vm_rodata_paddr = (phys_addr_t)realloc_mem_block (parent_cpu_info->vm_info.vm_rodata_paddr);
   } else {
     child_cpu_info->vm_info.vm_rodata_paddr = (phys_addr_t)alloc_mem_pages (pages (parent_cpu_info->vm_info.vm_rodata_size, USER_VMS_PAGE_SIZE));
     memcpy ((void*)child_cpu_info->vm_info.vm_rodata_paddr, (void*)parent_cpu_info->vm_info.vm_rodata_paddr, parent_cpu_info->vm_info.vm_rodata_size);
