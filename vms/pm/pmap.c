@@ -40,10 +40,6 @@ map_memory (phys_addr_t *pml4_paddr,
     panic ("MM fatal (%s,%d): Can't map a memory region of zero size!", __func__, __LINE__);
   }
 
-  /*
-   * In the whole stage2, virtual addresses are equal to
-   * physical addresses
-   */
   paddr = memory_region_start_paddr;
   vaddr = memory_region_start_vaddr;
 
@@ -147,11 +143,11 @@ map_memory (phys_addr_t *pml4_paddr,
     }
     if (page_size == _4KB_) {
       pte = (page_table_entry_t *)((phys_addr_t)pde[pde_idx] & ~0xFFF);
-      pte[pte_idx] = (phys_addr_t)paddr | protection;
+      pte[pte_idx] = paddr | protection;
     } else if (page_size == _2MB_) {
-      pde[pde_idx] = (phys_addr_t)paddr | protection;
+      pde[pde_idx] = paddr | protection;
     } else {  /* 1GB Pages */
-      pdpe[pdpe_idx] = (phys_addr_t)paddr | protection;
+      pdpe[pdpe_idx] = paddr | protection;
     }
 
     page++;
@@ -193,10 +189,6 @@ ept_map_memory (phys_addr_t *pml4_paddr,
     panic ("MM fatal (%s,%d): Can't map a memory region of zero size!", __func__, __LINE__);
   }
 
-  /*
-   * In the whole stage2, virtual addresses are equal to
-   * physical addresses
-   */
   paddr = memory_region_start_paddr;
   vaddr = memory_region_start_vaddr;
 
@@ -300,11 +292,11 @@ ept_map_memory (phys_addr_t *pml4_paddr,
     }
     if (page_size == _4KB_) {
       pte = (page_table_entry_t *)((phys_addr_t)pde[pde_idx] & ~0xFFF);
-      pte[pte_idx] = (phys_addr_t)paddr | (mtype << 3) | protection;
+      pte[pte_idx] = paddr | (mtype << 3) | protection;
     } else if (page_size == _2MB_) {
-      pde[pde_idx] = (phys_addr_t)paddr | (mtype << 3) | protection;
+      pde[pde_idx] = paddr | (mtype << 3) | protection;
     } else {  /* 1GB Pages */
-      pdpe[pdpe_idx] = (phys_addr_t)paddr | (mtype << 3) | protection;
+      pdpe[pdpe_idx] = paddr | (mtype << 3) | protection;
     }
 
     page++;
