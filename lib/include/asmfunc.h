@@ -151,5 +151,15 @@ halt(void)
     __asm__ __volatile__ ("cli;hlt\n");
   }
 }
+/* ================================================== */
+static __inline uint64_t
+rdtsc (void)
+{
+  uint32_t hi;
+  uint32_t lo;
 
+  __asm__ __volatile__ ("rdtsc":"=a"(lo), "=d"(hi));
+
+  return (((uint64_t)lo) | ((uint64_t)hi << 32));
+}
 #endif /* __ASMFUNC_H__ */

@@ -229,6 +229,7 @@ struct cpu_info {
   struct vmm_proc vmm_info;
   void *vm_args;
   uint64_t ncpus;
+  uint64_t freq;
 
   struct message *msg_input;
   struct message *msg_output;

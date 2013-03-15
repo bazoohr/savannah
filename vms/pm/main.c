@@ -40,7 +40,7 @@ get_cpu_info (const cpuid_t cpuid)
 {
   phys_addr_t cpuinfo_base_paddr;
 
-  if (cpuid > MAX_CPUS) {
+  if (unlikely (cpuid > MAX_CPUS)) {
     return NULL;
   }
 
@@ -69,7 +69,7 @@ find_free_vm (void)
   aint i;
   for (i = ALWAYS_BUSY; i < cpuinfo->ncpus; i++) {
     cpu = get_cpu_info (i);
-    if (!cpu) {
+    if (unlikely (!cpu)) {
       panic ("pm (find_free_vm): could not get cpu information!");
     }
     if (!cpu->vmm_info.vmm_has_vm) {
@@ -254,11 +254,11 @@ remove_channel_list (phys_addr_t channel)
 static void
 add_channel_list (struct cpu_info *info, phys_addr_t channel)
 {
-  if (info->vm_info.vm_channels == NULL) {
+  if (unlikely (info->vm_info.vm_channels == NULL)) {
     panic ("Cpu does not have any channel!\n");
   }
 
-  if (channel == 0) {
+  if (unlikely (channel == 0)) {
     panic ("Channel is 0!\n");
   }
 
@@ -338,14 +338,14 @@ local_fork (const struct cpu_info * const info, const struct fork_ipc * const fo
   int i;
   phys_addr_t channel;
 
-  if (info == NULL) {
+  if (unlikely (info == NULL)) {
     return -1;
   }
 
   parent_id = info->cpuid;
 
   child_cpu_info = find_free_vm ();
-  if (!child_cpu_info) {
+  if (unlikely (!child_cpu_info)) {
     return -1;
   }
   child_cpu_info->vmm_info.vmm_has_vm = true;
@@ -522,7 +522,7 @@ load_elf (struct cpu_info * const curr_cpu_info, const phys_addr_t elf)
   /* ========================================= */
 
   ph_num = elf_hdr->e_phnum;    /* Number of program headers in ELF executable */
-  if (ph_num != 4) {
+  if (unlikely (ph_num != 4)) {
     DEBUG ("ELF executable contains %d sections!\n", 0x4, ph_num);
     panic ("Unexpected VM Header!\n");
   }
@@ -543,14 +543,14 @@ load_elf (struct cpu_info * const curr_cpu_info, const phys_addr_t elf)
 
     section_src_paddr = elf + s->p_offset;  /* Address of section in executable */
     section_size = (size_t)s->p_memsz;               /* Section size */
-    if (section_size > 0) {
+    if (likely (section_size > 0)) {
       /* Address of section when loaded in ram */
       section_dst_paddr = (phys_addr_t)alloc_mem_pages (pages (section_size, USER_VMS_PAGE_SIZE));
     }
 
     switch (i) {
       case 0:  /* Code */
-        if (section_size == 0) {
+        if (unlikely (section_size == 0)) {
           panic ("VM without code section!");
         }
         curr_cpu_info->vm_info.vm_start_paddr = section_dst_paddr;
@@ -573,7 +573,7 @@ load_elf (struct cpu_info * const curr_cpu_info, const phys_addr_t elf)
         panic ("Unexpected VM ELF Header!");
     }
 
-    if (section_size > 0) {
+    if (likely (section_size > 0)) {
       memcpy ((void*)section_dst_paddr, (void*)section_src_paddr, section_size);
     }
     s++;    /* Go to next section */
@@ -582,7 +582,7 @@ load_elf (struct cpu_info * const curr_cpu_info, const phys_addr_t elf)
   /* Last section is bss. We zero out this section */
   curr_cpu_info->vm_info.vm_bss_vaddr = s->p_vaddr;
 
-  if (s->p_memsz > 0) {
+  if (likely (s->p_memsz > 0)) {
     curr_cpu_info->vm_info.vm_bss_paddr = (phys_addr_t)alloc_mem_pages (pages (_2MB_, USER_VMS_PAGE_SIZE));
     curr_cpu_info->vm_info.vm_bss_size = s->p_memsz;
     memset ((void*)curr_cpu_info->vm_info.vm_bss_paddr, 0, s->p_memsz);
@@ -602,8 +602,11 @@ load_elf (struct cpu_info * const curr_cpu_info, const phys_addr_t elf)
   curr_cpu_info->vm_info.vm_end_vaddr = curr_cpu_info->vm_info.vm_start_vaddr + vm_size;
   curr_cpu_info->vm_info.vm_end_paddr = curr_cpu_info->vm_info.vm_start_paddr + vm_size;
 
-  if (curr_cpu_info->vm_info.vm_end_paddr != curr_cpu_info->vm_info.vm_start_paddr + vm_size) {
-    panic ("PM: Computed two different VM end addresses %x & %x\n", curr_cpu_info->vm_info.vm_end_paddr, curr_cpu_info->vm_info.vm_start_paddr + vm_size);
+  if (unlikely (curr_cpu_info->vm_info.vm_end_paddr !=
+                curr_cpu_info->vm_info.vm_start_paddr + vm_size)) {
+    panic ("PM: Computed two different VM end addresses %x & %x\n",
+            curr_cpu_info->vm_info.vm_end_paddr,
+            curr_cpu_info->vm_info.vm_start_paddr + vm_size);
   }
 
   if (old_pcode)   free_mem_pages (old_pcode);

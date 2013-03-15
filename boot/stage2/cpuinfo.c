@@ -11,6 +11,37 @@ static int ncpus = 0;
 /* ================================================== */
 static struct cpu_info *cpuinfo_pool;
 /* ================================================== */
+uint64_t
+get_cpu_freq (void)
+{
+  uint32_t tmp;
+  uint64_t before;
+  uint64_t after;
+
+  //initialize PIT Ch 2 in one-shot mode
+  //waiting 1 sec could slow down boot time considerably,
+  //so we'll wait 1/100 sec, and multiply the counted ticks
+  outb((inb (0x61) & 0x0C) | 1, 0x61);
+  outb (0xB0, 0x43);
+  //1193180/100 Hz  = 11931 = 0x2E9B
+  //1193180/1000 Hz = 1193  = 0x04A9
+  outb (0x9B, 0x42);  //LSB
+  inb (0x60); //short delay
+  outb (0x2E, 0x42);  //MSB
+
+  //reset PIT one-shot counter (start counting)
+  tmp = inb(0x61) & 0xFE;
+  outb ((uint8_t)tmp, 0x61);    //gate low
+  outb ((uint8_t)tmp | 1, 0x61);    //gate high
+
+  //now wait until PIT counter reaches zero
+  before = rdtsc ();
+  while(! (inb (0x61) & 0x20));
+  after = rdtsc ();
+
+  return (after - before) * 100;
+}
+/* ================================================== */
 static void
 allocate_cpuinfo_pool (void)
 {

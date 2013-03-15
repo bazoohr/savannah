@@ -78,7 +78,7 @@ boot_aps_tail (cpuid_t id)
   halt ();
 }
 #endif
-void
+void __inline
 lapic_startaps (cpuid_t cpuid)
 {
   // Universal Start-up Algorithm from Intel MultiProcessor spec
@@ -130,6 +130,73 @@ lapic_startaps (cpuid_t cpuid)
     timer_delay (1);	// 1 ms
   }
 }
+
+#if 0
+static void
+lapic_freq (uint32_t quantum){
+  uint32_t tmp, cpubusfreq;
+
+  lapic_write(LAPIC_DFR, 0xffffffff);
+  lapic_write(LAPIC_LDR, ((lapic_read(LAPIC_LDR)&0x00ffffff)|1));
+  lapic_write(LAPIC_LVTT, LAPIC_LVT_MASKED);
+  lapic_write(LAPIC_PCINT, 4<<8); /* NMI */
+  lapic_write(LAPIC_LVINT0, LAPIC_LVT_MASKED);
+  lapic_write(LAPIC_LVINT1, LAPIC_LVT_MASKED);
+  lapic_write(LAPIC_TPRI, 0);
+
+  lapic_write(LAPIC_SVR, 39 | LAPIC_SVR_ENABLE);
+  lapic_write(LAPIC_LVTT, 32);
+  lapic_write(LAPIC_DCR_TIMER, LAPIC_DCRT_DIV16);
+
+  //initialize PIT Ch 2 in one-shot mode
+  //waiting 1 sec could slow down boot time considerably,
+  //so we'll wait 1/100 sec, and multiply the counted ticks
+  outb((inb (0x61) & 0x0C) | 1, 0x61);
+  outb (0xB0, 0x43);
+  //1193180/100 Hz  = 11931 = 0x2E9B
+  //1193180/1000 Hz = 1193  = 0x04A9
+  outb (0x9B, 0x42);  //LSB
+  inb (0x60); //short delay
+  outb (0x2E, 0x42);  //MSB
+
+  //reset PIT one-shot counter (start counting)
+  tmp = inb(0x61) & 0xFE;
+  outb ((uint8_t)tmp, 0x61);    //gate low
+  outb ((uint8_t)tmp | 1, 0x61);    //gate high
+
+  //reset APIC timer (set counter to -1)
+  lapic_write(LAPIC_ICR_TIMER, 0xFFFFFFFF);
+
+  //now wait until PIT counter reaches zero
+  while(! (inb (0x61) & 0x20));
+
+  //stop APIC timer
+  lapic_write(LAPIC_LVTT, LAPIC_LVT_MASKED);
+
+  //reset APIC timer (set counter to -1)
+#if 0
+  lapic_write(LAPIC_ICR_TIMER, 0xFFFFFFFF);
+
+  timer_delay (10);
+  //stop APIC timer
+  lapic_write(LAPIC_LVTT, LAPIC_LVT_MASKED);
+#endif
+  //now do the math...
+  cpubusfreq = ((0xFFFFFFFF - lapic_read (LAPIC_CCR_TIMER)) + 1) * 16 * 100;
+
+  cprintk ("cpu bus frequency is %d hz\n", 0xE, cpubusfreq);
+  halt ();
+  tmp = cpubusfreq / quantum / 16;
+
+  //sanity check, now tmp holds appropriate number of ticks, use it as APIC timer counter initializer
+  lapic_write(LAPIC_ICR_TIMER, ((tmp < 16) ? 16 : tmp));
+  //finally re-enable timer in periodic mode
+  lapic_write(LAPIC_LVTT, 32 | LAPIC_LVT_PERIODIC);
+  //setting divide value register again not needed by the manuals
+  //although I have found buggy hardware that required it
+  lapic_write(LAPIC_DCR_TIMER, LAPIC_DCRT_DIV16);
+}
+#endif
 void
 lapic_init(void)
 {
@@ -156,7 +223,6 @@ lapic_init(void)
   lapic_write(LAPIC_LVTT, 32 | LAPIC_LVT_PERIODIC);
   lapic_write(LAPIC_DCR_TIMER, LAPIC_DCRT_DIV16);
 #endif
-
 
   /*
    * initializing the local timer of BSP

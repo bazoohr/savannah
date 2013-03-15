@@ -730,6 +730,8 @@ boot_stage2_main (struct boot_stage2_args *boot_args)
     cpu->msg_input  = get_msg_input(i);
     cpu->msg_output = get_msg_output(i);
     cpu->msg_ready  = get_msg_ready(i);
+
+    cpu->freq = get_cpu_freq ();
   }
 
   interrupt_init ();
