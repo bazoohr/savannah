@@ -92,7 +92,7 @@ cpu_has_1GBpage (void)
 }
 
 
-static __inline int
+static __inline bool
 cpu_has_vmx (void)
 {
 	uint32_t ecx;
@@ -100,7 +100,7 @@ cpu_has_vmx (void)
 	return (ecx & (1 << 5));
 }
 
-static __inline int
+static __inline bool
 cpu_has_msr (void)
 {
 	uint32_t edx;
@@ -113,5 +113,14 @@ cpu_has_physical_address_extention (void)
 	uint32_t edx;
 	cpuid (1, NULL, NULL, NULL, &edx);
 	return (edx & (1 << 6));
+}
+static __inline bool
+cpu_has_monitor_mwait (void)
+{
+  uint32_t ecx;
+
+  cpuid (1, NULL, NULL, &ecx, NULL);
+
+  return ecx & (1 << 3);
 }
 #endif /* __CPU_CHECK_H__ */

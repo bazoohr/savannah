@@ -8,6 +8,19 @@
 #include <vuos/vuos.h>
 /* ========================================================= */
 int
+empty (void)
+{
+  int result;
+
+  msg_send (PM, 999, NULL, 0);
+  msg_receive (PM);
+
+  memcpy (&result, &cpuinfo->msg_input[PM].data, sizeof (int));
+
+  return result;
+}
+/* ========================================================= */
+int
 fork_internal (virt_addr_t register_array_vaddr)
 {
   int result;
@@ -111,7 +124,7 @@ exec (char *path, char **argv)
       [VM_REGS_R15_IDX]"i"(offsetof (struct regs, r15))
   );
 
-  exec_args.registers = (phys_addr_t)virt2phys(cpuinfo, (virt_addr_t)&registers);
+  exec_args.registers = virt2phys(cpuinfo, (virt_addr_t)&registers);
 
   msg_send (PM, EXEC_IPC, &exec_args, sizeof (struct exec_ipc));
   __asm__ __volatile__ (
@@ -139,7 +152,8 @@ waitpid (int pid, int *status_buf, int options)
 }
 
 /* ========================================================= */
-void exit (int status)
+void
+exit (int status)
 {
   struct exit_ipc exit_args;
 

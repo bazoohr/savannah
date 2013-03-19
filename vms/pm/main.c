@@ -906,7 +906,7 @@ vm_main (void)
     struct message *m __aligned (0x10) = msg_check();
     struct waitpid_reply wait_reply;
     struct channel_close_ipc *ccipc;
-    pid_t r;
+    int r;
     phys_addr_t channel;
 
     switch(m->number) {
@@ -937,13 +937,16 @@ vm_main (void)
         msg_reply (PM, m->from, CHANNEL_IPC, &channel, sizeof (phys_addr_t));
         break;
       case CHANNEL_CLOSE_IPC:
-	ccipc = (struct channel_close_ipc *)m->data;
-	local_channel_close (ccipc->cnl);
-	r = 0;
-	msg_reply (PM, m->from, CHANNEL_CLOSE_IPC, &r, sizeof (pid_t));
-	break;
+        ccipc = (struct channel_close_ipc *)m->data;
+        local_channel_close (ccipc->cnl);
+        r = 0;
+        msg_reply (PM, m->from, CHANNEL_CLOSE_IPC, &r, sizeof (pid_t));
+        break;
       default:
-        DEBUG ("PM: Warning, unknown request %d from %d\n", 0xD, m->number, m->from);
+        r = -1;
+        msg_reply (PM, m->from, m->number, &r, sizeof (int));
+        //DEBUG ("PM: Warning, unknown request %d from %d\n", 0xD, m->number, m->from);
+        break;
     }
   }
 

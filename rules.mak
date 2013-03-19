@@ -4,12 +4,12 @@
 # Hamid R. Bazoobandi
 # Sat. 14 July 2012 Amsterdam
 # ==================================
-OPTLVL = -O3
+OPTLVL = -O0
 AS = $(CC)
 LD = ld
 DEBUG = yes
 
-CFLAGS  := -m64 -fno-stack-protector -fno-builtin -nostdinc -mno-red-zone -Wall -msse2 -Werror $(OPTLVL)
+CFLAGS  := -m64 -fomit-frame-pointer -fno-stack-protector -fno-builtin -nostdinc -mno-red-zone -Wall -msse2 -Werror $(OPTLVL)
 ASFLAGS := -m64 -Wall -D__ASSEMBLY__
 LDFLAGS :=
 

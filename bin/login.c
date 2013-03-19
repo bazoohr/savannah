@@ -2,9 +2,12 @@
 #include <pm.h>
 #include <printf.h>
 #include <string.h>
+#include <asmfunc.h>
+#include <debug.h>
 /* =================================== */
 #define MAX_LEN 16
 /* =================================== */
+#if 0
 static inline void
 readline (char *buf, size_t size)
 {
@@ -43,13 +46,14 @@ login (void)
     printf ("Unknow user name!\n");
   }
 }
+#endif
 /* =================================== */
 int main(int argc, char **argv)
 {
+#if 0
   int pid, r;
   char cmd[MAX_LEN];
 
-  open_std ();
 
   welcome ();
   login ();
@@ -77,6 +81,59 @@ int main(int argc, char **argv)
       printf("returned %d\n", r);
     }
   }
+#endif
+  int a, b;
+  uint64_t sum = 0;
+  int i;
+  int pid;
+
+#ifdef MAX
+#undef MAX
+#endif
+#define MAX 100
+  sum = 0;
+  for (i = 0; i < MAX; i++) {
+    b = rdtsc ();
+    empty();
+    a = rdtsc ();
+    sum += (a - b);
+  }
+  DEBUG ("ferq = %x empty took %d in average!\n", 0xE, cpuinfo->freq, sum / MAX);
+#ifdef MAX
+#undef MAX
+#endif
+#define MAX 100
+  sum = 0;
+  for (i = 0; i < MAX; i++) {
+    b = rdtsc ();
+    pid = fork();
+    if (pid < 0) {
+      DEBUG ("Fork error!\n", 0x4);
+    } else if (pid == 0) { /* Child */
+      exit (-1);
+    } else { /* Parent */
+      int r;
+      a = rdtsc ();
+      sum += (a - b);
+      waitpid (pid, &r, 0);
+      //DEBUG ("returned %d\n", 0xA, r);
+    }
+  }
+
+  DEBUG ("ferq = %x fork took %d in average!\n", 0xE, cpuinfo->freq, sum / MAX);
+#ifdef MAX
+#undef MAX
+#endif
+#define MAX 100
+  sum = 0;
+  for (i = 0; i < MAX; i++) {
+    b = rdtsc ();
+    empty();
+    a = rdtsc ();
+    sum += (a - b);
+  }
+  DEBUG ("ferq = %x empty took %d in average!\n", 0xE, cpuinfo->freq, sum / MAX);
+  halt ();
 
   return -1;
 }

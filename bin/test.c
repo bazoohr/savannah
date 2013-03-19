@@ -24,7 +24,9 @@ int main(int argc, char **argv)
   printf ("close took %d cycles\n", a - b);
 
   b = get_cpu_cycle ();
-  open ("stdin", O_RDWR);
+  if (open ("stdin", O_RDWR) < 0) {
+    printf ("failed to open!");
+  }
   a = get_cpu_cycle ();
   printf ("open took %d cycles\n", a - b);
 

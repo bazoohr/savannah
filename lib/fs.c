@@ -19,7 +19,8 @@ void open_std()
   }
 }
 
-int open(const char *pathname, int flags)
+int
+open(const char *pathname, int flags)
 {
   struct open_ipc tmp;
   struct message *fs_reply;

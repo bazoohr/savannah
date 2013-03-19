@@ -10,19 +10,22 @@
 #include <pm.h>
 #include <panic.h>
 #include <stdlib.h>
+#include <timer.h>
 
 void
 vm_main (void)
 {
+  uint64_t b, a;
+  int pid;
 #if 0
   int i;
   for (i = 0 ; i < cpuinfo->cpuid ; i++) DEBUG ("\n", 0x7);
   DEBUG ("This is init %d\n", 0xA, cpuinfo->cpuid);
   halt ();
-#endif
   /* Launching keyboard driver */
   DEBUG  ("Starting keyboard driver... ", 0xF);
-  int pid = fork ();
+  b = get_cpu_cycle ();
+  pid = fork ();
   if (pid == -1) {
     panic  ("init %d: Failed to fork for keyboard driver!\n", __LINE__);
   } else if (pid == 0) {
@@ -30,9 +33,12 @@ vm_main (void)
     DEBUG ("FAILED!", 0x4);
     halt ();
   }
-  DEBUG  ("DONE!\n", 0xA);
+  a = get_cpu_cycle ();
+  DEBUG  ("DONE %d!\n", 0xA, a-b);
+#endif
   /* Launching junk driver */
   DEBUG  ("Starting flooding deamon... ", 0xF);
+  b = get_cpu_cycle ();
   pid = fork();
   if (pid == -1) {
     panic  ("init %d: Failed to fork for flooding deamon!\n", __LINE__);
@@ -41,9 +47,11 @@ vm_main (void)
     DEBUG ("FAILED!", 0x4);
     halt ();
   }
-  DEBUG  ("DONE!\n", 0xA);
+  a = get_cpu_cycle ();
+  DEBUG  ("DONE %d!\n", 0xA, a-b);
   /* Launching console driver */
   DEBUG  ("Starting console driver... ", 0xF);
+  b = get_cpu_cycle ();
   pid = fork();
   if (pid == -1) {
     panic  ("init %d: Failed to fork for console driver!\n", __LINE__);
@@ -61,9 +69,11 @@ vm_main (void)
     DEBUG ("FAILED!", 0x4);
     halt ();
   }
-  DEBUG  ("DONE!\n", 0xA);
+  a = get_cpu_cycle ();
+  DEBUG  ("DONE %d!\n", 0xA, a-b);
   /* Launching login */
   DEBUG  ("Starting login... ", 0xF);
+  b = get_cpu_cycle ();
   pid = fork();
   if (pid == -1) {
     panic  ("init %d: Failed to fork for login!\n", __LINE__);
@@ -72,7 +82,8 @@ vm_main (void)
     DEBUG ("FAILED!", 0x4);
     halt ();
   }
-  DEBUG  ("DONE!\n", 0xA);
+  a = get_cpu_cycle ();
+  DEBUG  ("DONE %d!\n", 0xA, a-b);
 
   while (1) {__asm__ __volatile__ ("cli;pause;\n\t");}
 }

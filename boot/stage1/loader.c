@@ -107,6 +107,15 @@ check_cpu_features (void)
     printf ("ERROR: Your cpu does not support physical address extention!");
     halt ();
   }
+  /* Check for monitor/mwait instruction support */
+  if (! cpu_has_monitor_mwait ()) {
+    printf ("ERROR: monitor/mwait instructions are not supported!");
+    halt ();
+  }
+  uint32_t eax;
+  cpuid (5, &eax, NULL, NULL, NULL);
+  printf ("minLineSizeMAX = %d\n", eax & 0xFFFF);
+  halt ();
 }
 void
 boot_loader (unsigned long magic, unsigned long addr)
