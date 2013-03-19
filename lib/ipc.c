@@ -2,9 +2,7 @@
 #include <string.h>
 #include <misc.h>
 #include <panic.h>
-#include <debug.h> /* TODO: Remove after debugging */
-#include <fs.h>   /* TODO: Remove after debugging */
-#include <asmfunc.h> /* TODO: Remove after debugging */
+#include <bitmap.h>
 
 /*
  * msg_send() - Send a message to another process.
@@ -33,7 +31,7 @@ msg_send(const int to, const int number, const void *data, const int size)
   cpuinfo->msg_output->number = number;
   memcpy(cpuinfo->msg_output->data, data, size);
 
-  cpuinfo->msg_ready[to] = true;
+  set_bit(&cpuinfo->msg_ready_bitmap[to], id);
 }
 
 /*
@@ -119,11 +117,9 @@ struct message *
 msg_check()
 {
   int id = cpuinfo->cpuid;
-  /* Volatile is because of preventing GCC of doing cazy (WRONG)optimizations in O3 */
-  static volatile int i = 0;
+  static int i = 0;
   int from;
-  bool *base_r;
-  bool *ready = NULL;
+  int bit;
   uint64_t ncpus;
 
   if (! check_server()) {
@@ -132,28 +128,21 @@ msg_check()
 
   ncpus = cpuinfo->ncpus;
   from = -1;
-  base_r = (bool*)((phys_addr_t)cpuinfo->msg_ready - (_4KB_ * id));
   while (1) {
-    while (i < ncpus) {
-      ready = (bool*)((phys_addr_t)base_r + (_4KB_ * i));
-      if (ready[id]) {
-        from = i;
-        i++;
-        break;
-      }
-      i++;
-    }
-    if (i >= ncpus) {
-      i = 0;
-    }
-    if (from != -1)
+    if (cpuinfo->msg_ready_bitmap[id] != 0)
       break;
   }
 
-  if (ready == NULL) {
-    panic ("msg_check fatal: ready pointer can not be null!\n");
+  /* TODO Find if there is a faster way to check which CPU has a message */
+  for (i = 0 ; i < ncpus ; i++) {
+    bit = check_bit(&cpuinfo->msg_ready_bitmap[id], i);
+    if (bit == 1) {
+      from = i;
+      break;
+    }
   }
-  ready[id] = false;
+
+  clear_bit(&cpuinfo->msg_ready_bitmap[id], from);
 
   struct message *base_m = (struct message *)((phys_addr_t)cpuinfo->msg_output - (_4KB_ * id));
 

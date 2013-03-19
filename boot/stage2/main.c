@@ -598,6 +598,12 @@ ept_map_memory_other (struct cpu_info *curr_cpu_info)
       USER_VMS_PAGE_SIZE,
       EPT_MTYPE_WT,
       EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
+  ept_map_memory (&curr_cpu_info->vm_info.vm_ept,
+      (phys_addr_t)curr_cpu_info->msg_ready_bitmap, (phys_addr_t)curr_cpu_info->msg_ready_bitmap + _4KB_,
+      (phys_addr_t)curr_cpu_info->msg_ready_bitmap,
+      USER_VMS_PAGE_SIZE,
+      EPT_MTYPE_WT,
+      EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
   if (curr_cpu_info->vm_info.vm_code_size > 0) {
     ept_map_memory (&curr_cpu_info->vm_info.vm_ept,
         curr_cpu_info->vm_info.vm_code_vaddr, curr_cpu_info->vm_info.vm_code_vaddr + curr_cpu_info->vm_info.vm_code_size,
@@ -723,13 +729,17 @@ boot_stage2_main (struct boot_stage2_args *boot_args)
   msg_output = (struct message *)calloc_align (sizeof (uint8_t), get_ncpus() * _4KB_, _2MB_);
   msg_ready = (bool *)calloc_align (sizeof (uint8_t), get_ncpus() * _4KB_, _2MB_);
 
+  uint64_t *bitmap = (uint64_t *)calloc_align (sizeof(uint64_t), get_ncpus(), _4KB_);
+
   for (i = 0; i < get_ncpus (); i++) {
     struct cpu_info *cpu;
 
     cpu = get_cpu_info (i);
     cpu->msg_input  = get_msg_input(i);
     cpu->msg_output = get_msg_output(i);
+    /* XXX Msg_ready should not be needed anymore */
     cpu->msg_ready  = get_msg_ready(i);
+    cpu->msg_ready_bitmap = bitmap;
 
     cpu->freq = get_cpu_freq ();
   }

@@ -142,6 +142,12 @@ ept_pmap (struct cpu_info * const child_cpu_info)
       USER_VMS_PAGE_SIZE,
       EPT_MTYPE_WT,
       EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
+  ept_map_memory (&child_cpu_info->vm_info.vm_ept,
+      (phys_addr_t)child_cpu_info->msg_ready_bitmap, (phys_addr_t)child_cpu_info->msg_ready_bitmap + _4KB_,
+      (phys_addr_t)child_cpu_info->msg_ready_bitmap,
+      USER_VMS_PAGE_SIZE,
+      EPT_MTYPE_WT,
+      EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
 
   if (child_cpu_info->vm_info.vm_code_size > 0) {
     ept_map_memory (&child_cpu_info->vm_info.vm_ept,
