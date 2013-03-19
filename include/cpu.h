@@ -234,6 +234,7 @@ struct cpu_info {
   struct message *msg_input;
   struct message *msg_output;
   bool * volatile msg_ready;
+  uint64_t * volatile msg_ready_bitmap;
 };
 
 #endif
