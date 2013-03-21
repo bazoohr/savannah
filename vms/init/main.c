@@ -39,7 +39,8 @@ vm_main (void)
   /* Launching junk driver */
   DEBUG ("TESTING MONITOR/MWAIT...", 0xF);
   uint64_t *s = cpuinfo->msg_ready_bitmap;
-  uint64_t *rax, *monitor_area;
+  uint64_t *rax;
+  volatile uint64_t *monitor_area;
   uint64_t rdx, rcx;
   rdx = rcx = 0;
   monitor_area = rax = cpuinfo->msg_ready_bitmap;

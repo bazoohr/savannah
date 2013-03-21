@@ -18,6 +18,8 @@
 #include <vuos/vuos.h>
 #include <channel.h>
 #include <interrupt.h>
+#include <timer.h>
+#include <gdt.h>
 /* ================================================= */
 #define ALWAYS_BUSY (NUMBER_SERVERS + NUMBER_USER_VMS)
 /* ================================================= */
@@ -895,9 +897,13 @@ local_waitpid (struct cpu_info * const info,
 void
 vm_main (void)
 {
+  create_default_gdt ();
   interrupt_init();
   pm_init ();
 
+  init_timer (1);
+  sti ();
+  timer_on ();
   int i;
   for (i = 1; i < cpuinfo->ncpus; i++) {
     msg_reply (PM, i, 1, NULL, 0);
@@ -908,7 +914,8 @@ vm_main (void)
   DEBUG ("PM: My info is in addr = %d\n", 0xD, cpuinfo->cpuid);
   halt ();
 #endif
-  uint64_t *rax, *monitor_area;
+  uint64_t *rax;
+  volatile uint64_t *monitor_area;
   monitor_area = rax = get_cpu_info (INIT)->msg_ready_bitmap;
   *monitor_area = 0;
   uint64_t rdx, rcx;
