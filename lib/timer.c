@@ -7,16 +7,6 @@
 #include <lapic.h>
 #include <vuos/vuos.h>
 
-void timer_handler (void); /* defined in timer_isr.S */
-
-void
-do_timer (void)
-{
-  static uint64_t ticks = 0;
-  DEBUG ("ticks = %d\n", 0x9, ticks++);
-  lapic_eoi();
-}
-
 void
 init_timer (void)
 {
@@ -34,8 +24,6 @@ init_timer (void)
   /* Timer interrupts go to vector 32 & enable periodic mode*/
   lapic_write(LAPIC_LVTT, vector | LAPIC_LVT_PERIODIC);
   lapic_write(LAPIC_DCR_TIMER, LAPIC_DCRT_DIV16);
-
-  add_irq (vector, &timer_handler);
 }
 
 void

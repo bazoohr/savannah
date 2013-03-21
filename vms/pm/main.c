@@ -20,6 +20,7 @@
 #include <interrupt.h>
 #include <timer.h>
 #include <gdt.h>
+#include <lapic.h>
 /* ================================================= */
 #define ALWAYS_BUSY (NUMBER_SERVERS + NUMBER_USER_VMS)
 /* ================================================= */
@@ -30,6 +31,15 @@ static char arg_vector[MAX_ARGV][MAX_ARGV_LEN] __aligned (0x10);  /* store exec 
 static virt_addr_t argv_ptr[MAX_ARGV] __aligned (0x10); /* virtual addresses of exec arguments*/
 /* ================================================= */
 static bool has_1GB_page;
+/* ================================================= */
+void timer_handler (void);
+void
+do_timer (void)
+{
+  static int ticks = 0;
+  DEBUG ("tickes = %d\n", 0x9, ticks++);
+  lapic_eoi ();
+}
 /* ================================================= */
 static __inline size_t
 pages (size_t sz, size_t pgsz)
@@ -902,6 +912,7 @@ vm_main (void)
   pm_init ();
 
   init_timer ();
+  add_irq (32, &timer_handler);
   sti ();
   timer_on (10);
   int i;
