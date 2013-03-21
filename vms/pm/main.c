@@ -901,9 +901,9 @@ vm_main (void)
   interrupt_init();
   pm_init ();
 
-  init_timer (1);
+  init_timer ();
   sti ();
-  timer_on ();
+  timer_on (10);
   int i;
   for (i = 1; i < cpuinfo->ncpus; i++) {
     msg_reply (PM, i, 1, NULL, 0);

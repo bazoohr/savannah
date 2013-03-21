@@ -45,15 +45,6 @@ trap_init (void)
 	setgate (IDT_XF, (phys_addr_t)&xmm, IDT_TRAP_GATE, KNL_PVL, IST);
 }
 
-#define IRQ_OFFSET 32
-#define IRQ_TIMER  0
-
-void timer_handler (void);
-static void
-irq_init (void)
-{
-	setgate (IRQ_OFFSET + IRQ_TIMER, (phys_addr_t)&timer_handler, IDT_INTR_GATE, KNL_PVL, IST);
-}
 static void
 idt_init (void)
 {
@@ -63,13 +54,17 @@ idt_init (void)
 		setgate (vec_no, (phys_addr_t)&reserved, IDT_TRAP_GATE, KNL_PVL, IST);
 
   trap_init ();
-  irq_init ();
 
 	idtr.dr_limit = sizeof(idt) - 1;
 	idtr.dr_base = (phys_addr_t)&idt;
 	lidt(&idtr);
 }
 
+void
+add_irq (int vector_idx, void (*handler)(void))
+{
+	setgate (vector_idx, (phys_addr_t)handler, IDT_INTR_GATE, KNL_PVL, IST);
+}
 void
 interrupt_init (void)
 {

@@ -1,13 +1,10 @@
 #include <cdef.h>
-#include <dev/pic.h>
 #include <types.h>
 #include <debug.h>
 #include <const.h>
 #include <interrupt.h>
 #include <asmfunc.h>
-#include <dev/keyboard.h>
-#include <dev/ioapic.h>
-#include <dev/lapic.h>
+#include <keyboard.h>
 #include <panic.h>
 #include <cpuinfo.h>
 #include <gdt.h>
@@ -16,6 +13,8 @@
 #include <string.h>
 #include <channel.h>
 #include <vuos/vuos.h>
+/* ========================================== */
+void kbd_handler (void); /* Defined in isr.S */
 /* ========================================== */
 void
 close_channel (struct channel *cnl)
@@ -40,6 +39,7 @@ main (int argc, char **argv)
 
   create_default_gdt ();
   interrupt_init ();
+  add_irq (33, &kbd_handler);
 
   cli ();
 
