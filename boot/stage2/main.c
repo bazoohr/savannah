@@ -710,6 +710,9 @@ void
 boot_stage2_main (struct boot_stage2_args *boot_args)
 {
   int i;
+  uint64_t cpu_freq;
+  uint64_t bus_freq;
+
   phys_addr_t vms_elf_array[ALWAYS_BUSY];
 
   vms_elf_array[PM] = boot_args->pm_elf_addr;
@@ -731,6 +734,9 @@ boot_stage2_main (struct boot_stage2_args *boot_args)
 
   uint64_t *bitmap = (uint64_t *)calloc_align (sizeof(uint64_t), get_ncpus(), _4KB_);
 
+  cpu_freq = get_cpu_freq ();
+  bus_freq = get_bus_freq ();
+
   for (i = 0; i < get_ncpus (); i++) {
     struct cpu_info *cpu;
 
@@ -741,7 +747,8 @@ boot_stage2_main (struct boot_stage2_args *boot_args)
     cpu->msg_ready  = get_msg_ready(i);
     cpu->msg_ready_bitmap = bitmap;
 
-    cpu->freq = get_cpu_freq ();
+    cpu->cpu_freq = cpu_freq;
+    cpu->bus_freq = bus_freq;
   }
 
   interrupt_init ();

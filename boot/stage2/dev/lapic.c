@@ -131,10 +131,11 @@ lapic_startaps (cpuid_t cpuid)
   }
 }
 
-#if 0
-static void
-lapic_freq (uint32_t quantum){
-  uint32_t tmp, cpubusfreq;
+uint64_t
+get_bus_freq (void)
+{
+  uint64_t cpubusfreq;
+  uint64_t tmp;
 
   lapic_write(LAPIC_DFR, 0xffffffff);
   lapic_write(LAPIC_LDR, ((lapic_read(LAPIC_LDR)&0x00ffffff)|1));
@@ -184,6 +185,8 @@ lapic_freq (uint32_t quantum){
   //now do the math...
   cpubusfreq = ((0xFFFFFFFF - lapic_read (LAPIC_CCR_TIMER)) + 1) * 16 * 100;
 
+  return cpubusfreq;
+#if 0
   cprintk ("cpu bus frequency is %d hz\n", 0xE, cpubusfreq);
   halt ();
   tmp = cpubusfreq / quantum / 16;
@@ -195,8 +198,8 @@ lapic_freq (uint32_t quantum){
   //setting divide value register again not needed by the manuals
   //although I have found buggy hardware that required it
   lapic_write(LAPIC_DCR_TIMER, LAPIC_DCRT_DIV16);
-}
 #endif
+}
 void
 lapic_init(void)
 {
@@ -205,6 +208,12 @@ lapic_init(void)
    * http://wiki.osdev.org/APIC_timer
    */
 #if 0
+  /*
+   * TODO:
+   *     LAPIC_DFR & LAPIC_LDR are important for IPI messages, and need to be set
+   *     in all cores appropriatly.
+   */
+  /* Program lapic's Destination Format Register into FLAT MODE */
   lapic_write(LAPIC_DFR, 0xffffffff);
   lapic_write(LAPIC_LDR, ((lapic_read(LAPIC_LDR)&0x00ffffff)|1));
   lapic_write(LAPIC_LVTT, LAPIC_LVT_MASKED);

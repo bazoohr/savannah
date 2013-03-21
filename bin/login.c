@@ -98,7 +98,7 @@ int main(int argc, char **argv)
     a = rdtsc ();
     sum += (a - b);
   }
-  DEBUG ("ferq = %x empty took %d in average!\n", 0xE, cpuinfo->freq, sum / MAX);
+  DEBUG ("ferq = %x empty took %d in average!\n", 0xE, cpuinfo->cpu_freq, sum / MAX);
 #ifdef MAX
 #undef MAX
 #endif
@@ -120,7 +120,7 @@ int main(int argc, char **argv)
     }
   }
 
-  DEBUG ("ferq = %x fork took %d in average!\n", 0xE, cpuinfo->freq, sum / MAX);
+  DEBUG ("ferq = %x fork took %d in average!\n", 0xE, cpuinfo->cpu_freq, sum / MAX);
 #ifdef MAX
 #undef MAX
 #endif
@@ -132,7 +132,7 @@ int main(int argc, char **argv)
     a = rdtsc ();
     sum += (a - b);
   }
-  DEBUG ("ferq = %x empty took %d in average!\n", 0xE, cpuinfo->freq, sum / MAX);
+  DEBUG ("ferq = %x empty took %d in average!\n", 0xE, cpuinfo->cpu_freq, sum / MAX);
   halt ();
 
   return -1;
