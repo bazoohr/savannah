@@ -908,6 +908,20 @@ vm_main (void)
   DEBUG ("PM: My info is in addr = %d\n", 0xD, cpuinfo->cpuid);
   halt ();
 #endif
+  uint64_t *rax, *monitor_area;
+  monitor_area = rax = get_cpu_info (INIT)->msg_ready_bitmap;
+  *monitor_area = 0;
+  uint64_t rdx, rcx;
+  rdx = rcx = 0;
+  while (! (*monitor_area)) {
+    monitor (rax, rcx, rdx);
+    if (! (*monitor_area)) {
+      mwait ((uint64_t)rax, rcx);
+    }
+  }
+  *monitor_area = 0x124;
+  halt ();
+
   while (1) {
     struct message *m __aligned (0x10) = msg_check();
     struct waitpid_reply wait_reply;

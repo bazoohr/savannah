@@ -112,10 +112,10 @@ check_cpu_features (void)
     printf ("ERROR: monitor/mwait instructions are not supported!");
     halt ();
   }
-  uint32_t eax;
-  cpuid (5, &eax, NULL, NULL, NULL);
-  printf ("minLineSizeMAX = %d\n", eax & 0xFFFF);
-  halt ();
+  //uint32_t eax;
+  //cpuid (5, &eax, NULL, NULL, NULL);
+  //printf ("minLineSizeMAX = %d\n", eax & 0xFFFF);
+  //halt ();
 }
 void
 boot_loader (unsigned long magic, unsigned long addr)

@@ -162,4 +162,20 @@ rdtsc (void)
 
   return lo | (hi << 32);
 }
+/* ================================================== */
+static __inline void
+monitor(const void *rax, uint64_t rcx, uint64_t rdx)
+{
+	/* "monitor %eax, %ecx, %edx;" */
+	__asm__ __volatile__ (".byte 0x0f, 0x01, 0xc8;"
+		     :: "a" (rax), "c" (rcx), "d"(rdx));
+}
+/* ================================================== */
+static __inline void
+mwait (uint64_t rax, uint64_t rcx)
+{
+	/* "mwait %eax, %ecx;" */
+	__asm__ __volatile__ (".byte 0x0f, 0x01, 0xc9;"
+		     :: "a" (rax), "c" (rcx));
+}
 #endif /* __ASMFUNC_H__ */

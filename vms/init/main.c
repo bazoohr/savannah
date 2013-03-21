@@ -37,6 +37,26 @@ vm_main (void)
   DEBUG  ("DONE %d!\n", 0xA, a-b);
 #endif
   /* Launching junk driver */
+  DEBUG ("TESTING MONITOR/MWAIT...", 0xF);
+  uint64_t *s = cpuinfo->msg_ready_bitmap;
+  uint64_t *rax, *monitor_area;
+  uint64_t rdx, rcx;
+  rdx = rcx = 0;
+  monitor_area = rax = cpuinfo->msg_ready_bitmap;
+  volatile uint64_t i;
+  for (i = 0; i < 999999; i++);
+  b = rdtsc ();
+  *s = 0x123;
+  while (*monitor_area == 0x123) {
+    monitor (rax, rcx, rdx);
+    if (*monitor_area == 0x123) {
+      mwait ((uint64_t)rax, rcx);
+    }
+  }
+  a = rdtsc ();
+  DEBUG ("written %x\n", 0xE, *monitor_area);
+  DEBUG ("Took %d cycles\n", 0xE, a - b);
+  halt ();
   DEBUG  ("Starting flooding deamon... ", 0xF);
   b = get_cpu_cycle ();
   pid = fork();

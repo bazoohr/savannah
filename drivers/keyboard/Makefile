@@ -4,7 +4,7 @@
 # Hamid R. Bazoobandi
 # Fri 13.7.2012
 # ====================================
-ROOT = ../../
+ROOT = ../..
 
 include $(ROOT)/config.mak
 include $(ROOT)/rules.mak
@@ -12,7 +12,7 @@ include $(ROOT)/rules.mak
 LINK_LD  = ../drivers.ld
 PROGNAME = keyboard
 MYDIR    = drivers/keyboard/
-LIBDIR = $(ROOT)/lib/
+LIBDIR = $(ROOT)/lib
 
 CFLAGS  += -I ./include/ -I $(ROOT)/include/ -I $(ROOT)/lib/include
 ASFLAGS += -I ./include/ -I $(ROOT)/include/

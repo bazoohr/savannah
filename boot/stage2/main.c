@@ -602,7 +602,7 @@ ept_map_memory_other (struct cpu_info *curr_cpu_info)
       (phys_addr_t)curr_cpu_info->msg_ready_bitmap, (phys_addr_t)curr_cpu_info->msg_ready_bitmap + _4KB_,
       (phys_addr_t)curr_cpu_info->msg_ready_bitmap,
       USER_VMS_PAGE_SIZE,
-      EPT_MTYPE_WT,
+      EPT_MTYPE_WB,  /* If we are going to use "monitor/mwait", mem type must be write-back */
       EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
   if (curr_cpu_info->vm_info.vm_code_size > 0) {
     ept_map_memory (&curr_cpu_info->vm_info.vm_ept,
