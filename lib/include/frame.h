@@ -11,7 +11,7 @@
 
 #include <types.h>
 
-struct trapframe {
+struct intr_stack_frame {
 	register_t	tf_rdi;
 	register_t	tf_rsi;
 	register_t	tf_rdx;

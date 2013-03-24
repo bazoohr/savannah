@@ -21,6 +21,7 @@
 #include <timer.h>
 #include <gdt.h>
 #include <lapic.h>
+#include <thread.h>
 /* ================================================= */
 #define ALWAYS_BUSY (NUMBER_SERVERS + NUMBER_USER_VMS)
 /* ================================================= */
@@ -31,15 +32,6 @@ static char arg_vector[MAX_ARGV][MAX_ARGV_LEN] __aligned (0x10);  /* store exec 
 static virt_addr_t argv_ptr[MAX_ARGV] __aligned (0x10); /* virtual addresses of exec arguments*/
 /* ================================================= */
 static bool has_1GB_page;
-/* ================================================= */
-void timer_handler (void);
-void
-do_timer (void)
-{
-  static int ticks = 0;
-  DEBUG ("tickes = %d\n", 0x9, ticks++);
-  lapic_eoi ();
-}
 /* ================================================= */
 static __inline size_t
 pages (size_t sz, size_t pgsz)
@@ -902,7 +894,20 @@ local_waitpid (struct cpu_info * const info,
     return;
   }
 }
-
+static char thread1_stack[4096];
+static char thread2_stack[4096];
+static thread_t thread1;
+static thread_t thread2;
+static void
+thread1_routine (void* none)
+{
+  for (;;) {DEBUG ("B", 0xB);}
+}
+static void
+thread2_routine (void* none)
+{
+  for (;;) {DEBUG ("C", 0xC);}
+}
 /* ================================================= */
 void
 vm_main (void)
@@ -910,11 +915,12 @@ vm_main (void)
   create_default_gdt ();
   interrupt_init();
   pm_init ();
+  DEBUG ("going to create threads!\n", 0x4);
+  thread_init ();
+  thread_create (&thread1, &thread1_routine, thread1_stack, 0x1000);
+  thread_create (&thread2, &thread2_routine, thread2_stack, 0x1000);
+  for (;;) {DEBUG ("A", 0xA);}
 
-  init_timer ();
-  add_irq (32, &timer_handler);
-  sti ();
-  timer_on (10);
   int i;
   for (i = 1; i < cpuinfo->ncpus; i++) {
     msg_reply (PM, i, 1, NULL, 0);
