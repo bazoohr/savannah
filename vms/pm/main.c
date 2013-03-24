@@ -894,6 +894,10 @@ local_waitpid (struct cpu_info * const info,
     return;
   }
 }
+static thread_t *my_scheduler (void)
+{
+  return current = current->nxt ? current->nxt : head;
+}
 static char thread1_stack[4096];
 static char thread2_stack[4096];
 static thread_t thread1;
@@ -915,10 +919,11 @@ vm_main (void)
   create_default_gdt ();
   interrupt_init();
   pm_init ();
-  DEBUG ("going to create threads!\n", 0x4);
   thread_init ();
   thread_create (&thread1, &thread1_routine, thread1_stack, 0x1000);
   thread_create (&thread2, &thread2_routine, thread2_stack, 0x1000);
+  thread_set_scheduler (my_scheduler);
+  thread_set_timer_freq (1);
   for (;;) {DEBUG ("A", 0xA);}
 
   int i;

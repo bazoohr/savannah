@@ -10,17 +10,23 @@
 /* ============================================ */
 extern void timer_handler (void);
 /* ============================================ */
-static void default_scheduler (struct intr_stack_frame *registers);
+static thread_t *default_scheduler (void);
 /* ============================================ */
-void (*scheduler)(struct intr_stack_frame *) = default_scheduler;
+static thread_t *(*scheduler)(void) = default_scheduler;
 static thread_t main_thread;
-static thread_t *head;
-static thread_t *last;
-static thread_t *current;
+thread_t *head;
+thread_t *last;
+thread_t *current;
 /* ============================================ */
-static void
-default_scheduler (struct intr_stack_frame *current_regs)
+static thread_t *default_scheduler (void)
 {
+  return current = current->nxt ? current->nxt : head;
+}
+/* ============================================ */
+void
+thread_switch_handler (struct intr_stack_frame *current_regs)
+{
+  static volatile thread_t *next;
   if (head == last) {
     lapic_eoi ();  /* XXX: Should we move it to timer_isr.S??? */
     return;
@@ -29,7 +35,8 @@ default_scheduler (struct intr_stack_frame *current_regs)
    * the beginning of frame pointer */
   current->regs = current_regs;
   /* Default, a basic round-robin algorithm */
-  current = current->nxt ? current->nxt : head;
+  next = scheduler ();
+  current = (thread_t*)next;
   /*
    * TODO:
    *     Move the rest of this routine to another function
@@ -63,7 +70,7 @@ default_scheduler (struct intr_stack_frame *current_regs)
       "retq"
       :
       :
-      "D"(current->regs),
+      "D"(next->regs),
       [THREAD_REGS_RFLAGS_IDX]"i"(offsetof (struct intr_stack_frame, tf_rflags)),
       [THREAD_REGS_RCX_IDX]"i"(offsetof (struct intr_stack_frame, tf_rcx)),
       [THREAD_REGS_RDX_IDX]"i"(offsetof (struct intr_stack_frame, tf_rdx)),
@@ -113,6 +120,30 @@ thread_create (thread_t *thread,
 }
 /* ============================================ */
 void
+thread_set_scheduler (thread_t *(*new_scheduler)(void))
+{
+  if (unlikely (head ==NULL || last == NULL)) {
+    panic ("thread linrary is not initialized yet");
+  }
+  cli ();
+  scheduler = new_scheduler;
+  sti ();
+}
+/* ============================================ */
+void
+thread_set_timer_freq (uint64_t ms)
+{
+  if (unlikely (head ==NULL || last == NULL)) {
+    panic ("thread linrary is not initialized yet");
+  }
+  cli ();
+  timer_off ();
+  init_timer ();
+  timer_on (ms);
+  sti ();
+}
+/* ============================================ */
+void
 thread_init (void)
 {
   main_thread.nxt = NULL;
@@ -124,5 +155,5 @@ thread_init (void)
   init_timer ();
   add_irq (32, &timer_handler);
   sti ();
-  timer_on (10);
+  timer_on (100);
 }

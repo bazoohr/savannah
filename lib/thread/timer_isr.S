@@ -7,9 +7,8 @@
 ISRENT(name)              \
   PUSH_FRAME(%rsp);       \
   movq %rsp, %rdi;        \
-  movq action, %rax;     \
-  call *%rax;             \
+  call action;             \
   POP_FRAME(%rsp);        \
   iretq
 
-ISR(timer_handler, scheduler)
+ISR(timer_handler, thread_switch_handler)
