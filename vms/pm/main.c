@@ -894,14 +894,16 @@ local_waitpid (struct cpu_info * const info,
     return;
   }
 }
-static thread_t *my_scheduler (void)
-{
-  return current = current->nxt ? current->nxt : head;
-}
-static char thread1_stack[4096];
-static char thread2_stack[4096];
+/* ================================================= */
+static char thread1_stack[_4KB_];
+static char thread2_stack[_4KB_];
 static thread_t thread1;
 static thread_t thread2;
+/* ================================================= */
+static thread_t *my_scheduler (void)
+{
+  return current->nxt ? current->nxt : head;
+}
 static void
 thread1_routine (void* none)
 {
@@ -919,12 +921,27 @@ vm_main (void)
   create_default_gdt ();
   interrupt_init();
   pm_init ();
+
   thread_init ();
-  thread_create (&thread1, &thread1_routine, thread1_stack, 0x1000);
-  thread_create (&thread2, &thread2_routine, thread2_stack, 0x1000);
+  thread_create (&thread1, &thread1_routine, thread1_stack, _4KB_);
+  thread_create (&thread2, &thread2_routine, thread2_stack, _4KB_);
+
   thread_set_scheduler (my_scheduler);
-  thread_set_timer_freq (1);
-  for (;;) {DEBUG ("A", 0xA);}
+
+  static int freq = 1;
+  thread_set_timer_freq (freq);
+  for (;;) {
+    static int counter = 0;
+    int i = 0;
+    for (i = 0; i < 0x2FFF; i++) {
+      DEBUG ("A", 0xA);
+    }
+    if (counter % 6) {
+      freq++;
+      thread_set_timer_freq (freq);
+    }
+    counter++;
+  }
 
   int i;
   for (i = 1; i < cpuinfo->ncpus; i++) {
