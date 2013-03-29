@@ -35,29 +35,80 @@ vm_main (void)
   }
   a = get_cpu_cycle ();
   DEBUG  ("DONE %d!\n", 0xA, a-b);
-#endif
   /* Launching junk driver */
-  DEBUG ("TESTING MONITOR/MWAIT...", 0xF);
   uint64_t *s = cpuinfo->msg_ready_bitmap;
   uint64_t *rax;
   volatile uint64_t *monitor_area;
   uint64_t rdx, rcx;
-  rdx = rcx = 0;
+  uint64_t sum = 0;
   monitor_area = rax = cpuinfo->msg_ready_bitmap;
   volatile uint64_t i;
+  a = b = 0;
   for (i = 0; i < 999999; i++);
-  b = rdtsc ();
-  *s = 0x123;
-  while (*monitor_area == 0x123) {
-    monitor (rax, rcx, rdx);
-    if (*monitor_area == 0x123) {
-      mwait ((uint64_t)rax, rcx);
+#define MAX 10000
+  for (i = 0; i < MAX; i++) {
+    rdx = rcx = 0;
+    b = rdtsc ();
+    *s = 0x123;
+    while (*monitor_area == 0x123) {
+      monitor (rax, rcx, rdx);
+      if (*monitor_area == 0x123) {
+        mwait ((uint64_t)rax, rcx);
+      }
     }
+    a = rdtsc ();
+    sum += (a - b);
   }
-  a = rdtsc ();
   DEBUG ("written %x\n", 0xE, *monitor_area);
   DEBUG ("Took %d cycles\n", 0xE, a - b);
+#endif
+
+  uint64_t cr0;
+  unsigned int aux = cpuinfo->cpuid;
+  volatile uint64_t *s = cpuinfo->msg_ready_bitmap;
+  uint64_t *rax;
+  volatile uint64_t *monitor_area;
+  uint64_t rdx, rcx;
+  uint64_t sum = 0;
+  monitor_area = rax = cpuinfo->msg_ready_bitmap;
+  volatile uint64_t i;
+  cr0 = rcr0 ();
+  DEBUG ("cr0 = %x\n", 0xA, cr0);
   halt ();
+  a = b = 0;
+  for (i = 0; i < 999999; i++);
+#define MAX 10000
+  for (i = 0; i < MAX; i++) {
+    rdx = rcx = 0;
+    b = rdtscp (&aux);
+    *s = 0x123;
+    while (*monitor_area == 0x123) {
+      monitor (rax, rcx, rdx);
+      if (*monitor_area == 0x123) {
+        mwait ((uint64_t)rax, rcx);
+      }
+    }
+    a = rdtscp (&aux);
+    sum += (a - b);
+  }
+  DEBUG ("written %x\n", 0xE, *monitor_area);
+  DEBUG ("cpu %d sum %d Took %d cycles\n", 0xC, cpuinfo->cpuid, sum, sum / MAX);
+
+
+  int hamid = 0;
+  int francesco = 0;
+  sum = 0;
+  for (i = 0; i < MAX; i++) {
+    b = rdtscp (&aux);
+    hamid++;
+    francesco = hamid;
+    a = rdtscp (&aux);
+    sum += (a - b);
+  }
+  DEBUG ("written %d\n", 0xE, francesco);
+  DEBUG ("cpu %d sum %d Took %d cycles\n", 0xC, cpuinfo->cpuid, sum, sum / MAX);
+  halt ();
+  /* =============================================== */
   DEBUG  ("Starting flooding deamon... ", 0xF);
   b = get_cpu_cycle ();
   pid = fork();

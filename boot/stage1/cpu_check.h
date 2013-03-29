@@ -123,4 +123,41 @@ cpu_has_monitor_mwait (void)
 
   return ecx & (1 << 3);
 }
+static __inline bool
+cpu_has_rdtscp (void)
+{
+  uint32_t edx;
+
+  cpuid (0x80000001, NULL, NULL, NULL, &edx);
+
+  return edx & (1 << 27);
+}
+static __inline bool
+cpu_has_perf_monitor (void)
+{
+  uint64_t misc_enable;
+
+  misc_enable = rdmsr (0x1A0);
+  printf ("%x misc_enable", misc_enable);
+  return misc_enable & (1 << 7);
+}
+
+static __inline bool
+cpu_cache_disable (void)
+{
+  uint32_t cr0 = rcr0 ();
+  return cr0 & (1 << 30);
+}
+
+static __inline void
+cpu_enable_cache (void)
+{
+  __asm__ __volatile__ (
+      "movl %%cr0, %%eax\n\n"
+      "btrl $29, %%eax\n\t"  /* Make sure NW is unset */
+      "btrl $30, %%eax\n\t"  /* Unset CD bit */
+      "movl %%eax, %%cr0\n\t"
+      "wbinvd\n\t"
+      :::"eax");
+}
 #endif /* __CPU_CHECK_H__ */

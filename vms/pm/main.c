@@ -900,10 +900,16 @@ vm_main (void)
   create_default_gdt ();
   interrupt_init();
   pm_init ();
+#if 0
+  uint64_t cr0;
+  cr0 = rcr0 ();
+  DEBUG ("cr0 = %x\n", 0xA, cr0);
+  halt ();
 
   init_timer (1);
   sti ();
   timer_on ();
+#endif
   int i;
   for (i = 1; i < cpuinfo->ncpus; i++) {
     msg_reply (PM, i, 1, NULL, 0);
@@ -917,16 +923,18 @@ vm_main (void)
   uint64_t *rax;
   volatile uint64_t *monitor_area;
   monitor_area = rax = get_cpu_info (INIT)->msg_ready_bitmap;
-  *monitor_area = 0;
-  uint64_t rdx, rcx;
-  rdx = rcx = 0;
-  while (! (*monitor_area)) {
-    monitor (rax, rcx, rdx);
-    if (! (*monitor_area)) {
-      mwait ((uint64_t)rax, rcx);
-    }
-  }
   *monitor_area = 0x124;
+  uint64_t rdx, rcx;
+  while (1) {
+    rdx = rcx = 0;
+    while ((*monitor_area) == 0x124) {
+      monitor (rax, rcx, rdx);
+      if ((*monitor_area) == 0x124) {
+        mwait ((uint64_t)rax, rcx);
+      }
+    }
+    *monitor_area = 0x124;
+  }
   halt ();
 
   while (1) {

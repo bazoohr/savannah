@@ -436,6 +436,7 @@ setup_vmcs (void)
 
   u64 = (uint32_t)vmx_secondary_processor;
   u64 |= (1 << 1);                         /* Enable the EPT */
+  u64 |= (1 << 3);                         /* Enable the RDTSCP instruction */
   vmx_vmwrite(SECONDARY_VM_EXEC_CONTROL, u64);
 
   // Section 24.7.1 Table 24-10

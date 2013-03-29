@@ -78,6 +78,25 @@ load_stage2 (phys_addr_t stage2_elf_addr,
   memset ((void*)((phys_addr_t)s->p_vaddr), 0, s->p_memsz);
   *stage2_end_addr = s->p_vaddr + s->p_memsz;    /* Shows where stage2 ends! */
 }
+static __inline void
+cpu_get_model (void)
+{
+  /*
+   * According to returned value from Bochs, its supported
+   * processor is Celeron processor model 6, with family code 6
+   * model number 6
+   */
+  uint32_t eax;
+
+  cpuid (1, &eax, NULL, NULL, NULL);
+
+  printf ("\n\n\n\nstepping id = %x\n", (eax & 0xF));
+  printf ("model number = %x\n", ((eax >> 3) & 0xF));
+  printf ("family code= %x\n", ((eax >> 8) & 0xF));
+  printf ("processor type = %x\n", ((eax >> 12) & 0x3));
+  printf ("extended model = %x\n", ((eax >> 16) & 0xF));
+  printf ("extended family = %x\n", ((eax >> 20) & 0xFF));
+}
 static void
 check_cpu_features (void)
 {
@@ -112,10 +131,23 @@ check_cpu_features (void)
     printf ("ERROR: monitor/mwait instructions are not supported!");
     halt ();
   }
-  //uint32_t eax;
-  //cpuid (5, &eax, NULL, NULL, NULL);
-  //printf ("minLineSizeMAX = %d\n", eax & 0xFFFF);
-  //halt ();
+  if (! cpu_has_rdtscp ()) {
+    printf ("ERROR: your cpu does not support rdtscp instruction");
+    halt ();
+  }
+#if 0
+  if (! cpu_has_perf_monitor ()) {
+    printf ("ERROR: performance monitoring is not available!");
+    halt ();
+  }
+#endif
+  cpu_get_model ();
+#if 0
+  uint32_t eax;
+  cpuid (5, &eax, NULL, NULL, NULL);
+  printf ("minLineSizeMAX = %d\n", eax & 0xFFFF);
+  halt ();
+#endif
 }
 void
 boot_loader (unsigned long magic, unsigned long addr)
@@ -134,6 +166,14 @@ boot_loader (unsigned long magic, unsigned long addr)
   void (*stage2)(struct boot_stage2_args *);
 
   clrscr ();  /* Clear the screen. */
+  if (cpu_cache_disable ()) {
+    cpu_enable_cache ();
+    printf ("enabling cache....");
+    if (cpu_cache_disable ()) {
+      printf ("Cache is still disabled!");
+      halt ();
+    }
+  }
   /* Make sure cpu has all needed features */
   check_cpu_features ();
   /* Do we support 1GB pages? */

@@ -391,6 +391,51 @@ vm_main (void)
   interrupt_init();
   filesystem = cpuinfo->vm_args;
 
+  halt ();
+#if 0
+  unsigned int aux = cpuinfo->cpuid;
+  uint64_t b,a;
+  volatile uint64_t *s = cpuinfo->msg_ready_bitmap;
+  uint64_t *rax;
+  volatile uint64_t *monitor_area;
+  uint64_t rdx, rcx;
+  uint64_t sum = 0;
+  monitor_area = rax = cpuinfo->msg_ready_bitmap;
+  volatile uint64_t i;
+  a = b = 0;
+  for (i = 0; i < 999999; i++);
+#define MAX 10000
+  for (i = 0; i < MAX; i++) {
+    rdx = rcx = 0;
+    b = rdtscp (&aux);
+    *s = 0x123;
+    while (*monitor_area == 0x123) {
+      monitor (rax, rcx, rdx);
+      if (*monitor_area == 0x123) {
+        mwait ((uint64_t)rax, rcx);
+      }
+    }
+    a = rdtscp (&aux);
+    sum += (a - b);
+  }
+  DEBUG ("written %x\n", 0xE, *monitor_area);
+  DEBUG ("cpu %d sum %d Took %d cycles\n", 0xC, cpuinfo->cpuid, sum, sum / MAX);
+
+
+  static volatile int hamid = 0;
+  static volatile int francesco = 0;
+  sum = 0;
+  for (i = 0; i < MAX; i++) {
+    b = rdtscp (&aux);
+    hamid++;
+    francesco = hamid;
+    a = rdtscp (&aux);
+    sum += (a - b);
+  }
+  DEBUG ("written %d\n", 0xE, francesco);
+  DEBUG ("cpu %d sum %d Took %d cycles\n", 0xC, cpuinfo->cpuid, sum, sum / MAX);
+  halt ();
+#endif
 #if 0
   int i;
   for (i = 0 ; i < cpuinfo->cpuid; i++) DEBUG ("\n", 0x7);
