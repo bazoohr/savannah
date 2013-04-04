@@ -158,6 +158,14 @@ halt(void)
 }
 /* ================================================== */
 static __inline uint64_t
+rdtscp (unsigned int *aux)
+{
+	uint64_t low, high;
+	__asm__ __volatile__ (".byte 0x0f,0x01,0xf9" /* rdtscp */
+		     : "=a" (low), "=d" (high), "=c" (*aux));
+	return low | (high << 32);
+}
+static __inline uint64_t
 rdtsc (void)
 {
   uint32_t hi;

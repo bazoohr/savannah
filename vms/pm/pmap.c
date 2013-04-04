@@ -367,7 +367,7 @@ ept_map_page_tables (phys_addr_t *ept, phys_addr_t pml4_paddr, const uint16_t pr
       (virt_addr_t)pml4 + PAGE_TABLE_SIZE,
       (phys_addr_t)pml4,
       USER_VMS_PAGE_SIZE,
-      EPT_MTYPE_WT,
+      EPT_MTYPE_WB,
       protection,
       MAP_UPDATE);
 
@@ -380,7 +380,7 @@ ept_map_page_tables (phys_addr_t *ept, phys_addr_t pml4_paddr, const uint16_t pr
           (virt_addr_t)pdpe + PAGE_TABLE_SIZE,
           (phys_addr_t)pdpe,
           USER_VMS_PAGE_SIZE,
-          EPT_MTYPE_WT,
+          EPT_MTYPE_WB,
           protection,
           MAP_UPDATE);
       /*
@@ -398,7 +398,7 @@ ept_map_page_tables (phys_addr_t *ept, phys_addr_t pml4_paddr, const uint16_t pr
                 (virt_addr_t)pde + PAGE_TABLE_SIZE,
                 (phys_addr_t)pde,
                 USER_VMS_PAGE_SIZE,
-                EPT_MTYPE_WT,
+                EPT_MTYPE_WB,
                 protection,
                 MAP_UPDATE);
             for (pde_idx = 0; pde_idx < PAGE_TABLE_ENTRIES; pde_idx++) {
@@ -410,7 +410,7 @@ ept_map_page_tables (phys_addr_t *ept, phys_addr_t pml4_paddr, const uint16_t pr
                     (virt_addr_t)pte + PAGE_TABLE_SIZE,
                     (phys_addr_t)pte,
                     USER_VMS_PAGE_SIZE,
-                    EPT_MTYPE_WT,
+                    EPT_MTYPE_WB,
                     protection,
                     MAP_UPDATE);
               } /* 4KB if */

@@ -13,6 +13,7 @@
 #include <vuos/vuos.h>
 #include <channel.h>
 #include <interrupt.h>
+#include <gdt.h>
 
 char *filesystem;
 
@@ -388,23 +389,39 @@ local_load(char *path)
 void
 vm_main (void)
 {
+  create_default_gdt ();
   interrupt_init();
   filesystem = cpuinfo->vm_args;
 
-  halt ();
 #if 0
+  halt ();
+  volatile uint64_t i;
+  for (i = 0; i < 999999; i++);
   unsigned int aux = cpuinfo->cpuid;
   uint64_t b,a;
   volatile uint64_t *s = cpuinfo->msg_ready_bitmap;
-  uint64_t *rax;
-  volatile uint64_t *monitor_area;
-  uint64_t rdx, rcx;
   uint64_t sum = 0;
-  monitor_area = rax = cpuinfo->msg_ready_bitmap;
-  volatile uint64_t i;
+  int tmp;
+
+#define MAX 10000
+  for (i = 0; i < MAX; i++) {
+    b = rdtscp (&aux);
+    msg_send(PM, READ_IPC, &tmp, sizeof(int));
+    msg_receive(PM);
+    a = rdtscp (&aux);
+    sum += (a - b);
+  }
+  DEBUG ("written %x\n", 0xE, *s);
+  DEBUG ("cpu %d sum %d Took %d cycles\n", 0xC, cpuinfo->cpuid, sum, sum / MAX);
+  halt ();
+
+  //uint64_t *rax;
+  //volatile uint64_t *monitor_area;
+  //uint64_t rdx, rcx;
+  //monitor_area = rax = cpuinfo->msg_ready_bitmap;
   a = b = 0;
   for (i = 0; i < 999999; i++);
-#define MAX 10000
+#if 0
   for (i = 0; i < MAX; i++) {
     rdx = rcx = 0;
     b = rdtscp (&aux);
@@ -420,7 +437,17 @@ vm_main (void)
   }
   DEBUG ("written %x\n", 0xE, *monitor_area);
   DEBUG ("cpu %d sum %d Took %d cycles\n", 0xC, cpuinfo->cpuid, sum, sum / MAX);
+#endif
 
+  for (i = 0; i < MAX; i++) {
+    b = rdtscp (&aux);
+    *s = 0x123;
+    while (*s== 0x123);
+    a = rdtscp (&aux);
+    sum += (a - b);
+  }
+  DEBUG ("written %x\n", 0xE, *s);
+  DEBUG ("cpu %d sum %d Took %d cycles\n", 0xC, cpuinfo->cpuid, sum, sum / MAX);
 
   static volatile int hamid = 0;
   static volatile int francesco = 0;
@@ -435,14 +462,13 @@ vm_main (void)
   DEBUG ("written %d\n", 0xE, francesco);
   DEBUG ("cpu %d sum %d Took %d cycles\n", 0xC, cpuinfo->cpuid, sum, sum / MAX);
   halt ();
-#endif
 #if 0
   int i;
   for (i = 0 ; i < cpuinfo->cpuid; i++) DEBUG ("\n", 0x7);
   DEBUG  ("FS: My info is in addr = %d\n", 0xD, cpuinfo->cpuid);
   halt ();
 #endif
-
+#endif
   while (1) {
     struct message *m = msg_check();
     struct open_ipc opentmp;

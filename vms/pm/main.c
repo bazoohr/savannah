@@ -95,25 +95,33 @@ static __inline void
 ept_pmap (struct cpu_info * const child_cpu_info)
 {
   map_memory (&child_cpu_info->vm_info.vm_page_tables,
-      0, (virt_addr_t)((virt_addr_t)_1GB_ * 3),
+      0, (virt_addr_t)((virt_addr_t)_2MB_),
       0,
       has_1GB_page ? _1GB_ : _2MB_,
-      PAGE_PRESENT | PAGE_RW | PAGE_PWT, MAP_NEW);
-      /* Map Last 1GB as uncachable memory for MMIO */
+      PAGE_PRESENT | PAGE_RW | PAGE_PCD, MAP_NEW);  /* PAGE_PCD because of VGA */
   map_memory (&child_cpu_info->vm_info.vm_page_tables,
-      (virt_addr_t)((virt_addr_t)_1GB_ * 3), (virt_addr_t)((virt_addr_t)_1GB_ * 4),
-      (virt_addr_t)((virt_addr_t)_1GB_ * 3),
+      _2MB_, ((virt_addr_t)0xFEC00000),
+      _2MB_,
+      has_1GB_page ? _1GB_ : _2MB_,
+      PAGE_PRESENT | PAGE_RW, MAP_UPDATE);
+  map_memory (&child_cpu_info->vm_info.vm_page_tables,
+      ((virt_addr_t)0xFEC00000), (virt_addr_t)((virt_addr_t)_1GB_ * 4),
+      ((virt_addr_t)0xFEC00000),
       has_1GB_page ? _1GB_ : _2MB_,
       PAGE_PRESENT | PAGE_RW | PAGE_PCD, MAP_UPDATE);
+
+
+
+
   ept_map_memory (&child_cpu_info->vm_info.vm_ept,
       0xB8000, 0xB9000,  /* Just for debugging purposes */
       0xB8000,
       USER_VMS_PAGE_SIZE,
-      EPT_MTYPE_WT,
+      EPT_MTYPE_UC,
       EPT_PAGE_READ | EPT_PAGE_WRITE, MAP_NEW);
   ept_map_memory (&child_cpu_info->vm_info.vm_ept,
-      0xFEC00000, ((phys_addr_t)0x100000000),
-      0xFEC00000,
+      0xFEE00000, ((phys_addr_t)0x100000000),
+      0xFEE00000,
       USER_VMS_PAGE_SIZE,
       EPT_MTYPE_UC,
       EPT_PAGE_READ | EPT_PAGE_WRITE, MAP_UPDATE);  /* XXX: Why do we need write access here? */
@@ -124,31 +132,31 @@ ept_pmap (struct cpu_info * const child_cpu_info)
       (phys_addr_t)child_cpu_info, (phys_addr_t)child_cpu_info + _4KB_,
       (phys_addr_t)child_cpu_info,
       USER_VMS_PAGE_SIZE,
-      EPT_MTYPE_WT,
+      EPT_MTYPE_WB,
       EPT_PAGE_READ, MAP_UPDATE);
   ept_map_memory (&child_cpu_info->vm_info.vm_ept,
       (phys_addr_t)child_cpu_info->msg_input, (phys_addr_t)child_cpu_info->msg_input + _4KB_,
       (phys_addr_t)child_cpu_info->msg_input,
       USER_VMS_PAGE_SIZE,
-      EPT_MTYPE_WT,
+      EPT_MTYPE_WB,
       EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
   ept_map_memory (&child_cpu_info->vm_info.vm_ept,
       (phys_addr_t)child_cpu_info->msg_output, (phys_addr_t)child_cpu_info->msg_output + _4KB_,
       (phys_addr_t)child_cpu_info->msg_output,
       USER_VMS_PAGE_SIZE,
-      EPT_MTYPE_WT,
+      EPT_MTYPE_WB,
       EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
   ept_map_memory (&child_cpu_info->vm_info.vm_ept,
       (phys_addr_t)child_cpu_info->msg_ready, (phys_addr_t)child_cpu_info->msg_ready + _4KB_,
       (phys_addr_t)child_cpu_info->msg_ready,
       USER_VMS_PAGE_SIZE,
-      EPT_MTYPE_WT,
+      EPT_MTYPE_WB,
       EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
   ept_map_memory (&child_cpu_info->vm_info.vm_ept,
       (phys_addr_t)child_cpu_info->msg_ready_bitmap, (phys_addr_t)child_cpu_info->msg_ready_bitmap + _4KB_,
       (phys_addr_t)child_cpu_info->msg_ready_bitmap,
       USER_VMS_PAGE_SIZE,
-      EPT_MTYPE_WT,
+      EPT_MTYPE_WB,
       EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
 
   if (child_cpu_info->vm_info.vm_code_size > 0) {
@@ -156,7 +164,7 @@ ept_pmap (struct cpu_info * const child_cpu_info)
         child_cpu_info->vm_info.vm_code_vaddr, child_cpu_info->vm_info.vm_code_vaddr + child_cpu_info->vm_info.vm_code_size,
         child_cpu_info->vm_info.vm_code_paddr,
         USER_VMS_PAGE_SIZE,
-        EPT_MTYPE_WT,
+        EPT_MTYPE_WB,
         EPT_PAGE_READ | EPT_PAGE_EXEC, MAP_UPDATE);
   }
   if (child_cpu_info->vm_info.vm_data_size > 0) {
@@ -164,7 +172,7 @@ ept_pmap (struct cpu_info * const child_cpu_info)
         child_cpu_info->vm_info.vm_data_vaddr, child_cpu_info->vm_info.vm_data_vaddr + child_cpu_info->vm_info.vm_data_size,
         child_cpu_info->vm_info.vm_data_paddr,
         USER_VMS_PAGE_SIZE,
-        EPT_MTYPE_WT,
+        EPT_MTYPE_WB,
         EPT_PAGE_READ | EPT_PAGE_EXEC, MAP_UPDATE);
   }
   if (child_cpu_info->vm_info.vm_rodata_size > 0) {
@@ -172,7 +180,7 @@ ept_pmap (struct cpu_info * const child_cpu_info)
         child_cpu_info->vm_info.vm_rodata_vaddr, child_cpu_info->vm_info.vm_rodata_vaddr + child_cpu_info->vm_info.vm_rodata_size,
         child_cpu_info->vm_info.vm_rodata_paddr,
         USER_VMS_PAGE_SIZE,
-        EPT_MTYPE_WT,
+        EPT_MTYPE_WB,
         EPT_PAGE_READ, MAP_UPDATE);
   }
   if (child_cpu_info->vm_info.vm_bss_size > 0) {
@@ -180,7 +188,7 @@ ept_pmap (struct cpu_info * const child_cpu_info)
         child_cpu_info->vm_info.vm_bss_vaddr, child_cpu_info->vm_info.vm_bss_vaddr + child_cpu_info->vm_info.vm_bss_size,
         child_cpu_info->vm_info.vm_bss_paddr,
         USER_VMS_PAGE_SIZE,
-        EPT_MTYPE_WT,
+        EPT_MTYPE_WB,
         EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
   }
   if (child_cpu_info->vm_info.vm_stack_size > 0) {
@@ -188,7 +196,7 @@ ept_pmap (struct cpu_info * const child_cpu_info)
         child_cpu_info->vm_info.vm_stack_vaddr, child_cpu_info->vm_info.vm_stack_vaddr + child_cpu_info->vm_info.vm_stack_size,
         child_cpu_info->vm_info.vm_stack_paddr,
         USER_VMS_PAGE_SIZE,
-        EPT_MTYPE_WT,
+        EPT_MTYPE_WB,
         EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
   }
   if (child_cpu_info->vm_info.vm_fds > 0) {
@@ -196,7 +204,7 @@ ept_pmap (struct cpu_info * const child_cpu_info)
         (phys_addr_t)child_cpu_info->vm_info.vm_fds, (phys_addr_t)child_cpu_info->vm_info.vm_fds + _4KB_,
         (phys_addr_t)child_cpu_info->vm_info.vm_fds,
         USER_VMS_PAGE_SIZE,
-        EPT_MTYPE_WT,
+        EPT_MTYPE_WB,
         EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
     int i;
     for (i = 0 ; i < MAX_FD ; i++) {
@@ -205,7 +213,7 @@ ept_pmap (struct cpu_info * const child_cpu_info)
             (phys_addr_t)child_cpu_info->vm_info.vm_fds[i].offset, (phys_addr_t)child_cpu_info->vm_info.vm_fds[i].offset + _4KB_,
             (phys_addr_t)child_cpu_info->vm_info.vm_fds[i].offset,
             USER_VMS_PAGE_SIZE,
-            EPT_MTYPE_WT,
+            EPT_MTYPE_WB,
             EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
       }
     }
@@ -215,7 +223,7 @@ ept_pmap (struct cpu_info * const child_cpu_info)
         (phys_addr_t)child_cpu_info->vm_info.vm_channels, (phys_addr_t)child_cpu_info->vm_info.vm_channels + _4KB_,
         (phys_addr_t)child_cpu_info->vm_info.vm_channels,
         USER_VMS_PAGE_SIZE,
-        EPT_MTYPE_WT,
+        EPT_MTYPE_WB,
         EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
   }
 }
@@ -894,13 +902,30 @@ local_waitpid (struct cpu_info * const info,
 }
 
 /* ================================================= */
+struct fake {
+  char none[MSG_DATA_SIZE];
+} __packed;
+struct fake rr;
+struct message *m;
 void
 vm_main (void)
 {
+  int i;
+
   create_default_gdt ();
   interrupt_init();
   pm_init ();
+
+  for (i = 1; i < cpuinfo->ncpus; i++) {
+    msg_reply (PM, i, 1, NULL, 0);
+  }
 #if 0
+  if (sizeof (struct message) != 64) {
+    panic ("struct message is not a cache line size!");
+  }
+  if (sizeof (struct fake) != MSG_DATA_SIZE) {
+    panic ("struct message is not a cache line size!");
+  }
   uint64_t cr0;
   cr0 = rcr0 ();
   DEBUG ("cr0 = %x\n", 0xA, cr0);
@@ -909,17 +934,14 @@ vm_main (void)
   init_timer (1);
   sti ();
   timer_on ();
-#endif
-  int i;
-  for (i = 1; i < cpuinfo->ncpus; i++) {
-    msg_reply (PM, i, 1, NULL, 0);
+
+
+  while (1) {
+     m = msg_check();
+    msg_reply (PM, m->from, m->number, &r, sizeof (struct fake));
   }
+
 #if 0
-  int i;
-  for (i = 0 ; i < cpuinfo->cpuid; i++) DEBUG ("\n", 0x7);
-  DEBUG ("PM: My info is in addr = %d\n", 0xD, cpuinfo->cpuid);
-  halt ();
-#endif
   uint64_t *rax;
   volatile uint64_t *monitor_area;
   monitor_area = rax = get_cpu_info (INIT)->msg_ready_bitmap;
@@ -935,8 +957,17 @@ vm_main (void)
     }
     *monitor_area = 0x124;
   }
+#endif
+  volatile uint64_t *monitor_area;
+  monitor_area = get_cpu_info (INIT)->msg_ready_bitmap;
+  *monitor_area = 0x124;
+  while (1) {
+    while ((*monitor_area) == 0x124);
+    *monitor_area = 0x124;
+  }
   halt ();
 
+#endif
   while (1) {
     struct message *m __aligned (0x10) = msg_check();
     struct waitpid_reply wait_reply;

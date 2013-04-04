@@ -680,11 +680,16 @@ host_entry (void)
     DEBUG ("exit qualification = %x\n", 0x4, guest_qualification);
     DEBUG ("EPTP = %x\n", 0x4, guest_eptp);
     while (1) halt ();
+	} else if (reason == 3) {
+		DEBUG ("\n\n\n\n\nHOOOOOOOOOSSSSSSSSSTTTTTTTTT!!!!!!!!!!!!! CPU id %d\n", 0xA, cpuinfo->cpuid);
+		DEBUG ("RIP = %x\n", 0xA, vmx_vmread (GUEST_RIP));
+		DEBUG ("Exited because of %d\n", 0x4, reason);
+		while(1);
 	} else {
 		DEBUG ("HOOOOOOOOOSSSSSSSSSTTTTTTTTT!!!!!!!!!!!!! CPU id %d\n", 0xA, cpuinfo->cpuid);
 		DEBUG ("Exited because of %d\n", 0x4, reason);
 		while(1);
-	}
+  }
 }
 
 static void
@@ -705,8 +710,6 @@ check_cpu_vmx_features (struct vmcs_config *vmcs_config)
   if (! cpu_has_vmx_invvpid_single ()) {
     panic ("Your cpu does not support invpid single");
   }
-
-  
 }
 void
 vmx_init (void)

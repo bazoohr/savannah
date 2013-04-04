@@ -4,6 +4,7 @@
 #include <string.h>
 #include <asmfunc.h>
 #include <debug.h>
+#include <ipc.h>
 /* =================================== */
 #define MAX_LEN 16
 /* =================================== */
@@ -48,6 +49,10 @@ login (void)
 }
 #endif
 /* =================================== */
+struct fake {
+  char none[MSG_DATA_SIZE];
+} __packed;
+struct fake tmp;
 int main(int argc, char **argv)
 {
 #if 0
@@ -86,26 +91,31 @@ int main(int argc, char **argv)
   uint64_t sum = 0;
   int i;
   int pid;
+  unsigned int aux = cpuinfo->cpuid;
+
+  DEBUG ("\n\n\n", 0x7);
 
 #ifdef MAX
 #undef MAX
 #endif
-#define MAX 100
+#define MAX 100000
   sum = 0;
+  msg_send(PM, 999, &tmp, sizeof(struct fake));
   for (i = 0; i < MAX; i++) {
-    b = rdtsc ();
-    empty();
-    a = rdtsc ();
+    b = rdtscp (&aux);
+    msg_send(PM, 999, &tmp, sizeof(struct fake));
+    msg_receive(PM);
+    a = rdtscp (&aux);
     sum += (a - b);
   }
   DEBUG ("ferq = %x empty took %d in average!\n", 0xE, cpuinfo->cpu_freq, sum / MAX);
 #ifdef MAX
 #undef MAX
 #endif
-#define MAX 100
+#define MAX 100000
   sum = 0;
   for (i = 0; i < MAX; i++) {
-    b = rdtsc ();
+    b = rdtscp (&aux);
     pid = fork();
     if (pid < 0) {
       DEBUG ("Fork error!\n", 0x4);
@@ -113,7 +123,7 @@ int main(int argc, char **argv)
       exit (-1);
     } else { /* Parent */
       int r;
-      a = rdtsc ();
+      a = rdtscp (&aux);
       sum += (a - b);
       waitpid (pid, &r, 0);
       //DEBUG ("returned %d\n", 0xA, r);
@@ -124,12 +134,12 @@ int main(int argc, char **argv)
 #ifdef MAX
 #undef MAX
 #endif
-#define MAX 100
+#define MAX 100000
   sum = 0;
   for (i = 0; i < MAX; i++) {
-    b = rdtsc ();
+    b = rdtscp (&aux);
     empty();
-    a = rdtsc ();
+    a = rdtscp (&aux);
     sum += (a - b);
   }
   DEBUG ("ferq = %x empty took %d in average!\n", 0xE, cpuinfo->cpu_freq, sum / MAX);

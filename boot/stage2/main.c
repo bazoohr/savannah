@@ -200,45 +200,45 @@ load_all_vmms (phys_addr_t vmm_elf_addr, phys_addr_t boot_stage2_end_addr)
                  0, boot_stage2_end_addr,
                  0,
                  _4KB_,
-                 PAGE_PRESENT | PAGE_RW | PAGE_PWT, MAP_NEW);
+                 PAGE_PRESENT | PAGE_RW | PAGE_PCD, MAP_NEW);  /* PAGE_PCD because of VGA */
     //cprintk ("cpuinfo_table = %x curr_cpu_info %x cpuid - %d\n", 0x2, cpuinfo_table, curr_cpu_info, curr_cpu_info->cpuid);
     map_memory (&curr_cpu_info->vmm_info.vmm_page_tables,
                  curr_cpu_info->vm_info.vm_vmxon_ptr, curr_cpu_info->vm_info.vm_vmxon_ptr + _4KB_,
                  curr_cpu_info->vm_info.vm_vmxon_ptr,
                  _4KB_,
-                 PAGE_PRESENT | PAGE_RW | PAGE_PWT, MAP_UPDATE);
+                 PAGE_PRESENT | PAGE_RW, MAP_UPDATE);
     map_memory (&curr_cpu_info->vmm_info.vmm_page_tables,
                  curr_cpu_info->vm_info.vm_vmcs_ptr, curr_cpu_info->vm_info.vm_vmcs_ptr + _4KB_,
                  curr_cpu_info->vm_info.vm_vmcs_ptr,
                  _4KB_,
-                 PAGE_PRESENT | PAGE_RW | PAGE_PWT, MAP_UPDATE);
+                 PAGE_PRESENT | PAGE_RW, MAP_UPDATE);
     map_memory (&curr_cpu_info->vmm_info.vmm_page_tables,
                  (phys_addr_t)curr_cpu_info->msg_input, (phys_addr_t)curr_cpu_info->msg_input + _4KB_,
                  (phys_addr_t)curr_cpu_info->msg_input,
                  _4KB_,
-                 PAGE_PRESENT | PAGE_RW | PAGE_PWT, MAP_UPDATE);
+                 PAGE_PRESENT | PAGE_RW, MAP_UPDATE);
     map_memory (&curr_cpu_info->vmm_info.vmm_page_tables,
                  (phys_addr_t)curr_cpu_info->msg_output, (phys_addr_t)curr_cpu_info->msg_output + _4KB_,
                  (phys_addr_t)curr_cpu_info->msg_output,
                  _4KB_,
-                 PAGE_PRESENT | PAGE_RW | PAGE_PWT, MAP_UPDATE);
+                 PAGE_PRESENT | PAGE_RW, MAP_UPDATE);
     map_memory (&curr_cpu_info->vmm_info.vmm_page_tables,
                  (phys_addr_t)curr_cpu_info->msg_ready, (phys_addr_t)curr_cpu_info->msg_ready + _4KB_,
                  (phys_addr_t)curr_cpu_info->msg_ready,
                  _4KB_,
-                 PAGE_PRESENT | PAGE_RW | PAGE_PWT, MAP_UPDATE);
+                 PAGE_PRESENT | PAGE_RW, MAP_UPDATE);
 
     map_memory (&curr_cpu_info->vmm_info.vmm_page_tables,
                  (phys_addr_t)curr_cpu_info, (phys_addr_t)curr_cpu_info + _4KB_,
                  (phys_addr_t)curr_cpu_info,
                  _4KB_,
-                 PAGE_PRESENT | PAGE_RW | PAGE_PWT, MAP_UPDATE);
+                 PAGE_PRESENT | PAGE_RW, MAP_UPDATE);
 
     map_memory (&curr_cpu_info->vmm_info.vmm_page_tables,
                  curr_cpu_info->vmm_info.vmm_start_vaddr, curr_cpu_info->vmm_info.vmm_end_vaddr,
                  curr_cpu_info->vmm_info.vmm_start_paddr,
                  _4KB_,
-                 PAGE_PRESENT | PAGE_RW | PAGE_PWT, MAP_UPDATE);
+                 PAGE_PRESENT | PAGE_RW, MAP_UPDATE);
   }
 #undef VIRT2PHYS
 }
@@ -545,16 +545,28 @@ load_server_vms (cpuid_t cpuid, phys_addr_t vm_elf_paddr)
 static void
 ept_map_memory_other (struct cpu_info *curr_cpu_info)
 {
-  /* TODO:
-   *     If VMs is going to use mmio, we have to make sure
-   *     that part of memory is not cachable. So we have to
-   *     set PCD flag for that region.
-   */
   map_memory (&curr_cpu_info->vm_info.vm_page_tables,
-      0, (virt_addr_t)((virt_addr_t)_1GB_ * 4),
+      0, (virt_addr_t)((virt_addr_t)_2MB_),
       0,
       has_1GB_page ? _1GB_ : _2MB_,
-      PAGE_PRESENT | PAGE_RW | PAGE_PWT, MAP_NEW);
+      PAGE_PRESENT | PAGE_RW | PAGE_PCD, MAP_NEW);  /* PAGE_PCD because of VGA */
+  map_memory (&curr_cpu_info->vm_info.vm_page_tables,
+      _2MB_, ((virt_addr_t)0xFEC00000),
+      _2MB_,
+      has_1GB_page ? _1GB_ : _2MB_,
+      PAGE_PRESENT | PAGE_RW, MAP_UPDATE);
+  map_memory (&curr_cpu_info->vm_info.vm_page_tables,
+      ((virt_addr_t)0xFEC00000), (virt_addr_t)((virt_addr_t)_1GB_ * 4),
+      ((virt_addr_t)0xFEC00000),
+      has_1GB_page ? _1GB_ : _2MB_,
+      PAGE_PRESENT | PAGE_RW | PAGE_PCD, MAP_UPDATE);
+#if 0
+  map_memory (&curr_cpu_info->vm_info.vm_page_tables,
+     (virt_addr_t)((virt_addr_t)_1GB_ * 1), (virt_addr_t)((virt_addr_t)_1GB_ * 4),
+      (virt_addr_t)((virt_addr_t)_1GB_ * 1),
+      has_1GB_page ? _1GB_ : _2MB_,
+      PAGE_PRESENT | PAGE_RW | PAGE_PCD, MAP_UPDATE);
+#endif
 
   /* TODO:
    *      Check carefully whether all these parts of memory are needed to
@@ -564,7 +576,7 @@ ept_map_memory_other (struct cpu_info *curr_cpu_info)
       0xB8000, 0xB9000,  /* Just for debugging purposes */
       0xB8000,
       USER_VMS_PAGE_SIZE,
-      EPT_MTYPE_WT,
+      EPT_MTYPE_UC,
       EPT_PAGE_READ | EPT_PAGE_WRITE, MAP_NEW);  /* XXX: Why do we need write access here? */
   /*
    * XXX:
@@ -578,25 +590,25 @@ ept_map_memory_other (struct cpu_info *curr_cpu_info)
       (phys_addr_t)curr_cpu_info, (phys_addr_t)curr_cpu_info + _4KB_,
       (phys_addr_t)curr_cpu_info,
       USER_VMS_PAGE_SIZE,
-      EPT_MTYPE_WT,
+      EPT_MTYPE_WB,
       EPT_PAGE_READ, MAP_UPDATE);
   ept_map_memory (&curr_cpu_info->vm_info.vm_ept,
       (phys_addr_t)curr_cpu_info->msg_input, (phys_addr_t)curr_cpu_info->msg_input + _4KB_,
       (phys_addr_t)curr_cpu_info->msg_input,
       USER_VMS_PAGE_SIZE,
-      EPT_MTYPE_WT,
+      EPT_MTYPE_WB,
       EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
   ept_map_memory (&curr_cpu_info->vm_info.vm_ept,
       (phys_addr_t)curr_cpu_info->msg_output, (phys_addr_t)curr_cpu_info->msg_output + _4KB_,
       (phys_addr_t)curr_cpu_info->msg_output,
       USER_VMS_PAGE_SIZE,
-      EPT_MTYPE_WT,
+      EPT_MTYPE_WB,
       EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
   ept_map_memory (&curr_cpu_info->vm_info.vm_ept,
       (phys_addr_t)curr_cpu_info->msg_ready, (phys_addr_t)curr_cpu_info->msg_ready + _4KB_,
       (phys_addr_t)curr_cpu_info->msg_ready,
       USER_VMS_PAGE_SIZE,
-      EPT_MTYPE_WT,
+      EPT_MTYPE_WB,
       EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
   ept_map_memory (&curr_cpu_info->vm_info.vm_ept,
       (phys_addr_t)curr_cpu_info->msg_ready_bitmap, (phys_addr_t)curr_cpu_info->msg_ready_bitmap + _4KB_,
@@ -609,7 +621,7 @@ ept_map_memory_other (struct cpu_info *curr_cpu_info)
         curr_cpu_info->vm_info.vm_code_vaddr, curr_cpu_info->vm_info.vm_code_vaddr + curr_cpu_info->vm_info.vm_code_size,
         curr_cpu_info->vm_info.vm_code_paddr,
         USER_VMS_PAGE_SIZE,
-        EPT_MTYPE_WT,
+        EPT_MTYPE_WB,
         EPT_PAGE_READ | EPT_PAGE_EXEC, MAP_UPDATE);
   }
   if (curr_cpu_info->vm_info.vm_data_size > 0) {
@@ -617,7 +629,7 @@ ept_map_memory_other (struct cpu_info *curr_cpu_info)
         curr_cpu_info->vm_info.vm_data_vaddr, curr_cpu_info->vm_info.vm_data_vaddr + curr_cpu_info->vm_info.vm_data_size,
         curr_cpu_info->vm_info.vm_data_paddr,
         USER_VMS_PAGE_SIZE,
-        EPT_MTYPE_WT,
+        EPT_MTYPE_WB,
         EPT_PAGE_READ | EPT_PAGE_EXEC, MAP_UPDATE);
   }
   if (curr_cpu_info->vm_info.vm_rodata_size > 0) {
@@ -625,7 +637,7 @@ ept_map_memory_other (struct cpu_info *curr_cpu_info)
         curr_cpu_info->vm_info.vm_rodata_vaddr, curr_cpu_info->vm_info.vm_rodata_vaddr + curr_cpu_info->vm_info.vm_rodata_size,
         curr_cpu_info->vm_info.vm_rodata_paddr,
         USER_VMS_PAGE_SIZE,
-        EPT_MTYPE_WT,
+        EPT_MTYPE_WB,
         EPT_PAGE_READ, MAP_UPDATE);
   }
   if (curr_cpu_info->vm_info.vm_bss_size > 0) {
@@ -633,7 +645,7 @@ ept_map_memory_other (struct cpu_info *curr_cpu_info)
         curr_cpu_info->vm_info.vm_bss_vaddr, curr_cpu_info->vm_info.vm_bss_vaddr + curr_cpu_info->vm_info.vm_bss_size,
         curr_cpu_info->vm_info.vm_bss_paddr,
         USER_VMS_PAGE_SIZE,
-        EPT_MTYPE_WT,
+        EPT_MTYPE_WB,
         EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
   }
   if (curr_cpu_info->vm_info.vm_stack_size > 0) {
@@ -641,25 +653,54 @@ ept_map_memory_other (struct cpu_info *curr_cpu_info)
         curr_cpu_info->vm_info.vm_stack_vaddr, curr_cpu_info->vm_info.vm_stack_vaddr + curr_cpu_info->vm_info.vm_stack_size,
         curr_cpu_info->vm_info.vm_stack_paddr,
         USER_VMS_PAGE_SIZE,
-        EPT_MTYPE_WT,
+        EPT_MTYPE_WB,
         EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
   }
+  ept_map_memory (&curr_cpu_info->vm_info.vm_ept,
+      ((virt_addr_t)0xFEE00000), (virt_addr_t)((virt_addr_t)_1GB_ * 4),
+      ((virt_addr_t)0xFEE00000),
+      USER_VMS_PAGE_SIZE,
+      EPT_MTYPE_UC,
+      EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
 }
 /* ========================================== */
 static void
 ept_map_memory_server (struct cpu_info *curr_cpu_info)
 {
   map_memory (&curr_cpu_info->vm_info.vm_page_tables,
-      0, (virt_addr_t)((virt_addr_t)_1GB_ * 4),
+      0, (virt_addr_t)((virt_addr_t)_2MB_),
       0,
       has_1GB_page ? _1GB_ : _2MB_,
-      PAGE_PRESENT | PAGE_RW | PAGE_PSE, MAP_NEW);
+      PAGE_PRESENT | PAGE_RW | PAGE_PCD, MAP_NEW);
+  map_memory (&curr_cpu_info->vm_info.vm_page_tables,
+      _2MB_, ((virt_addr_t)0xFEC00000),
+      _2MB_,
+      has_1GB_page ? _1GB_ : _2MB_,
+      PAGE_PRESENT | PAGE_RW, MAP_UPDATE);
+  map_memory (&curr_cpu_info->vm_info.vm_page_tables,
+      ((virt_addr_t)0xFEC00000), (virt_addr_t)((virt_addr_t)_1GB_ * 4),
+      ((virt_addr_t)0xFEC00000),
+      has_1GB_page ? _1GB_ : _2MB_,
+      PAGE_PRESENT | PAGE_RW | PAGE_PCD, MAP_UPDATE);
+
   ept_map_memory (&curr_cpu_info->vm_info.vm_ept,
-      0, (virt_addr_t)((virt_addr_t)_1GB_ * 4),
+      0, (virt_addr_t)((virt_addr_t)_2MB_),
       0,
       has_1GB_page ? _1GB_ : _2MB_,
-      EPT_MTYPE_WT,
-      EPT_PAGE_READ | EPT_PAGE_WRITE | EPT_PAGE_EXEC, MAP_NEW);
+      EPT_MTYPE_UC,
+      EPT_PAGE_READ | EPT_PAGE_WRITE, MAP_NEW);
+  ept_map_memory (&curr_cpu_info->vm_info.vm_ept,
+      _2MB_, ((virt_addr_t)0xFEC00000),
+      _2MB_,
+      has_1GB_page ? _1GB_ : _2MB_,
+      EPT_MTYPE_WB,
+      EPT_PAGE_READ | EPT_PAGE_WRITE | EPT_PAGE_EXEC, MAP_UPDATE);
+  ept_map_memory (&curr_cpu_info->vm_info.vm_ept,
+      ((virt_addr_t)0xFEC00000), (virt_addr_t)((virt_addr_t)_1GB_ * 4),
+      ((virt_addr_t)0xFEC00000),
+      has_1GB_page ? _1GB_ : _2MB_,
+      EPT_MTYPE_UC,
+      EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
 }
 /* ========================================== */
 static void
@@ -720,6 +761,32 @@ boot_stage2_main (struct boot_stage2_args *boot_args)
   vms_elf_array[INIT] = boot_args->init_elf_addr;
 
   con_init ();
+
+#if 0
+  uint64_t cr0;
+  uint64_t b, a;
+  unsigned int aux;
+  uint64_t sum = 0;
+  cr0 = rcr0 ();
+  lcr0(cr0 | (1 << 5));
+  cr0 = rcr0 ();
+
+  cprintk ("cr0 = %x\n\n", 0xB, cr0);
+#define MAX 10000
+  static volatile int hamid = 0;
+  static volatile int francesco = 0;
+  sum = 0;
+  for (i = 0; i < MAX; i++) {
+    b = rdtscp (&aux);
+    hamid++;
+    francesco = hamid;
+    a = rdtscp (&aux);
+    sum += (a - b);
+  }
+  cprintk ("written %d\n", 0xE, francesco);
+  cprintk ("sum %d Took %d cycles\n", 0xC, sum, sum / MAX);
+  halt ();
+#endif
   memory_init (boot_args->boot_stage2_end_addr, boot_args->sys_mem_size);
 
   has_1GB_page = boot_args->has_1GB_page;

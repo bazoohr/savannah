@@ -116,7 +116,7 @@ map_memory (phys_addr_t *pml4_paddr,
         panic ("BOOT STAGE2: Memory Allocation Failed line %d\n", __LINE__);
       }
 
-      pml4[pml4_idx] = (phys_addr_t)pdpe | (PAGE_PRESENT | PAGE_RW | PAGE_PWT);
+      pml4[pml4_idx] = (phys_addr_t)pdpe | (PAGE_PRESENT | PAGE_RW);
     }
 
     pdpe = (page_table_entry_t *)((phys_addr_t)pml4[pml4_idx] & ~0xFFF);
@@ -126,7 +126,7 @@ map_memory (phys_addr_t *pml4_paddr,
         panic ("BOOT STAGE2: Memory Allocation Failed line %d\n", __LINE__);
       }
 
-      pdpe[pdpe_idx] = (phys_addr_t)pde | (PAGE_PRESENT | PAGE_RW | PAGE_PWT);
+      pdpe[pdpe_idx] = (phys_addr_t)pde | (PAGE_PRESENT | PAGE_RW);
     }
     if (page_size < _1GB_) {
       pde = (page_table_entry_t *)((phys_addr_t)pdpe[pdpe_idx] & ~0xFFF);
@@ -137,7 +137,7 @@ map_memory (phys_addr_t *pml4_paddr,
           panic ("BOOT STAGE2: Memory Allocation Failed line %d\n", __LINE__);
         }
 
-        pde[pde_idx] = (phys_addr_t)pte | (PAGE_PRESENT | PAGE_RW | PAGE_PWT);
+        pde[pde_idx] = (phys_addr_t)pte | (PAGE_PRESENT | PAGE_RW);
       }
     }
     if (page_size == _4KB_) {
@@ -324,7 +324,7 @@ ept_map_page_tables (phys_addr_t *ept, phys_addr_t pml4_paddr, const uint16_t pr
       (virt_addr_t)pml4 + PAGE_TABLE_SIZE,
       (phys_addr_t)pml4,
       USER_VMS_PAGE_SIZE,
-      EPT_MTYPE_WT,
+      EPT_MTYPE_WB,
       protection,
       MAP_UPDATE);
 
@@ -337,7 +337,7 @@ ept_map_page_tables (phys_addr_t *ept, phys_addr_t pml4_paddr, const uint16_t pr
           (virt_addr_t)pdpe + PAGE_TABLE_SIZE,
           (phys_addr_t)pdpe,
           USER_VMS_PAGE_SIZE,
-          EPT_MTYPE_WT,
+          EPT_MTYPE_WB,
           protection,
           MAP_UPDATE);
       /*
@@ -355,7 +355,7 @@ ept_map_page_tables (phys_addr_t *ept, phys_addr_t pml4_paddr, const uint16_t pr
                 (virt_addr_t)pde + PAGE_TABLE_SIZE,
                 (phys_addr_t)pde,
                 USER_VMS_PAGE_SIZE,
-                EPT_MTYPE_WT,
+                EPT_MTYPE_WB,
                 protection,
                 MAP_UPDATE);
             for (pde_idx = 0; pde_idx < PAGE_TABLE_ENTRIES; pde_idx++) {
@@ -367,7 +367,7 @@ ept_map_page_tables (phys_addr_t *ept, phys_addr_t pml4_paddr, const uint16_t pr
                     (virt_addr_t)pte + PAGE_TABLE_SIZE,
                     (phys_addr_t)pte,
                     USER_VMS_PAGE_SIZE,
-                    EPT_MTYPE_WT,
+                    EPT_MTYPE_WB,
                     protection,
                     MAP_UPDATE);
               } /* 4KB if */

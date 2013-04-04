@@ -12,11 +12,35 @@
 #include <stdlib.h>
 #include <timer.h>
 
+struct fake {
+  char none[MSG_DATA_SIZE];
+} __packed;
+struct fake tmp;
 void
 vm_main (void)
 {
   uint64_t b, a;
   int pid;
+  unsigned int aux = cpuinfo->cpuid;
+#if 0
+  if (sizeof (struct fake) != MSG_DATA_SIZE) {
+    panic ("struct fake is not a cache line size!");
+  }
+  volatile uint64_t *s = cpuinfo->msg_ready_bitmap;
+  uint64_t sum = 0;
+  volatile uint64_t i;
+  for (i = 0; i < 999999; i++);
+#define MAX 10000
+  for (i = 0; i < MAX; i++) {
+    b = rdtscp (&aux);
+    msg_send(PM, READ_IPC, &tmp, sizeof(struct fake));
+    msg_receive(PM);
+    a = rdtscp (&aux);
+    sum += (a - b);
+  }
+  DEBUG ("written %x\n", 0xE, *s);
+  DEBUG ("cpu %d sum %d Took %d cycles\n", 0xC, cpuinfo->cpuid, sum, sum / MAX);
+  halt ();
 #if 0
   int i;
   for (i = 0 ; i < cpuinfo->cpuid ; i++) DEBUG ("\n", 0x7);
@@ -24,7 +48,7 @@ vm_main (void)
   halt ();
   /* Launching keyboard driver */
   DEBUG  ("Starting keyboard driver... ", 0xF);
-  b = get_cpu_cycle ();
+  b = rdtscp (&aux);
   pid = fork ();
   if (pid == -1) {
     panic  ("init %d: Failed to fork for keyboard driver!\n", __LINE__);
@@ -33,7 +57,7 @@ vm_main (void)
     DEBUG ("FAILED!", 0x4);
     halt ();
   }
-  a = get_cpu_cycle ();
+  a = rdtscp (&aux);
   DEBUG  ("DONE %d!\n", 0xA, a-b);
   /* Launching junk driver */
   uint64_t *s = cpuinfo->msg_ready_bitmap;
@@ -63,21 +87,22 @@ vm_main (void)
   DEBUG ("Took %d cycles\n", 0xE, a - b);
 #endif
 
+  //unsigned int aux = cpuinfo->cpuid;
+  aux = cpuinfo->cpuid;
+  s = cpuinfo->msg_ready_bitmap;
+  //uint64_t *rax;
+  //volatile uint64_t *monitor_area;
+  //uint64_t rdx, rcx;
+  //uint64_t sum = 0;
+  //monitor_area = rax = cpuinfo->msg_ready_bitmap;
+  //volatile uint64_t i;
   uint64_t cr0;
-  unsigned int aux = cpuinfo->cpuid;
-  volatile uint64_t *s = cpuinfo->msg_ready_bitmap;
-  uint64_t *rax;
-  volatile uint64_t *monitor_area;
-  uint64_t rdx, rcx;
-  uint64_t sum = 0;
-  monitor_area = rax = cpuinfo->msg_ready_bitmap;
-  volatile uint64_t i;
   cr0 = rcr0 ();
-  DEBUG ("cr0 = %x\n", 0xA, cr0);
-  halt ();
+  DEBUG ("cr0 = %x id = %d\n\n", 0xA, cr0, cpuinfo->cpuid);
   a = b = 0;
-  for (i = 0; i < 999999; i++);
 #define MAX 10000
+  for (i = 0; i < 999999; i++);
+#if 0
   for (i = 0; i < MAX; i++) {
     rdx = rcx = 0;
     b = rdtscp (&aux);
@@ -91,12 +116,19 @@ vm_main (void)
     a = rdtscp (&aux);
     sum += (a - b);
   }
-  DEBUG ("written %x\n", 0xE, *monitor_area);
+#endif
+  for (i = 0; i < MAX; i++) {
+    b = rdtscp (&aux);
+    *s = 0x123;
+    while (*s== 0x123);
+    a = rdtscp (&aux);
+    sum += (a - b);
+  }
+  DEBUG ("written %x\n", 0xE, *s);
   DEBUG ("cpu %d sum %d Took %d cycles\n", 0xC, cpuinfo->cpuid, sum, sum / MAX);
 
-
-  int hamid = 0;
-  int francesco = 0;
+  static volatile int hamid = 0;
+  static volatile int francesco = 0;
   sum = 0;
   for (i = 0; i < MAX; i++) {
     b = rdtscp (&aux);
@@ -108,9 +140,10 @@ vm_main (void)
   DEBUG ("written %d\n", 0xE, francesco);
   DEBUG ("cpu %d sum %d Took %d cycles\n", 0xC, cpuinfo->cpuid, sum, sum / MAX);
   halt ();
+#endif
   /* =============================================== */
   DEBUG  ("Starting flooding deamon... ", 0xF);
-  b = get_cpu_cycle ();
+  b = rdtscp(&aux);
   pid = fork();
   if (pid == -1) {
     panic  ("init %d: Failed to fork for flooding deamon!\n", __LINE__);
@@ -119,11 +152,11 @@ vm_main (void)
     DEBUG ("FAILED!", 0x4);
     halt ();
   }
-  a = get_cpu_cycle ();
+  a = rdtscp(&aux);
   DEBUG  ("DONE %d!\n", 0xA, a-b);
   /* Launching console driver */
   DEBUG  ("Starting console driver... ", 0xF);
-  b = get_cpu_cycle ();
+  b = rdtscp(&aux);
   pid = fork();
   if (pid == -1) {
     panic  ("init %d: Failed to fork for console driver!\n", __LINE__);
@@ -141,11 +174,11 @@ vm_main (void)
     DEBUG ("FAILED!", 0x4);
     halt ();
   }
-  a = get_cpu_cycle ();
+  a = rdtscp (&aux);
   DEBUG  ("DONE %d!\n", 0xA, a-b);
   /* Launching login */
   DEBUG  ("Starting login... ", 0xF);
-  b = get_cpu_cycle ();
+  b = rdtscp (&aux);
   pid = fork();
   if (pid == -1) {
     panic  ("init %d: Failed to fork for login!\n", __LINE__);
@@ -154,7 +187,7 @@ vm_main (void)
     DEBUG ("FAILED!", 0x4);
     halt ();
   }
-  a = get_cpu_cycle ();
+  a = rdtscp (&aux);
   DEBUG  ("DONE %d!\n", 0xA, a-b);
 
   while (1) {__asm__ __volatile__ ("cli;pause;\n\t");}
