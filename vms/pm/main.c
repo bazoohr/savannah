@@ -902,15 +902,11 @@ local_waitpid (struct cpu_info * const info,
 }
 
 /* ================================================= */
-struct fake {
-  char none[MSG_DATA_SIZE];
-} __packed;
-struct fake rr;
-struct message *m;
 void
 vm_main (void)
 {
   int i;
+    int r;
 
   create_default_gdt ();
   interrupt_init();
@@ -919,60 +915,11 @@ vm_main (void)
   for (i = 1; i < cpuinfo->ncpus; i++) {
     msg_reply (PM, i, 1, NULL, 0);
   }
-#if 0
-  if (sizeof (struct message) != 64) {
-    panic ("struct message is not a cache line size!");
-  }
-  if (sizeof (struct fake) != MSG_DATA_SIZE) {
-    panic ("struct message is not a cache line size!");
-  }
-  uint64_t cr0;
-  cr0 = rcr0 ();
-  DEBUG ("cr0 = %x\n", 0xA, cr0);
-  halt ();
 
-  init_timer (1);
-  sti ();
-  timer_on ();
-
-
-  while (1) {
-     m = msg_check();
-    msg_reply (PM, m->from, m->number, &r, sizeof (struct fake));
-  }
-
-#if 0
-  uint64_t *rax;
-  volatile uint64_t *monitor_area;
-  monitor_area = rax = get_cpu_info (INIT)->msg_ready_bitmap;
-  *monitor_area = 0x124;
-  uint64_t rdx, rcx;
-  while (1) {
-    rdx = rcx = 0;
-    while ((*monitor_area) == 0x124) {
-      monitor (rax, rcx, rdx);
-      if ((*monitor_area) == 0x124) {
-        mwait ((uint64_t)rax, rcx);
-      }
-    }
-    *monitor_area = 0x124;
-  }
-#endif
-  volatile uint64_t *monitor_area;
-  monitor_area = get_cpu_info (INIT)->msg_ready_bitmap;
-  *monitor_area = 0x124;
-  while (1) {
-    while ((*monitor_area) == 0x124);
-    *monitor_area = 0x124;
-  }
-  halt ();
-
-#endif
   while (1) {
     struct message *m __aligned (0x10) = msg_check();
     struct waitpid_reply wait_reply;
     struct channel_close_ipc *ccipc;
-    int r;
     phys_addr_t channel;
 
     switch(m->number) {

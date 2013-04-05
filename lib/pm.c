@@ -33,6 +33,9 @@ fork_internal (virt_addr_t register_array_vaddr)
   msg_receive (PM);
 
   memcpy (&result, &cpuinfo->msg_input[PM].data, sizeof (int));
+  if (result == -1) {
+    DEBUG("fork_internal: result is -1, %x", 0x4, *(pid_t*)(cpuinfo->msg_input[PM].data));
+  }
 
   return result;
 }

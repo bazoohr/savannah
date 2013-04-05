@@ -98,9 +98,8 @@ int main(int argc, char **argv)
 #ifdef MAX
 #undef MAX
 #endif
-#define MAX 100000
+#define MAX 10
   sum = 0;
-  msg_send(PM, 999, &tmp, sizeof(struct fake));
   for (i = 0; i < MAX; i++) {
     b = rdtscp (&aux);
     msg_send(PM, 999, &tmp, sizeof(struct fake));
@@ -112,12 +111,15 @@ int main(int argc, char **argv)
 #ifdef MAX
 #undef MAX
 #endif
-#define MAX 100000
+#define MAX 10
   sum = 0;
   for (i = 0; i < MAX; i++) {
     b = rdtscp (&aux);
     pid = fork();
     if (pid < 0) {
+      if (i == 0) {
+        DEBUG ("First fork", 0x4);
+      }
       DEBUG ("Fork error!\n", 0x4);
     } else if (pid == 0) { /* Child */
       exit (-1);
@@ -134,7 +136,7 @@ int main(int argc, char **argv)
 #ifdef MAX
 #undef MAX
 #endif
-#define MAX 100000
+#define MAX 10
   sum = 0;
   for (i = 0; i < MAX; i++) {
     b = rdtscp (&aux);
