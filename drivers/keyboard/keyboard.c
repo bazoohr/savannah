@@ -2,9 +2,7 @@
 #include <panic.h>
 #include <printf.h>
 #include <cdef.h>
-#include <dev/ioapic.h>
-#include <dev/lapic.h>
-#include <isr.h>
+#include <lapic.h>
 #include <debug.h>
 
 #define NOP 0

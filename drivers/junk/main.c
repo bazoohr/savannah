@@ -1,6 +1,5 @@
 #include <cdef.h>
 #include <types.h>
-#include <console.h>
 #include <const.h>
 #include <asmfunc.h>
 #include <panic.h>

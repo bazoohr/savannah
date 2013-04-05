@@ -53,7 +53,7 @@ void alignment_check (void);
 void machine_check (void);
 void xmm (void);
 void system_call (void);
-void trap_handler (struct trapframe *tf);
+void trap_handler (struct intr_stack_frame *tf);
 #endif
 
 #endif

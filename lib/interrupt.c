@@ -71,6 +71,11 @@ idt_init (void)
 }
 
 void
+add_irq (int vector_idx, void (*handler)(void))
+{
+	setgate (vector_idx, (phys_addr_t)handler, IDT_INTR_GATE, KNL_PVL, IST);
+}
+void
 interrupt_init (void)
 {
   /*

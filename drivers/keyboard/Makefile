@@ -18,7 +18,7 @@ CFLAGS  += -I ./include/ -I $(ROOT)/include/ -I $(ROOT)/lib/include
 ASFLAGS += -I ./include/ -I $(ROOT)/include/ -I $(ROOT)/lib/include
 LDFLAGS += -n -T $(LINK_LD)
 
-SRC = start_off.S main.c trap.S trap_handler.c isr.S interrupt.c dev/keyboard.c dev/ioapic.c dev/lapic.c
+SRC = start_off.S main.c kbd_isr.S keyboard.c
 
 OBJ = $(subst .S,.o,$(filter %.S,$(SRC))) $(subst .c,.o,$(filter %.c,$(SRC)))
 

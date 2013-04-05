@@ -2,16 +2,13 @@
 #include <debug.h>
 #include <types.h>
 #include <asmfunc.h>
-#include <cpuinfo.h>
-void trap_handler (struct trapframe *tf)
+
+void trap_handler (struct intr_stack_frame *tf)
 {
   if (tf->tf_trapno == IDT_PF) {
     phys_addr_t addr = rcr2 ();
-    //DEBUG ("page fault addr = %x process id %d\n", 0x4, addr, current->p_pid);
-    DEBUG ("page fault addr = %x in cpuid = %d\n", 0x4, addr, cpuinfo->cpuid);
-  }
-
-  if (tf->tf_trapno == TRAP_SYSCALL) {
+    DEBUG ("page fault addr = %x\n", 0x4, addr);
+  } else {
     DEBUG ("trap number %d\n", 0x4, tf->tf_trapno);
     DEBUG ("cs %x\n", 0x4, tf->tf_cs);
     DEBUG ("rbp %x\n", 0x4, tf->tf_rbp);

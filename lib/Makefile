@@ -11,7 +11,8 @@ AR=ar
 ARFLAGS=cr
 
 SRC = ipc.c misc.c string.c fs.c pm.c asm_lib.S lib_mem.c gdt.c printf.c\
-      panic.c debug.c debug_console.c channel.c stdlib.c timer.c bitmap.c isr.S
+      panic.c debug.c debug_console.c channel.c stdlib.c timer.c bitmap.c\
+			interrupt.c trap.S trap_handler.c thread/thread.c thread/timer_isr.S
 
 OBJ = $(subst .S,.o,$(filter %.S,$(SRC))) $(subst .c,.o,$(filter %.c,$(SRC)))
 

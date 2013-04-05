@@ -17,8 +17,48 @@ vm_main (void)
 {
   uint64_t b, a;
   int pid;
-  unsigned int aux = cpuinfo->cpuid;
-  /* =============================================== */
+#if 0
+  int i;
+  for (i = 0 ; i < cpuinfo->cpuid ; i++) DEBUG ("\n", 0x7);
+  DEBUG ("This is init %d\n", 0xA, cpuinfo->cpuid);
+  halt ();
+  /* Launching keyboard driver */
+  DEBUG  ("Starting keyboard driver... ", 0xF);
+  b = get_cpu_cycle ();
+  pid = fork ();
+  if (pid == -1) {
+    panic  ("init %d: Failed to fork for keyboard driver!\n", __LINE__);
+  } else if (pid == 0) {
+    exec("keyboard", NULL);
+    DEBUG ("FAILED!", 0x4);
+    halt ();
+  }
+  a = get_cpu_cycle ();
+  DEBUG  ("DONE %d!\n", 0xA, a-b);
+#endif
+  /* Launching junk driver */
+  DEBUG ("TESTING MONITOR/MWAIT...", 0xF);
+  unsigned int aux;
+  uint64_t *s = cpuinfo->msg_ready_bitmap;
+  uint64_t *rax;
+  volatile uint64_t *monitor_area;
+  uint64_t rdx, rcx;
+  rdx = rcx = 0;
+  monitor_area = rax = cpuinfo->msg_ready_bitmap;
+  volatile uint64_t i;
+  for (i = 0; i < 999999; i++);
+  b = rdtsc ();
+  *s = 0x123;
+  while (*monitor_area == 0x123) {
+    monitor (rax, rcx, rdx);
+    if (*monitor_area == 0x123) {
+      mwait ((uint64_t)rax, rcx);
+    }
+  }
+  a = rdtsc ();
+  DEBUG ("written %x\n", 0xE, *monitor_area);
+  DEBUG ("Took %d cycles\n", 0xE, a - b);
+  halt ();
   DEBUG  ("Starting flooding deamon... ", 0xF);
   b = rdtscp(&aux);
   pid = fork();
