@@ -3,6 +3,7 @@
 #include <timer.h>
 #include <lapic.h>
 #include <interrupt.h>
+#include <gdt.h>
 #include <panic.h>
 #include <vuos/vuos.h>
 #include <debug.h>       /* TODO: Remove it after debugging */
@@ -26,8 +27,10 @@ static thread_t *default_scheduler (void)
 void
 thread_switch_handler (struct intr_stack_frame *current_regs)
 {
+  DEBUG ("This is tread_switch_handler", 0xE);
   static volatile thread_t *next;
   if (head == last) {
+  DEBUG ("No thread defined", 0xB);
     lapic_eoi ();  /* XXX: Should we move it to timer_isr.S??? */
     return;
   }
@@ -152,6 +155,8 @@ thread_init (void)
   head    = &main_thread;
   last    = &main_thread;
 
+  create_default_gdt ();
+  interrupt_init ();
   init_timer ();
   add_irq (32, &timer_handler);
   sti ();

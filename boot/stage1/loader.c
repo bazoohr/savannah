@@ -136,6 +136,12 @@ check_cpu_features (void)
     halt ();
   }
 #if 0
+  if (cpu_has_rdrand ()) {
+    printf ("CPU supports rdrand instruction");
+  } else {
+    printf ("CPU does not support rdrand instruction");
+  }
+  halt ();
   if (! cpu_has_perf_monitor ()) {
     printf ("ERROR: performance monitoring is not available!");
     halt ();

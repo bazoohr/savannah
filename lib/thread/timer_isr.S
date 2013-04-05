@@ -5,6 +5,7 @@
 
 #define ISR(name, action) \
 ISRENT(name)              \
+hlt;\
   PUSH_FRAME(%rsp);       \
   movq %rsp, %rdi;        \
   call action;             \

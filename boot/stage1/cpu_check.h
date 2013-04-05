@@ -160,4 +160,13 @@ cpu_enable_cache (void)
       "wbinvd\n\t"
       :::"eax");
 }
+static __inline bool
+cpu_has_rdrand (void)
+{
+  uint32_t ecx;
+
+  cpuid (1, NULL, NULL, &ecx, NULL);
+
+  return ecx & (1 << 30);
+}
 #endif /* __CPU_CHECK_H__ */

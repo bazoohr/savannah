@@ -903,26 +903,6 @@ local_waitpid (struct cpu_info * const info,
   }
 }
 /* ================================================= */
-static char thread1_stack[_4KB_];
-static char thread2_stack[_4KB_];
-static thread_t thread1;
-static thread_t thread2;
-/* ================================================= */
-static thread_t *my_scheduler (void)
-{
-  return current->nxt ? current->nxt : head;
-}
-static void
-thread1_routine (void* none)
-{
-  for (;;) {DEBUG ("B", 0xB);}
-}
-static void
-thread2_routine (void* none)
-{
-  for (;;) {DEBUG ("C", 0xC);}
-}
-/* ================================================= */
 void
 vm_main (void)
 {
@@ -934,50 +914,12 @@ vm_main (void)
   for (i = 1; i < cpuinfo->ncpus; i++) {
     msg_reply (PM, i, 1, NULL, 0);
   }
-  thread_init ();
-  thread_create (&thread1, &thread1_routine, thread1_stack, _4KB_);
-  thread_create (&thread2, &thread2_routine, thread2_stack, _4KB_);
-
-  thread_set_scheduler (my_scheduler);
-
-  static int freq = 1;
-  thread_set_timer_freq (freq);
-  for (;;) {
-    static int counter = 0;
-    int i = 0;
-    for (i = 0; i < 0x2FFF; i++) {
-      DEBUG ("A", 0xA);
-    }
-    if (counter % 6) {
-      freq++;
-      thread_set_timer_freq (freq);
-    }
-    counter++;
-  }
-
-  for (i = 1; i < cpuinfo->ncpus; i++) {
-    msg_reply (PM, i, 1, NULL, 0);
-  }
 #if 0
   int i;
   for (i = 0 ; i < cpuinfo->cpuid; i++) DEBUG ("\n", 0x7);
   DEBUG ("PM: My info is in addr = %d\n", 0xD, cpuinfo->cpuid);
   halt ();
 #endif
-  uint64_t *rax;
-  volatile uint64_t *monitor_area;
-  monitor_area = rax = get_cpu_info (INIT)->msg_ready_bitmap;
-  *monitor_area = 0;
-  uint64_t rdx, rcx;
-  rdx = rcx = 0;
-  while (! (*monitor_area)) {
-    monitor (rax, rcx, rdx);
-    if (! (*monitor_area)) {
-      mwait ((uint64_t)rax, rcx);
-    }
-  }
-  *monitor_area = 0x124;
-  halt ();
 
   while (1) {
     struct message *m __aligned (0x10) = msg_check();

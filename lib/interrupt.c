@@ -78,10 +78,10 @@ add_irq (int vector_idx, void (*handler)(void))
 void
 interrupt_init (void)
 {
-  /*
-   * Never ever think of putting lapic_init() or ioapic_init()
-   * here. This function is going to be called by APs, so its not called
-   * only once, but several time.
-   */
-  idt_init ();
+  static bool initialized = false;
+
+  if (!initialized) {
+    idt_init ();
+    initialized = true;
+  }
 }
