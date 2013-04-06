@@ -175,7 +175,7 @@ ept_pmap (struct cpu_info * const child_cpu_info)
         child_cpu_info->vm_info.vm_data_paddr,
         USER_VMS_PAGE_SIZE,
         EPT_MTYPE_WB,
-        EPT_PAGE_READ | EPT_PAGE_EXEC, MAP_UPDATE);
+        EPT_PAGE_READ | EPT_PAGE_WRITE, MAP_UPDATE);
   }
   if (child_cpu_info->vm_info.vm_rodata_size > 0) {
     ept_map_memory (&child_cpu_info->vm_info.vm_ept,

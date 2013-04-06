@@ -50,7 +50,6 @@ login (void)
 }
 #endif
 /* ================================================= */
-#if 0
 static thread_t thread1;
 static thread_t thread2;
 static char thread1_stack[_4KB_];
@@ -70,36 +69,31 @@ thread2_routine (void* none)
 {
   for (;;) {DEBUG ("C", 0xC);}
 }
-#endif
 void thread_switch_handler (struct intr_stack_frame *current_regs);
 void timer_handler (void);
 int main(int argc, char **argv)
 {
-  uint64_t rsp;
-  DEBUG ("thread_switch_handler %x\n", 0xE, thread_switch_handler);
-  DEBUG ("timer_handler %x\n", 0xE, timer_handler);
-  __asm__ __volatile__ ("movq %%rsp, %0\n" :"=m"(rsp));
-  DEBUG ("rsp = %x\n", 0xE, rsp);
   thread_init ();
-  //thread_create (&thread1, &thread1_routine, thread1_stack, _4KB_);
-  //thread_create (&thread2, &thread2_routine, thread2_stack, _4KB_);
+  thread_create (&thread1, &thread1_routine, thread1_stack, _4KB_);
+  thread_create (&thread2, &thread2_routine, thread2_stack, _4KB_);
 
-  //thread_set_scheduler (my_scheduler);
+  thread_set_scheduler (my_scheduler);
 
   static int freq = 1;
-//  thread_set_timer_freq (freq);
+  thread_set_timer_freq (freq);
   for (;;) {
     static int counter = 0;
     int i = 0;
     for (i = 0; i < 0x2FFF; i++) {
-      DEBUG ("", 0xA);
+      DEBUG ("A", 0xA);
     }
     if (counter % 6) {
       freq++;
-  //    thread_set_timer_freq (freq);
+      thread_set_timer_freq (freq);
     }
     counter++;
   }
+  for (;;) { DEBUG ("A", 0xA); }
 #if 0
   int pid, r;
   char cmd[MAX_LEN];

@@ -8,23 +8,27 @@
 #include <lapic.h>
 #include <vuos/vuos.h>
 
+void timer_handler (void);
+
 void
 init_timer (void)
 {
   const int vector = 32;
 
-  lapic_write(LAPIC_LVTT, LAPIC_LVT_MASKED);
-  lapic_write(LAPIC_PCINT, 4 << 8); /* NMI */
-  lapic_write(LAPIC_LVINT0, LAPIC_LVT_MASKED);
-  lapic_write(LAPIC_LVINT1, LAPIC_LVT_MASKED);
+  lapic_write (LAPIC_LVTT, LAPIC_LVT_MASKED);
+  lapic_write (LAPIC_PCINT, 4 << 8); /* NMI */
+  lapic_write (LAPIC_LVINT0, LAPIC_LVT_MASKED);
+  lapic_write (LAPIC_LVINT1, LAPIC_LVT_MASKED);
   /* No special priority for any task */
-  lapic_write(LAPIC_TPRI, 0);
+  lapic_write (LAPIC_TPRI, 0);
 
   /* Enable the lapic, and spurious interrupts go to vector 39 */
-  lapic_write(LAPIC_SVR, 39 | LAPIC_SVR_ENABLE);
+  lapic_write (LAPIC_SVR, 39 | LAPIC_SVR_ENABLE);
   /* Timer interrupts go to vector 32 & enable periodic mode*/
-  lapic_write(LAPIC_LVTT, vector | LAPIC_LVT_PERIODIC);
-  lapic_write(LAPIC_DCR_TIMER, LAPIC_DCRT_DIV16);
+  lapic_write (LAPIC_LVTT, vector | LAPIC_LVT_PERIODIC);
+  lapic_write (LAPIC_DCR_TIMER, LAPIC_DCRT_DIV16);
+
+  add_irq (vector, &timer_handler);
 }
 
 void
@@ -46,10 +50,4 @@ timer_off (void)
 {
   lapic_write(LAPIC_ICR_TIMER, 0);
   lapic_write(LAPIC_LVTT, LAPIC_LVT_MASKED);
-}
-
-uint64_t
-get_cpu_cycle (void)
-{
-  return rdtsc ();
 }

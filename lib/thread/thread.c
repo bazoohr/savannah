@@ -13,7 +13,7 @@ extern void timer_handler (void);
 /* ============================================ */
 static thread_t *default_scheduler (void);
 /* ============================================ */
-static thread_t *(*scheduler)(void) = default_scheduler;
+static thread_t *(*scheduler)(void);
 static thread_t main_thread;
 thread_t *head;
 thread_t *last;
@@ -27,11 +27,9 @@ static thread_t *default_scheduler (void)
 void
 thread_switch_handler (struct intr_stack_frame *current_regs)
 {
-  DEBUG ("This is tread_switch_handler", 0xE);
   static volatile thread_t *next;
   if (head == last) {
-  DEBUG ("No thread defined", 0xB);
-    lapic_eoi ();  /* XXX: Should we move it to timer_isr.S??? */
+    lapic_eoi ();  /* XXX: Should we move this to timer_isr.S??? */
     return;
   }
   /* Regsiters are saved on stack, so we keep a pointer to
@@ -50,7 +48,7 @@ thread_switch_handler (struct intr_stack_frame *current_regs)
   __asm__ __volatile__ (
       "movq %c[THREAD_REGS_RFLAGS_IDX](%0), %%rax\n\t"
       "pushq %%rax; popfq;\n\t"
-      "movq $0xFEE000B0, %%rax\n\t"
+      "movq $0xFEE000B0, %%rax\n\t"  /* Needed to send EOI */
       "movq %c[THREAD_REGS_RCX_IDX](%0), %%rcx\n\t"
       "movq %c[THREAD_REGS_RDX_IDX](%0), %%rdx\n\t"
       "movq %c[THREAD_REGS_RSI_IDX](%0), %%rsi\n\t"
@@ -125,7 +123,7 @@ thread_create (thread_t *thread,
 void
 thread_set_scheduler (thread_t *(*new_scheduler)(void))
 {
-  if (unlikely (head ==NULL || last == NULL)) {
+  if (unlikely (head == NULL || last == NULL)) {
     panic ("thread linrary is not initialized yet");
   }
   cli ();
@@ -136,7 +134,7 @@ thread_set_scheduler (thread_t *(*new_scheduler)(void))
 void
 thread_set_timer_freq (uint64_t ms)
 {
-  if (unlikely (head ==NULL || last == NULL)) {
+  if (unlikely (head == NULL || last == NULL)) {
     panic ("thread linrary is not initialized yet");
   }
   cli ();
@@ -151,14 +149,14 @@ thread_init (void)
 {
   main_thread.nxt = NULL;
 
-  current = &main_thread;
-  head    = &main_thread;
-  last    = &main_thread;
+  scheduler = &default_scheduler;
+  current   = &main_thread;
+  head      = &main_thread;
+  last      = &main_thread;
 
   create_default_gdt ();
   interrupt_init ();
   init_timer ();
-  add_irq (32, &timer_handler);
   sti ();
   timer_on (100);
 }
