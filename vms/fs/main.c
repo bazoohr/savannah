@@ -14,6 +14,7 @@
 #include <channel.h>
 #include <interrupt.h>
 #include <gdt.h>
+#include <lapic.h>
 
 char *filesystem;
 
@@ -386,13 +387,25 @@ local_load(char *path)
   return (phys_addr_t)(filesystem + tmp->offset);
 }
 
+static void handle_ipi (void)
+{
+  lapic_eoi ();
+  lapic_send_ipi (34, INIT);
+}
 void
 vm_main (void)
 {
   create_default_gdt ();
   interrupt_init();
+  lapic_on ();
   filesystem = cpuinfo->vm_args;
+  add_irq (34, &handle_ipi);
+  sti ();
 
+  for (;;) {
+    sti ();
+  }
+  halt ();
   while (1) {
     struct message *m = msg_check();
     struct open_ipc opentmp;

@@ -239,6 +239,11 @@ load_all_vmms (phys_addr_t vmm_elf_addr, phys_addr_t boot_stage2_end_addr)
                  curr_cpu_info->vmm_info.vmm_start_paddr,
                  _4KB_,
                  PAGE_PRESENT | PAGE_RW, MAP_UPDATE);
+    map_memory (&curr_cpu_info->vmm_info.vmm_page_tables,
+                ((virt_addr_t)0xFEC00000), (virt_addr_t)((virt_addr_t)_1GB_ * 4),
+                ((virt_addr_t)0xFEC00000),
+                _4KB_,
+                PAGE_PRESENT | PAGE_RW | PAGE_PCD, MAP_UPDATE);
   }
 #undef VIRT2PHYS
 }

@@ -6,8 +6,8 @@
 #include <gdt.h>
 #include <panic.h>
 #include <vuos/vuos.h>
-#include <debug.h>       /* TODO: Remove it after debugging */
-#include <asmfunc.h>     /* TODO: Remove it after debugging */
+#include <debug.h>       /* TODO: Remove me after debugging */
+#include <asmfunc.h>     /* TODO: Remove me after debugging */
 /* ============================================ */
 extern void timer_handler (void);
 /* ============================================ */
@@ -28,6 +28,7 @@ void
 thread_switch_handler (struct intr_stack_frame *current_regs)
 {
   static volatile thread_t *next;
+
   if (head == last) {
     lapic_eoi ();  /* XXX: Should we move this to timer_isr.S??? */
     return;
@@ -100,9 +101,11 @@ thread_create (thread_t *thread,
                size_t stack_size)
 {
   register_t rsp;
-  if (unlikely (head ==NULL || last == NULL)) {
+
+  if (unlikely (head == NULL || last == NULL)) {
     panic ("thread linrary is not initialized yet");
   }
+
   cli ();
 
   rsp = (virt_addr_t)stack + stack_size;

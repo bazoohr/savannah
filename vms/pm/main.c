@@ -909,11 +909,21 @@ vm_main (void)
   int i;
   create_default_gdt ();
   interrupt_init();
+  lapic_on ();
   pm_init ();
 
   for (i = 1; i < cpuinfo->ncpus; i++) {
     msg_reply (PM, i, 1, NULL, 0);
   }
+
+#if 0
+  volatile int j;
+  for (j = 0 ; j < 999999 ; j++);
+  DEBUG ("Going to send reply IPI!", 0xA);
+  lapic_send_ipi (35, INIT);
+  DEBUG ("After for (;;);!", 0xA);
+#endif
+  for (;;) { __asm__ __volatile__ ("nop;sti"); }
 #if 0
   int i;
   for (i = 0 ; i < cpuinfo->cpuid; i++) DEBUG ("\n", 0x7);

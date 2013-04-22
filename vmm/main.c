@@ -34,7 +34,6 @@ void
 vmm_main (void)
 {
   create_default_gdt ();
-
   interrupt_init ();
 
   cpuinfo->ready = true;

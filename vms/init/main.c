@@ -11,13 +11,44 @@
 #include <panic.h>
 #include <stdlib.h>
 #include <timer.h>
+#include <lapic.h>
+#include <interrupt.h>
+#include <gdt.h>
 
+unsigned int aux;
+uint64_t a, b;
+uint64_t sum = 0;
+static volatile bool flag = false;
+static void handle_ipi (void)
+{
+  sum += (rdtscp (&aux) - b);
+  lapic_eoi ();
+  flag = true;
+}
 void
 vm_main (void)
 {
-  uint64_t b, a;
-  unsigned int aux;
   int pid;
+  create_default_gdt ();
+  interrupt_init();
+  lapic_on ();
+  sti ();
+  add_irq (34, &handle_ipi);
+
+#define TIMES 100
+  static volatile int i;
+  for (i = 0; i < TIMES; i++) {
+    b = rdtscp (&aux);
+    sti ();
+    lapic_send_ipi (34, FS);
+    sti ();
+    while (!flag);
+    flag = false;
+  }
+
+  DEBUG ("Took %d cycles\n", 0xA, sum / TIMES);
+  halt ();
+
 #if 0
   int i;
   for (i = 0 ; i < cpuinfo->cpuid ; i++) DEBUG ("\n", 0x7);
