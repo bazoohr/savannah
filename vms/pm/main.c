@@ -923,7 +923,6 @@ vm_main (void)
   lapic_send_ipi (35, INIT);
   DEBUG ("After for (;;);!", 0xA);
 #endif
-  for (;;) { __asm__ __volatile__ ("nop;sti"); }
 #if 0
   int i;
   for (i = 0 ; i < cpuinfo->cpuid; i++) DEBUG ("\n", 0x7);

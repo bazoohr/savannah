@@ -17,6 +17,7 @@
 
 unsigned int aux;
 uint64_t a, b;
+#if 0
 uint64_t sum = 0;
 static volatile bool flag = false;
 static void handle_ipi (void)
@@ -25,6 +26,7 @@ static void handle_ipi (void)
   lapic_eoi ();
   flag = true;
 }
+#endif
 void
 vm_main (void)
 {
@@ -32,6 +34,7 @@ vm_main (void)
   create_default_gdt ();
   interrupt_init();
   lapic_on ();
+#if 0
   sti ();
   add_irq (34, &handle_ipi);
 
@@ -48,7 +51,7 @@ vm_main (void)
 
   DEBUG ("Took %d cycles\n", 0xA, sum / TIMES);
   halt ();
-
+#endif
 #if 0
   int i;
   for (i = 0 ; i < cpuinfo->cpuid ; i++) DEBUG ("\n", 0x7);
@@ -68,6 +71,19 @@ vm_main (void)
   a = get_cpu_cycle ();
   DEBUG  ("DONE %d!\n", 0xA, a-b);
 #endif
+  DEBUG  ("Starting PCI driver... ", 0xF);
+  b = rdtscp(&aux);
+  pid = fork();
+  if (pid == -1) {
+    panic  ("init %d: Failed to fork for flooding deamon!\n", __LINE__);
+  } else if (pid == 0) {
+    exec("pci", NULL);
+    DEBUG ("FAILED!", 0x4);
+    halt ();
+  }
+  a = rdtscp(&aux);
+  DEBUG  ("DONE %d!\n", 0xA, a-b);
+  halt ();
   /* Launching junk driver */
   DEBUG  ("Starting flooding deamon... ", 0xF);
   b = rdtscp(&aux);

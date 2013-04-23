@@ -24,12 +24,34 @@ inb (uint16_t port)
   return data;
 }
 
+static inline uint16_t inw(uint16_t port)
+{
+	uint16_t v;
+	__asm__ __volatile__ ("inw %1,%0" : "=a" (v) : "dN" (port));
+	return v;
+}
+
+static inline uint32_t inl(uint16_t port)
+{
+	uint32_t v;
+	__asm__ __volatile__ ("inl %1,%0" : "=a" (v) : "dN" (port));
+	return v;
+}
+
 static __inline void
 outb (uint8_t data, uint16_t port)
 {
     __asm __volatile("outb %0,%%dx" : : "a" (data), "d" (port));
 }
 
+static inline void outw(uint16_t data, uint16_t port)
+{
+	__asm__ __volatile__ ("outw %0,%1" : : "a" (data), "dN" (port));
+}
+static inline void outl (uint32_t data, uint16_t port)
+{
+	__asm__ __volatile__ ("outl %0,%1" : : "a" (data), "dN" (port));
+}
 static __inline void
 sidt (struct descriptor_register *dtr)
 {

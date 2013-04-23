@@ -387,11 +387,13 @@ local_load(char *path)
   return (phys_addr_t)(filesystem + tmp->offset);
 }
 
+#if 0
 static void handle_ipi (void)
 {
   lapic_eoi ();
   lapic_send_ipi (34, INIT);
 }
+#endif
 void
 vm_main (void)
 {
@@ -399,13 +401,7 @@ vm_main (void)
   interrupt_init();
   lapic_on ();
   filesystem = cpuinfo->vm_args;
-  add_irq (34, &handle_ipi);
-  sti ();
 
-  for (;;) {
-    sti ();
-  }
-  halt ();
   while (1) {
     struct message *m = msg_check();
     struct open_ipc opentmp;
