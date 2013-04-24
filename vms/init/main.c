@@ -71,13 +71,13 @@ vm_main (void)
   a = get_cpu_cycle ();
   DEBUG  ("DONE %d!\n", 0xA, a-b);
 #endif
-  DEBUG  ("Starting PCI driver... ", 0xF);
+  DEBUG  ("Starting E1000 driver... ", 0xF);
   b = rdtscp(&aux);
   pid = fork();
   if (pid == -1) {
     panic  ("init %d: Failed to fork for flooding deamon!\n", __LINE__);
   } else if (pid == 0) {
-    exec("pci", NULL);
+    exec("e1000", NULL);
     DEBUG ("FAILED!", 0x4);
     halt ();
   }

@@ -228,6 +228,18 @@ ept_pmap (struct cpu_info * const child_cpu_info)
         EPT_MTYPE_WB,
         EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
   }
+
+  /*
+   * TODO:
+   *     This MUST be done ONLY for E1000 driver. But becuase the lack of time, we just
+   *     map it for all processes, and sacrifice security stuff.
+   */
+  ept_map_memory (&child_cpu_info->vm_info.vm_ept,
+      (phys_addr_t)0xC1000000, (phys_addr_t)0xC1040000,
+      (phys_addr_t)0xC1000000,
+      USER_VMS_PAGE_SIZE,
+      EPT_MTYPE_UC,
+      EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
 }
 /* ================================================= */
 static void
@@ -903,13 +915,22 @@ local_waitpid (struct cpu_info * const info,
   }
 }
 /* ================================================= */
+#if 0
+static void int35_handler (void)
+{
+  DEBUG ("Received it", 0xE);
+}
+#endif
+/* ================================================= */
 void
 vm_main (void)
 {
   int i;
-  create_default_gdt ();
-  interrupt_init();
-  lapic_on ();
+  //create_default_gdt ();
+  //interrupt_init();
+  //lapic_on ();
+  sti ();
+  //add_irq (35, &int35_handler);
   pm_init ();
 
   for (i = 1; i < cpuinfo->ncpus; i++) {

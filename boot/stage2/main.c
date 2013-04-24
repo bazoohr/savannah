@@ -828,7 +828,14 @@ boot_stage2_main (struct boot_stage2_args *boot_args)
   pic_init ();
   ioapic_init ();
   lapic_init();
-  kbd_init ();
+  //kbd_init ();  /* TODO: remove the coment, otherwise we will not have keyboard */
+  /* TODO:
+   * What the hell are we writing!!!! here. Remove the following line
+   * and replace it with something like ioapic_enable_e1000() or something
+   * like that.
+   */
+  ioapic_enable (19, 3);
+  /* ================================ */
   load_all_vms (vms_elf_array, boot_args->boot_stage2_end_addr);
   load_all_vmms (boot_args->vmm_elf_addr, boot_args->boot_stage2_end_addr);
   /* NOTE:

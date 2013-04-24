@@ -257,7 +257,9 @@ static void probe_bus (int busnr)
           pcidev[nr_pcidev].vid, pcidev[nr_pcidev].did, pcidev[nr_pcidev].headt, pcidev[nr_pcidev].sts, pcidev[nr_pcidev].baseclass, pcidev[nr_pcidev].subclass, pcidev[nr_pcidev].infclass, pcidev[nr_pcidev].ipr, pcidev[nr_pcidev].ilr);
       if (pcidev[nr_pcidev].baseclass == SUBCLASS_NET) {
         DEBUG ("Found a network card, setting irq...\n", 0xA);
+        DEBUG ("PCI: interrupt pin = %d line = %d\n", 0xC, PCII_RREG8_(busnr, dev, func, PCI_IPR), PCII_RREG8_(busnr, dev, func, PCI_ILR));
         pci_attr_w8 (nr_pcidev,  PCI_ILR, NET_IRQ);
+        DEBUG ("PCI: interrupt pin = %d line = %d\n", 0xC, PCII_RREG8_(busnr, dev, func, PCI_IPR), PCII_RREG8_(busnr, dev, func, PCI_ILR));
         record_bars (nr_pcidev, PCI_BAR_6);
       //  return;
       }
@@ -280,8 +282,24 @@ print_e1000_reg (void)
   }
 }
 /* ========================================== */
-int
-main (int argc, char **argv)
+void
+pci_get_e1000_reg (phys_addr_t *base, size_t *size)
+{
+  int i;
+  int j;
+  for (i = 0; i < nr_pcidev; i++) {
+    if (pcidev[i].baseclass == SUBCLASS_NET) {
+      for (j = 0; j < pcidev[i].bar_nr; j++) {
+        *base = pcidev[i].bar[j].base;
+        *size = pcidev[i].bar[j].size;
+        return;
+      }
+    }
+  }
+}
+/* ========================================== */
+void
+__pci_init (void)
 {
 	uint32_t bus, dev, func;
 	uint16_t vid, did;
@@ -303,8 +321,4 @@ main (int argc, char **argv)
   }
 
   print_e1000_reg ();
-
-  halt ();
-  panic ("PCI: We should not get to this point");
-  return 0;
 }

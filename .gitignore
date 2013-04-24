@@ -30,6 +30,8 @@ drivers/console/console
 drivers/console/include/asm_boot_stage2_args_const.h
 drivers/console/include/asm_cpu_const.h
 drivers/console/include/asm_frame_const.h
+drivers/pci/pci.a
+drivers/net/e1000/e1000
 
 initrd/create_initrd
 tools/gen_asm_boot_stage2_args_const_h

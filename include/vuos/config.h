@@ -30,7 +30,7 @@
 #define TMR_IRQ 32
 #define KBD_IRQ 33
 #define IPI_IRQ 34
-#define NET_IRQ 35
+#define NET_IRQ 5
 /* ================================== */
 #define BSP_PAGE_SIZE  _2MB_
 #define SRVR_VMS_PAGE_SIZE _2MB_

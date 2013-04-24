@@ -1,0 +1,246 @@
+#include <cdef.h>
+#include <types.h>
+#include <const.h>
+#include <asmfunc.h>
+#include <panic.h>
+#include <ipc.h>
+#include <string.h>
+#include <cpuinfo.h>
+#include <fs.h>
+#include <debug.h>
+#include <channel.h>
+#include <lib_mem.h>
+#include <vuos/vuos.h>
+#include <lapic.h>
+#include <interrupt.h>
+#include <gdt.h>
+
+#include "e1000_reg.h"
+#include "e1000.h"
+/* ========================================== */
+static struct e1000_rx_desc rx_desc[E1000_RXDESC_NR] __aligned (_4KB_);
+static struct e1000_tx_desc tx_desc[E1000_TXDESC_NR] __aligned (_4KB_);
+/* ========================================== */
+static uint8_t rx_buf[E1000_RXDESC_NR * E1000_IOBUF_SIZE] __aligned (_4KB_);
+static uint8_t tx_buf[E1000_TXDESC_NR * E1000_IOBUF_SIZE] __aligned (_4KB_);
+/* ========================================== */
+static phys_addr_t base_reg = 0;
+static phys_addr_t size_reg = 0;
+/* ========================================== */
+void pci_get_e1000_reg (phys_addr_t *base, size_t *size);
+void __pci_init (void);
+/* ========================================== */
+static void
+e1000_reg_write (uint32_t reg, uint32_t value)
+{
+  /* Assume a sane register. */
+  if (reg > 0x1ffff) {
+    panic ("E1000: regs > 0x1ffff");
+  }
+
+  /* Write to memory mapped register. */
+  *(volatile uint32_t *)(base_reg + reg) = value;
+}
+/* ========================================== */
+static uint32_t
+e1000_reg_read(uint32_t reg)
+{
+  uint32_t value;
+
+  /* Assume a sane register. */
+  if (reg >= 0x1ffff) {
+    panic ("E1000: regs < 0x1ffff");
+  }
+
+  /* Read from memory mapped register. */
+  value = *(volatile uint32_t *)(base_reg + reg);
+
+  /* Return the result. */
+  return value;
+}
+/* ========================================== */
+static void
+e1000_reg_set (uint32_t reg, uint32_t value)
+{
+  uint32_t data;
+
+  /* First read the current value. */
+  data = e1000_reg_read (reg);
+
+  /* Set value, and write back. */
+  e1000_reg_write (reg, data | value);
+}
+/* ========================================== */
+static void
+e1000_reg_unset (uint32_t reg, uint32_t value)
+{
+  uint32_t data;
+
+  /* First read the current value. */
+  data = e1000_reg_read (reg);
+
+  /* Unset value, and write back. */
+  e1000_reg_write (reg, data & ~value);
+}
+/* ========================================== */
+static void e1000_reset_hw(void)
+{
+  /* Assert a Device Reset signal. */
+  e1000_reg_set (E1000_REG_CTRL, E1000_REG_CTRL_RST);
+
+  /* TODO:
+   *     Here, we have to wait for 1 micro-second, we should do that
+   *     using timer, but since at the present time we don't have that
+   *     functionality implemented, we use a for loop to make this delay.
+   *     This should be replaced with the proper fuction using lapic timer.
+   */
+  volatile uint64_t i;
+  for (i = 0; i < 999999; i++);
+  /* Wait one microsecond. */
+  //tickdelay(1);
+}
+/* ================================================= */
+static void
+e1000_init_buf (void)
+{
+  int i;
+  phys_addr_t rx_buf_p;
+  phys_addr_t rx_desc_p;
+  phys_addr_t tx_buf_p;
+  phys_addr_t tx_desc_p;
+
+  rx_buf_p = virt2phys (cpuinfo, (virt_addr_t)rx_buf);
+  if (unlikely (rx_buf_p == 0)) {
+    panic ("e1000_init_buf: rx_buf_p = 0");
+  }
+
+  rx_desc_p = virt2phys (cpuinfo, (virt_addr_t)rx_desc);
+  if (unlikely (rx_desc_p == 0)) {
+    panic ("e1000_init_buf: rx_desc_p = 0");
+  }
+
+  tx_buf_p = virt2phys (cpuinfo, (virt_addr_t)tx_buf);
+  if (unlikely (tx_buf_p == 0)) {
+    panic ("e1000_init_buf: tx_buf_p = 0");
+  }
+
+  tx_desc_p = virt2phys (cpuinfo, (virt_addr_t)tx_desc);
+  if (unlikely (tx_desc_p == 0)) {
+    panic ("e1000_init_buf: tx_desc_p = 0");
+  }
+  /* Setup receive descriptors. */
+  for (i = 0; i < E1000_RXDESC_NR; i++) {
+    rx_desc[i].buffer = rx_buf_p + (i * E1000_IOBUF_SIZE);
+  }
+
+  /* Setup transmit descriptors. */
+  for (i = 0; i < E1000_TXDESC_NR; i++) {
+    tx_desc[i].buffer = tx_buf_p + (i * E1000_IOBUF_SIZE);
+  }
+
+  /*
+   * Setup the receive ring registers.
+   */
+  e1000_reg_write(E1000_REG_RDBAL, rx_desc_p);
+  e1000_reg_write(E1000_REG_RDBAH, 0);
+  e1000_reg_write(E1000_REG_RDLEN, E1000_RXDESC_NR * sizeof (struct e1000_rx_desc));
+  e1000_reg_write(E1000_REG_RDH,   0);
+  e1000_reg_write(E1000_REG_RDT,   E1000_RXDESC_NR - 1);
+  e1000_reg_unset(E1000_REG_RCTL,  E1000_REG_RCTL_BSIZE);
+  e1000_reg_set(E1000_REG_RCTL,  E1000_REG_RCTL_EN);
+
+  /*
+   * Setup the transmit ring registers.
+   */
+  e1000_reg_write(E1000_REG_TDBAL, tx_desc_p);
+  e1000_reg_write(E1000_REG_TDBAH, 0);
+  e1000_reg_write(E1000_REG_TDLEN, E1000_TXDESC_NR * sizeof (struct e1000_tx_desc));
+  e1000_reg_write(E1000_REG_TDH,   0);
+  e1000_reg_write(E1000_REG_TDT,   0);
+  e1000_reg_set(  E1000_REG_TCTL,  E1000_REG_TCTL_EN | E1000_REG_TCTL_PSP);
+}
+/* ================================================= */
+static void
+e1000_init (void)
+{
+  int i;
+
+  __pci_init ();
+  pci_get_e1000_reg (&base_reg, &size_reg);
+
+  DEBUG ("size = %x base = %x\n", 0xA, base_reg, size_reg);
+  if (!(e1000_reg_read (E1000_REG_STATUS) & E1000_ENABLED)) {
+    panic ("E1000 is not enabled!");
+  }
+
+  DEBUG ("Status register before reset %x\n", 0xB, e1000_reg_read (E1000_REG_STATUS));
+  e1000_reset_hw ();
+  DEBUG ("Status register after reset %x\n", 0xB, e1000_reg_read (E1000_REG_STATUS));
+  /*
+   * Initialize appropriately, according to section 14.3 General Configuration
+   * of Intel's Gigabit Ethernet Controllers Software Developer's Manual.
+   */
+  e1000_reg_set(E1000_REG_CTRL, E1000_REG_CTRL_ASDE | E1000_REG_CTRL_SLU);
+  e1000_reg_unset(E1000_REG_CTRL, E1000_REG_CTRL_LRST);
+  e1000_reg_unset(E1000_REG_CTRL, E1000_REG_CTRL_PHY_RST);
+  e1000_reg_unset(E1000_REG_CTRL, E1000_REG_CTRL_ILOS);
+  e1000_reg_write(E1000_REG_FCAL, 0);
+  e1000_reg_write(E1000_REG_FCAH, 0);
+  e1000_reg_write(E1000_REG_FCT,  0);
+  e1000_reg_write(E1000_REG_FCTTV, 0);
+  e1000_reg_unset(E1000_REG_CTRL, E1000_REG_CTRL_VME);
+
+  /* Clear Multicast Table Array (MTA). */
+  for (i = 0; i < 128; i++)
+  {
+    e1000_reg_write(E1000_REG_MTA + i, 0);
+  }
+  /* Initialize statistics registers. */
+  for (i = 0; i < 64; i++)
+  {
+    e1000_reg_write(E1000_REG_CRCERRS + (i * 4), 0);
+  }
+
+  /*
+   * We hardcode the mac address here. Our MAC address would be
+   * 52:54:00:12:34:56
+   */
+  e1000_reg_write(E1000_REG_RAL, (uint32_t)0x00123456);
+  e1000_reg_write(E1000_REG_RAH, (uint16_t)0x5254);
+  e1000_reg_set(E1000_REG_RAH,   E1000_REG_RAH_AV);
+  e1000_reg_set(E1000_REG_RCTL,  E1000_REG_RCTL_MPE);
+  DEBUG ("MAC LOW = %x\n", 0xC, e1000_reg_read (E1000_REG_RAL));
+  DEBUG ("MAC HIGH = %x\n", 0xC, e1000_reg_read (E1000_REG_RAH));
+
+  e1000_init_buf ();
+
+  /* Enable interrupts. */
+  e1000_reg_set(E1000_REG_IMS, E1000_REG_IMS_LSC  |
+      E1000_REG_IMS_RXO  |
+      E1000_REG_IMS_RXT  |
+      E1000_REG_IMS_TXQE |
+      E1000_REG_IMS_TXDW);
+}
+/* ========================================== */
+static void rx_packet(void)
+{
+  DEBUG ("Packet received\n", 0xF);
+  lapic_eoi();
+}
+/* ========================================== */
+int
+main (int argc, char **argv)
+{
+  create_default_gdt();
+  interrupt_init();
+  lapic_on();
+  add_irq(32 + 19, &rx_packet);
+  sti();
+
+  e1000_init ();
+  for (;;) {
+    __asm__ __volatile__ ("hlt\n\t");
+  }
+
+  return 0;
+}
