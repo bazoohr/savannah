@@ -10,7 +10,7 @@ for level in 0 1 2 3 ; do
 	make clean
 	make
 	make install
-	make run
+	sudo make run
 done
 
 sed -i s/'OPTLVL = -O.'/"${DEFAULT_OPTLVL}"/  rules.mak

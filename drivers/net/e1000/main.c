@@ -13,10 +13,15 @@
 #include <vuos/vuos.h>
 #include <lapic.h>
 #include <interrupt.h>
+#include <ioapic.h>
 #include <gdt.h>
 
+void print_e1000_reg (void);
 #include "e1000_reg.h"
 #include "e1000.h"
+/* ========================================== */
+#define APIC_ICR_TRIGGER		(1 << 15)
+#define APIC_ICR_INT_MASK		(1 << 16)
 /* ========================================== */
 static struct e1000_rx_desc rx_desc[E1000_RXDESC_NR] __aligned (_4KB_);
 static struct e1000_tx_desc tx_desc[E1000_TXDESC_NR] __aligned (_4KB_);
@@ -130,12 +135,12 @@ e1000_init_buf (void)
   }
   /* Setup receive descriptors. */
   for (i = 0; i < E1000_RXDESC_NR; i++) {
-    rx_desc[i].buffer = rx_buf_p + (i * E1000_IOBUF_SIZE);
+    rx_desc[i].buffer = (uint32_t)((virt_addr_t)rx_buf_p + (i * E1000_IOBUF_SIZE));
   }
 
   /* Setup transmit descriptors. */
   for (i = 0; i < E1000_TXDESC_NR; i++) {
-    tx_desc[i].buffer = tx_buf_p + (i * E1000_IOBUF_SIZE);
+    tx_desc[i].buffer = (uint32_t)((virt_addr_t)tx_buf_p + (i * E1000_IOBUF_SIZE));
   }
 
   /*
@@ -222,19 +227,66 @@ e1000_init (void)
       E1000_REG_IMS_TXDW);
 }
 /* ========================================== */
-static void rx_packet(void)
+void rx_packet(void)
 {
-  DEBUG ("Packet received\n", 0xF);
+  int pin = 19;
+  uint32_t cause;
+  struct e1000_rx_desc *desc;
+  int head, tail, cur;
+
+
+  cause = e1000_reg_read (E1000_REG_ICR);
+
+  //print_e1000_reg ();
+  //DEBUG ("Mask = %x\n", 0xE, ioapic_read (REG_TABLE + 2 * pin));
+  ioapic_enable_pin (pin);
+  e1000_reg_write (0xD8, e1000_reg_read (E1000_REG_ICR));
+  //DEBUG ("Mask = %x\n", 0xE, ioapic_read (REG_TABLE + 2 * pin));
   lapic_eoi();
+
+  DEBUG ("reason = %x\n", 0xF, cause);
+  if (cause & (E1000_REG_ICR_RXO | E1000_REG_ICR_RXT)) {
+    head = e1000_reg_read(E1000_REG_RDH);
+    tail = e1000_reg_read(E1000_REG_RDT);
+    cur  = (tail + 1) % E1000_RXDESC_NR;
+    head--;
+    desc = &rx_desc[head];
+    char *buf = (char *)((uint64_t)(rx_buf + (head * E1000_IOBUF_SIZE)));
+    DEBUG ("head = %d tail = %d curr = %d length = %d (%x %x %x %x)\n", 0x9, head, tail, cur, desc->length, buf[11], buf[12], buf[13], buf[14]);
+  }
+#if 0
+  uint32_t lo = ioapic_read(REG_TABLE+ pin * 2);
+
+  bool is_masked = lo & APIC_ICR_INT_MASK;
+
+  /* set mask and edge */
+  lo |= APIC_ICR_INT_MASK;
+  lo &= ~APIC_ICR_TRIGGER;
+  ioapic_write(REG_TABLE + pin * 2, lo);
+
+  /* set back to level and restore the mask bit */
+  lo = ioapic_read(REG_TABLE + pin * 2);
+
+  lo |= APIC_ICR_TRIGGER;
+  if (is_masked)
+    lo |= APIC_ICR_INT_MASK;
+  else
+    lo &= ~APIC_ICR_INT_MASK;
+  ioapic_write(REG_TABLE +  pin * 2, lo);
+
+  DEBUG ("Mask = %x\n", 0xE, ioapic_read (REG_TABLE + 2 * pin));
+#endif
 }
 /* ========================================== */
 int
 main (int argc, char **argv)
 {
-  create_default_gdt();
-  interrupt_init();
-  lapic_on();
-  add_irq(32 + 19, &rx_packet);
+  create_default_gdt ();
+  interrupt_init ();
+  lapic_on ();
+  add_irq (32 + 19);
+  DEBUG ("Mask = %x\n", 0xE, ioapic_read (REG_TABLE + 2 * (19)));
+
   sti();
 
   e1000_init ();

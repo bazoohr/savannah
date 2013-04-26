@@ -8,8 +8,6 @@
 #include <lapic.h>
 #include <vuos/vuos.h>
 
-void timer_handler (void);
-
 void
 init_timer (void)
 {
@@ -28,7 +26,7 @@ init_timer (void)
   lapic_write (LAPIC_LVTT, vector | LAPIC_LVT_PERIODIC);
   lapic_write (LAPIC_DCR_TIMER, LAPIC_DCRT_DIV16);
 
-  add_irq (vector, &timer_handler);
+  add_irq (vector);
 }
 
 void

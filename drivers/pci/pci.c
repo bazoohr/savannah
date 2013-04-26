@@ -267,7 +267,7 @@ static void probe_bus (int busnr)
     }
   }
 }
-static void
+void
 print_e1000_reg (void)
 {
   int i;
@@ -275,6 +275,8 @@ print_e1000_reg (void)
   for (i = 0; i < nr_pcidev; i++) {
     if (pcidev[i].baseclass == SUBCLASS_NET) {
       for (j = 0; j < pcidev[i].bar_nr; j++) {
+	DEBUG ("Command = %x\t ", 0xE, PCII_RREG16_(pcidev[i].busnr, pcidev[i].dev, pcidev[i].func, PCI_CR));
+	DEBUG ("status= %x\n ", 0xE, PCII_RREG16_(pcidev[i].busnr, pcidev[i].dev, pcidev[i].func, PCI_SR));
         DEBUG ("base = %x\t", 0xA, pcidev[i].bar[j].base);
         DEBUG ("size = %x\n", 0xA, pcidev[i].bar[j].size);
       }

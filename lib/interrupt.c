@@ -60,10 +60,11 @@ idt_init (void)
 	lidt(&idtr);
 }
 
+extern void irq_handler (void);
 void
-add_irq (int vector_idx, void (*handler)(void))
+add_irq (int vector_idx)
 {
-	setgate (vector_idx, (phys_addr_t)handler, IDT_INTR_GATE, KNL_PVL, IST);
+	setgate (vector_idx, (phys_addr_t)irq_handler, IDT_INTR_GATE, KNL_PVL, IST);
 }
 void
 interrupt_init (void)

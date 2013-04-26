@@ -39,7 +39,11 @@ main (int argc, char **argv)
 
   create_default_gdt ();
   interrupt_init ();
-  add_irq (33);
+  /*
+   * TODO:
+   *     add the proper handler here
+   */
+  //add_irq (33, &kbd_handler);
 
   cli ();
 

@@ -11,4 +11,4 @@ ISRENT(name)              \
   POP_FRAME(%rsp);        \
   iretq
 
-ISR(timer_handler, thread_switch_handler)
+ISR(irq_handler, thread_switch_handler)

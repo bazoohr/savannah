@@ -121,9 +121,17 @@ ept_pmap (struct cpu_info * const child_cpu_info)
       USER_VMS_PAGE_SIZE,
       EPT_MTYPE_UC,
       EPT_PAGE_READ | EPT_PAGE_WRITE, MAP_NEW);
+  /*
+   * TODO:
+   *     Normally we should not map IOAPIC memory area for all processes.
+   *     This is a very serious security issue, but at the present time,
+   *     we don't have time and therefore we opt for the easiest solution.
+   *
+   *     We have to address this problem later.
+   */
   ept_map_memory (&child_cpu_info->vm_info.vm_ept,
-      0xFEE00000, ((phys_addr_t)0x100000000),
-      0xFEE00000,
+      0xFEC00000, ((phys_addr_t)0x100000000),
+      0xFEC00000,
       USER_VMS_PAGE_SIZE,
       EPT_MTYPE_UC,
       EPT_PAGE_READ | EPT_PAGE_WRITE, MAP_UPDATE);  /* XXX: Why do we need write access here? */
@@ -926,10 +934,10 @@ void
 vm_main (void)
 {
   int i;
-  //create_default_gdt ();
-  //interrupt_init();
-  //lapic_on ();
-  sti ();
+  create_default_gdt ();
+  interrupt_init();
+  lapic_on ();
+  //sti ();
   //add_irq (35, &int35_handler);
   pm_init ();
 
