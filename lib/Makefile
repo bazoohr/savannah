@@ -17,6 +17,11 @@ SRC = ipc.c misc.c string.c fs.c pm.c asm_lib.S lib_mem.c gdt.c printf.c\
 
 OBJ = $(subst .S,.o,$(filter %.S,$(SRC))) $(subst .c,.o,$(filter %.c,$(SRC)))
 
+all: $(USRLIB) $(LWIPLIB)
+
+$(LWIPLIB):
+	$(call silent_command, $(MAKE) --no-print-directory -C lwip)
+
 $(USRLIB): $(OBJ)
 	$(call silent_command, $(AR) $(ARFLAGS) $@ $(OBJ), "    ARCH  $(MYDIR)$@")
 
@@ -26,6 +31,8 @@ $(USRLIB): $(OBJ)
 .PHONY: distclean
 clean:
 	$(call silent_command, rm -f *.o *.d *.a, "    CLEAN $(MYDIR)")
+	$(call silent_command, $(MAKE) clean --no-print-directory -C lwip)
 distclean:
 	$(call silent_command, rm -f *.o *.d *.a, "    CLEAN ALL $(MYDIR)")
+	$(call silent_command, $(MAKE) distclean --no-print-directory -C lwip)
 

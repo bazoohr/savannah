@@ -6,6 +6,7 @@
 
 void *memcpy(void *dest , const void *src, asize_t count);
 void *memset(void *s, int c, asize_t count);
+int memcmp (const void *cs, const void *ct, size_t count);
 char *strcpy(char *dest, const char *src);
 char *strncpy(char *dest, const char *src, asize_t count);
 int strlen(const char *s);

@@ -17,6 +17,7 @@ fs="fs"
 init="init"
 initrd="initrd.img"
 usrlib="libos.a"
+lwiplib="libip.a"
 pcilib="pci.a"
 bootaps="boot_aps"
 image_name="anarchix.iso"
@@ -91,6 +92,13 @@ for opt do
     fi
     usrlib="$optarg";
   ;;
+  --lwiplib-name=*)
+    if test "$optarg" = ""; then
+      echo "lwip lib name can not be empty string!";
+      exit 1;
+    fi
+    lwiplib="$optarg";
+  ;;
   --pcilib-name=*)
     if test "$optarg" = ""; then
       echo "pci lib name can not be empty string!";
@@ -125,6 +133,7 @@ if test "$show_help" = "yes"; then
   echo "--boot_stage2-name  Change default loader name. Default loader name is \"stage2.bin\"."
   echo "--image-name        Change default image name. Default image name is \"anarchix.iso\"."
   echo "--usrlib-name       Change default user lib name. Default user lib name is \"libos.a\"."
+  echo "--lwiplib-name      Change default user lib name. Default user lib name is \"libip.a\"."
   echo "--pcilib-name       Change default user pci name. Default user lib name is \"pci.a\"."
   echo "--bootaps-name      Change default application processors boot program name. Default user lib name is \"boot_aps\"."
   exit 1;
@@ -200,6 +209,7 @@ echo "export INIT        = $init"     >> $output
 echo "export INITRD      = $initrd"     >> $output
 echo "export IMAGE       = $image_name" >> $output
 echo "export USRLIB      = $usrlib"     >> $output
+echo "export LWIPLIB     = $lwiplib"    >> $output
 echo "export PCILIB      = $pcilib"     >> $output
 echo "export CC          = $compiler"   >> $output
 echo "export CONFIG-MAK  = $output"     >> $output

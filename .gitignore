@@ -61,6 +61,7 @@ kernel/include/asm_kernel_args_const.h
 kernel/include/asm_proc_const.h
 kernel/kernel.bin
 lib/libos.a
+lib/libip.a
 
 bochsrc.txt
 boot/stage1/stage1

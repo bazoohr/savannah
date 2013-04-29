@@ -24,8 +24,12 @@ OBJ = $(subst .S,.o,$(filter %.S,$(SRC))) $(subst .c,.o,$(filter %.c,$(SRC)))
 
 all: $(PROGNAME)
 
+# TODO:
+# e1000 driver should not be linked with lwip. I just put it here to test
+# some functionalities. In case I forget to remove it myself, you remove it
+# if you see this TODO.
 $(PROGNAME): $(OBJ)
-	$(call silent_command, $(LD) $(LDFLAGS) -o $@ $(OBJ) $(ROOT)/drivers/pci/$(PCILIB) $(LIBDIR)/$(USRLIB), "    LINK  $(MYDIR)$@")
+	$(call silent_command, $(LD) $(LDFLAGS) -o $@ $(OBJ) $(ROOT)/drivers/pci/$(PCILIB) $(LIBDIR)/$(LWIPLIB) $(LIBDIR)/$(USRLIB), "    LINK  $(MYDIR)$@")
 
 -include $(subst .c,.d,$(filter %.c,$(SRC)))
 
