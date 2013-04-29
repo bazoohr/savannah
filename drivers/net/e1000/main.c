@@ -227,12 +227,47 @@ e1000_init (void)
       E1000_REG_IMS_TXDW);
 }
 /* ========================================== */
+static void
+e1000_write (char *write_buf)
+{
+  int /*head,*/ tail;
+
+  /* Find the head, tail and current descriptors. */
+  //head =  e1000_reg_read(E1000_REG_TDH);
+  tail =  e1000_reg_read(E1000_REG_TDT);
+
+  /* Copy bytes to TX queue buffers. */
+  memcpy (&tx_buf[tail * E1000_IOBUF_SIZE], write_buf, E1000_IOBUF_SIZE);
+
+  /* Move to next descriptor. */
+  tail   = (tail + 1) % E1000_TXDESC_NR;
+  /* Increment tail. Start transmission. */
+  e1000_reg_write(E1000_REG_TDT,  tail);
+
+  DEBUG ("Packet Sent!\n", 0xA);
+}
+/* ========================================== */
+static void
+e1000_read (void)
+{
+  int head, tail, cur;
+  struct e1000_rx_desc *desc;
+
+  head = e1000_reg_read(E1000_REG_RDH);
+  tail = e1000_reg_read(E1000_REG_RDT);
+  cur  = (tail + 1) % E1000_RXDESC_NR;
+  desc = &rx_desc[tail];
+  char *buf = (char *)((uint64_t)(rx_buf + (cur * E1000_IOBUF_SIZE)));
+  DEBUG ("head = %d tail = %d curr = %d length = %d (%x %x %x %x)\n", 0x9, head, tail, cur, desc->length, buf[11], buf[12], buf[13], buf[14]);
+  /* Increment tail. */
+  e1000_reg_write(E1000_REG_RDT, cur);
+  e1000_write (buf);
+}
+/* ========================================== */
 void rx_packet(void)
 {
   int pin = 19;
   uint32_t cause;
-  struct e1000_rx_desc *desc;
-  int head, tail, cur;
 
 
   cause = e1000_reg_read (E1000_REG_ICR);
@@ -246,13 +281,7 @@ void rx_packet(void)
 
   DEBUG ("reason = %x\n", 0xF, cause);
   if (cause & (E1000_REG_ICR_RXO | E1000_REG_ICR_RXT)) {
-    head = e1000_reg_read(E1000_REG_RDH);
-    tail = e1000_reg_read(E1000_REG_RDT);
-    cur  = (tail + 1) % E1000_RXDESC_NR;
-    head--;
-    desc = &rx_desc[head];
-    char *buf = (char *)((uint64_t)(rx_buf + (head * E1000_IOBUF_SIZE)));
-    DEBUG ("head = %d tail = %d curr = %d length = %d (%x %x %x %x)\n", 0x9, head, tail, cur, desc->length, buf[11], buf[12], buf[13], buf[14]);
+    e1000_read ();
   }
 #if 0
   uint32_t lo = ioapic_read(REG_TABLE+ pin * 2);
