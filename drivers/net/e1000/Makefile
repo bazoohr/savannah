@@ -14,11 +14,11 @@ PROGNAME = e1000
 MYDIR    = drivers/net/e1000/
 LIBDIR = $(ROOT)/lib/
 
-CFLAGS  += -I ./include/ -I $(ROOT)/include/ -I $(ROOT)/lib/include
+CFLAGS  += -I ./include/ -I $(ROOT)/include/ -I $(ROOT)/lib/include -I $(ROOT)/lib/lwip/include/ -I $(ROOT)/lib/lwip/include/ipv4 -I $(ROOT)/lib/lwip/include/ipv6
 ASFLAGS += -I ./include/ -I $(ROOT)/include/ -I $(ROOT)/lib/include
 LDFLAGS += -n -T $(LINK_LD)
 
-SRC = start_off.S main.c e1000_isr.S
+SRC = start_off.S main.c e1000_isr.S lwip-input.c
 
 OBJ = $(subst .S,.o,$(filter %.S,$(SRC))) $(subst .c,.o,$(filter %.c,$(SRC)))
 

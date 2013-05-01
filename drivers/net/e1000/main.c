@@ -17,6 +17,14 @@
 #include <gdt.h>
 
 void print_e1000_reg (void);
+
+
+
+void initialization(void);
+void lwip_input(const char *packet, const int len);
+
+
+
 #include "e1000_reg.h"
 #include "e1000.h"
 /* ========================================== */
@@ -210,8 +218,8 @@ e1000_init (void)
    * We hardcode the mac address here. Our MAC address would be
    * 52:54:00:12:34:56
    */
-  e1000_reg_write(E1000_REG_RAL, (uint32_t)0x00123456);
-  e1000_reg_write(E1000_REG_RAH, (uint16_t)0x5254);
+  e1000_reg_write(E1000_REG_RAL, (uint32_t)0x12005452);
+  e1000_reg_write(E1000_REG_RAH, (uint16_t)0x5634);
   e1000_reg_set(E1000_REG_RAH,   E1000_REG_RAH_AV);
   e1000_reg_set(E1000_REG_RCTL,  E1000_REG_RCTL_MPE);
   DEBUG ("MAC LOW = %x\n", 0xC, e1000_reg_read (E1000_REG_RAL));
@@ -227,8 +235,8 @@ e1000_init (void)
       E1000_REG_IMS_TXDW);
 }
 /* ========================================== */
-static void
-e1000_write (char *write_buf)
+void
+e1000_write (char *write_buf, int len)
 {
   int /*head,*/ tail;
 
@@ -237,31 +245,35 @@ e1000_write (char *write_buf)
   tail =  e1000_reg_read(E1000_REG_TDT);
 
   /* Copy bytes to TX queue buffers. */
-  memcpy (&tx_buf[tail * E1000_IOBUF_SIZE], write_buf, E1000_IOBUF_SIZE);
+  memcpy (&tx_buf[tail * E1000_IOBUF_SIZE], write_buf, len);
 
   /* Move to next descriptor. */
+  tx_desc[tail].status = 0;
+  tx_desc[tail].length = len;
+  tx_desc[tail].command = E1000_TX_CMD_EOP | E1000_TX_CMD_FCS | E1000_TX_CMD_RS;
   tail   = (tail + 1) % E1000_TXDESC_NR;
   /* Increment tail. Start transmission. */
   e1000_reg_write(E1000_REG_TDT,  tail);
-
-  DEBUG ("Packet Sent!\n", 0xA);
 }
 /* ========================================== */
 static void
 e1000_read (void)
 {
-  int head, tail, cur;
+  int tail, cur;
+  static int i = 0;
   struct e1000_rx_desc *desc;
 
-  head = e1000_reg_read(E1000_REG_RDH);
+  DEBUG ("%dth packet received!\n", 0xA, i++);
+
+  //head = e1000_reg_read(E1000_REG_RDH);
   tail = e1000_reg_read(E1000_REG_RDT);
   cur  = (tail + 1) % E1000_RXDESC_NR;
   desc = &rx_desc[tail];
   char *buf = (char *)((uint64_t)(rx_buf + (cur * E1000_IOBUF_SIZE)));
-  DEBUG ("head = %d tail = %d curr = %d length = %d (%x %x %x %x)\n", 0x9, head, tail, cur, desc->length, buf[11], buf[12], buf[13], buf[14]);
   /* Increment tail. */
   e1000_reg_write(E1000_REG_RDT, cur);
-  e1000_write (buf);
+
+  lwip_input (buf, desc->length);
 }
 /* ========================================== */
 void rx_packet(void)
@@ -279,7 +291,6 @@ void rx_packet(void)
   //DEBUG ("Mask = %x\n", 0xE, ioapic_read (REG_TABLE + 2 * pin));
   lapic_eoi();
 
-  DEBUG ("reason = %x\n", 0xF, cause);
   if (cause & (E1000_REG_ICR_RXO | E1000_REG_ICR_RXT)) {
     e1000_read ();
   }
@@ -316,6 +327,7 @@ main (int argc, char **argv)
   add_irq (32 + 19);
   DEBUG ("Mask = %x\n", 0xE, ioapic_read (REG_TABLE + 2 * (19)));
 
+  initialization ();
   sti();
 
   e1000_init ();

@@ -438,6 +438,7 @@ local_fork (const struct cpu_info * const info, const struct fork_ipc * const fo
   child_cpu_info->vm_info.vm_stack_paddr = (phys_addr_t)alloc_mem_pages (pages (parent_cpu_info->vm_info.vm_stack_size, USER_VMS_PAGE_SIZE));
   child_cpu_info->vm_info.vm_stack_vaddr = parent_cpu_info->vm_info.vm_stack_vaddr;
   child_cpu_info->vm_info.vm_stack_size  = parent_cpu_info->vm_info.vm_stack_size;
+
   struct regs *parent_regs = (struct regs *)fork_args->register_array_paddr;
   void *child_rsp_paddr  = (void*)virt2phys (child_cpu_info, parent_regs->rsp);
   void *parent_rsp_paddr = (void*)virt2phys (parent_cpu_info, parent_regs->rsp);
@@ -498,17 +499,20 @@ local_fork (const struct cpu_info * const info, const struct fork_ipc * const fo
   child_cpu_info_ptr = (struct cpu_info **)((phys_addr_t)child_cpu_info->vm_info.vm_bss_paddr + offset);
   *child_cpu_info_ptr = child_cpu_info;
 
-  child_cpu_info->vm_info.vm_regs.rax = 0;
+  child_cpu_info->vm_info.vm_regs.rax = 0;  /* fork return value to the child */
 
 #if 0
-  DEBUG ("code p = %x v = %x\ndata p = %x v = %x\nrodata p = %x v = %x\nbss p = %x v = %x\nstack p = %x v = %x\n pgtb = %x ept = %x\n", 0xF, child_cpu_info->vm_info.vm_code_paddr, child_cpu_info->vm_info.vm_code_vaddr,
+  DEBUG ("code p = %x v = %x\ndata p = %x v = %x\nrodata p = %x v = %x\nbss p = %x v = %x\nstack p = %x v = %x\n"
+         "reg->rsp = %x reg->rbp = %x\npgtb = %x ept = %x\nvm end address = %x\n", 0xF,
+      child_cpu_info->vm_info.vm_code_paddr, child_cpu_info->vm_info.vm_code_vaddr,
       child_cpu_info->vm_info.vm_data_paddr, child_cpu_info->vm_info.vm_data_vaddr,
       child_cpu_info->vm_info.vm_rodata_paddr, child_cpu_info->vm_info.vm_rodata_vaddr,
       child_cpu_info->vm_info.vm_bss_paddr, child_cpu_info->vm_info.vm_bss_vaddr,
       child_cpu_info->vm_info.vm_stack_paddr, child_cpu_info->vm_info.vm_stack_vaddr,
-      child_cpu_info->vm_info.vm_page_tables, child_cpu_info->vm_info.vm_ept);
+      child_cpu_info->vm_info.vm_regs.rsp, child_cpu_info->vm_info.vm_regs.rbp,
+      child_cpu_info->vm_info.vm_page_tables, child_cpu_info->vm_info.vm_ept,
+      child_cpu_info->vm_info.vm_end_vaddr);
   DEBUG ("========================\n", 0xF);
-  __asm__ __volatile__ ("cli;hlt\n\t");
 #endif
   return child_cpu_info->cpuid;
 }
@@ -621,7 +625,7 @@ load_elf (struct cpu_info * const curr_cpu_info, const phys_addr_t elf)
   curr_cpu_info->vm_info.vm_bss_vaddr = s->p_vaddr;
 
   if (likely (s->p_memsz > 0)) {
-    curr_cpu_info->vm_info.vm_bss_paddr = (phys_addr_t)alloc_mem_pages (pages (_2MB_, USER_VMS_PAGE_SIZE));
+    curr_cpu_info->vm_info.vm_bss_paddr = (phys_addr_t)alloc_mem_pages (pages (s->p_memsz, USER_VMS_PAGE_SIZE));
     curr_cpu_info->vm_info.vm_bss_size = s->p_memsz;
     memset ((void*)curr_cpu_info->vm_info.vm_bss_paddr, 0, s->p_memsz);
   }
@@ -654,19 +658,23 @@ load_elf (struct cpu_info * const curr_cpu_info, const phys_addr_t elf)
   if (old_pstack)  free_mem_pages (old_pstack);
   free_page_tables (old_pgtb);
   free_page_tables (old_ept);
-#if 0
-  DEBUG ("code p = %x v = %x\ndata p = %x v = %x\nrodata p = %x v = %x\nbss p = %x v = %x\nstack p = %x v = %x\n", 0xF, curr_cpu_info->vm_info.vm_code_paddr, curr_cpu_info->vm_info.vm_code_vaddr,
+  DEBUG ("code p = %x v = %x\ndata p = %x v = %x\nrodata p = %x v = %x\nbss p = %x v = %x\nstack p = %x v = %x\n"
+         "reg->rsp = %x reg->rbp = %x\npgtb = %x ept = %x\nvm end address = %x\n", 0xF,
+      curr_cpu_info->vm_info.vm_code_paddr, curr_cpu_info->vm_info.vm_code_vaddr,
       curr_cpu_info->vm_info.vm_data_paddr, curr_cpu_info->vm_info.vm_data_vaddr,
       curr_cpu_info->vm_info.vm_rodata_paddr, curr_cpu_info->vm_info.vm_rodata_vaddr,
       curr_cpu_info->vm_info.vm_bss_paddr, curr_cpu_info->vm_info.vm_bss_vaddr,
-      curr_cpu_info->vm_info.vm_stack_paddr, curr_cpu_info->vm_info.vm_stack_vaddr);
+      curr_cpu_info->vm_info.vm_stack_paddr, curr_cpu_info->vm_info.vm_stack_vaddr,
+      curr_cpu_info->vm_info.vm_regs.rsp, curr_cpu_info->vm_info.vm_regs.rbp,
+      curr_cpu_info->vm_info.vm_page_tables, curr_cpu_info->vm_info.vm_ept,
+      curr_cpu_info->vm_info.vm_end_vaddr);
   DEBUG ("========================\n", 0xF);
-#endif
 }
 /* ================================================= */
 static pid_t
 local_exec (struct cpu_info * const info, const struct exec_ipc * const exec_args)
 {
+  DEBUG ("rsp in PM %x\n", 0xE, info->vm_info.vm_regs.rsp);
   aint i;
   aint argc;
   aphys_addr_t *msg_data;
@@ -745,6 +753,7 @@ local_exec (struct cpu_info * const info, const struct exec_ipc * const exec_arg
   info->vm_info.vm_regs.rdx = (phys_addr_t)info;
   info->vm_info.vm_regs.rdi = argc;
   info->vm_info.vm_regs.rsi = argv_virt_ptr;
+  DEBUG ("EXEC done!", 0xE);
   return 0;
 }
 /* ================================================= */

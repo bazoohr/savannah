@@ -87,4 +87,41 @@ print_debug_info (const char* fmt, int color, ...)
 
 	va_end (p);
 }
+
+void
+print_debugf_info (const char* fmt, ...)
+{
+ 	va_list p __aligned (0x10);
+	char ch __aligned (0x10);
+  int color = 0xF;
+
+	va_start (p, fmt);
+
+	while ((ch = *fmt++) != '\0'){
+
+		if (ch != '%'){
+			debug_con_putc (ch, color);
+			continue;
+		}
+
+		switch (*fmt++){
+			case 'c':
+				debug_con_putc (va_arg (p, int), color);
+				break;
+			case 'x':
+				put_hex (va_arg (p, long), color);
+				break;
+      case 'd':
+        put_decimal (va_arg (p, int), color);
+        break;
+			case 's':
+				debug_con_puts (va_arg (p, char*), color);
+				break;
+			default:
+        break;
+		}
+	}
+
+	va_end (p);
+}
 #endif

@@ -7,7 +7,6 @@ virt2phys (struct cpu_info *cpuinfo, virt_addr_t vaddr)
 {
   phys_addr_t paddr;
   size_t offset;
-
 #if 0
   DEBUG ("id = %d vm_start = %x vm_end = %x\n", 0xA, cpuinfo->cpuid, cpuinfo->vm_info.vm_start_vaddr,
       cpuinfo->vm_info.vm_end_vaddr);
@@ -36,12 +35,13 @@ virt2phys (struct cpu_info *cpuinfo, virt_addr_t vaddr)
     paddr = cpuinfo->vm_info.vm_bss_paddr + offset;
     return paddr;
   } else if (vaddr >= cpuinfo->vm_info.vm_stack_vaddr &&
-             vaddr < cpuinfo->vm_info.vm_end_vaddr) {
+             vaddr <= cpuinfo->vm_info.vm_end_vaddr) {
     offset = vaddr - cpuinfo->vm_info.vm_stack_vaddr;
     paddr = cpuinfo->vm_info.vm_stack_paddr + offset;
     return paddr;
   } else {
-    panic ("virt2phys: Virt2Phys: address out of range!");
+    DEBUG ("Stack = %x\tStack End = %x\tBSS = %x\n", 0x9, cpuinfo->vm_info.vm_stack_vaddr, cpuinfo->vm_info.vm_end_vaddr, cpuinfo->vm_info.vm_bss_vaddr);
+    panic ("virt2phys: address %x out of range on core %d!", vaddr, cpuinfo->cpuid);
   }
   return (phys_addr_t)0;
 }
