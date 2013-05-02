@@ -10,7 +10,10 @@ struct ioapic {
   uint32_t data;
 };
 
-static struct  ioapic *ioapic = ((struct ioapic*)0xFEC00000);
+/*
+ * GCC optimize WAY TOO much, so leave this structure as volatile.
+ */
+volatile static struct ioapic * ioapic = ((struct ioapic*)0xFEC00000);
 
 uint32_t
 ioapic_read(uint32_t reg)
@@ -34,7 +37,11 @@ ioapic_enable(uint32_t irq, cpuid_t cpunum)
    *  Check that IRQ does not exceed the maximum number of
    *  supported hw interrupts
    */
-  ioapic_write(REG_TABLE+2*irq, IRQ_OFFSET + irq);
+  /*
+   * HACK:
+   *     First 16 IRQs are eadge triggered, and the rest need to be level triggered!
+   */
+  ioapic_write(REG_TABLE+2*irq, IRQ_OFFSET + (irq | (irq > 16 ? (1 << 15) : 0)));
   ioapic_write(REG_TABLE+2*irq+1, cpunum << 24);
 }
 

@@ -834,7 +834,7 @@ boot_stage2_main (struct boot_stage2_args *boot_args)
    * and replace it with something like ioapic_enable_e1000() or something
    * like that.
    */
-  ioapic_enable (19, 3);
+  //ioapic_enable (19, 3);
   /* ================================ */
   load_all_vms (vms_elf_array, boot_args->boot_stage2_end_addr);
   load_all_vmms (boot_args->vmm_elf_addr, boot_args->boot_stage2_end_addr);

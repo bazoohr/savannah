@@ -322,8 +322,7 @@ main (int argc, char **argv)
   create_default_gdt ();
   interrupt_init ();
   lapic_on ();
-  add_irq (32 + E1000_IRQ);
-  DEBUG ("Mask = %x\n", 0xE, ioapic_read (REG_TABLE + 2 * (E1000_IRQ)));
+  //DEBUG ("Mask = %x\n", 0xE, ioapic_read (REG_TABLE + 2 * (E1000_IRQ)));
 
   initialization ();
   sti();

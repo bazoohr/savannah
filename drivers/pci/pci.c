@@ -10,6 +10,8 @@
 #include <debug.h>
 #include <channel.h>
 #include <vuos/vuos.h>
+#include <ioapic.h>
+#include <interrupt.h>
 /* ========================================== */
 #include "pci.h"
 /* ========================================== */
@@ -257,7 +259,15 @@ static void probe_bus (int busnr)
           pcidev[nr_pcidev].vid, pcidev[nr_pcidev].did, pcidev[nr_pcidev].headt, pcidev[nr_pcidev].sts, pcidev[nr_pcidev].baseclass, pcidev[nr_pcidev].subclass, pcidev[nr_pcidev].infclass, pcidev[nr_pcidev].ipr, pcidev[nr_pcidev].ilr);
       if (pcidev[nr_pcidev].baseclass == SUBCLASS_NET) {
         DEBUG ("Found a network card, setting irq...\n", 0xA);
-        DEBUG ("PCI: interrupt pin = %d line = %d\n", 0xC, PCII_RREG8_(busnr, dev, func, PCI_IPR), PCII_RREG8_(busnr, dev, func, PCI_ILR));
+        DEBUG ("PCI: interrupt pin = %d line = %d dev %d func %d \n", 0xC, PCII_RREG8_(busnr, dev, func, PCI_IPR), PCII_RREG8_(busnr, dev, func, PCI_ILR), dev, func);
+        uint32_t devfunc = ((dev * 8) + func);
+        DEBUG ("Device function = %d\n", 0xC, devfunc);
+        uint8_t pirq = (((devfunc >> 3) + pcidev[nr_pcidev].ipr - 2) & 0x3);
+        DEBUG ("pirq = %d\n", 0xC, pirq);
+        DEBUG ("irq = %d\n", 0xC, pirq + 16);
+        //ioapic_enable(pirq + 16, cpuinfo->cpuid);
+        ioapic_enable (pirq + 16, 3);
+        add_irq (32 + pirq + 16);
         pci_attr_w8 (nr_pcidev,  PCI_ILR, NET_IRQ);
         DEBUG ("PCI: interrupt pin = %d line = %d\n", 0xC, PCII_RREG8_(busnr, dev, func, PCI_IPR), PCII_RREG8_(busnr, dev, func, PCI_ILR));
         record_bars (nr_pcidev, PCI_BAR_6);
