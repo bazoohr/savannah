@@ -24,14 +24,16 @@ uint64_t rdtscp (unsigned int *aux);
 err_t output (struct netif *ni, struct pbuf *p,
                       ip_addr_t *ipaddr)
 {
+#if 0
   struct eth_addr *dst_mac;
   ip_addr_t *dst_ip;
 
   etharp_find_addr(ni, ipaddr, &dst_mac, &dst_ip);
-  DEBUG ("dst_mac: %"X8_F":%"X8_F":%"X8_F":%"X8_F":%"X8_F":%"X8_F"\n", 0xF,
+  DEBUG ("dst_mac: %"X8_F":%"X8_F":%"X8_F":%"X8_F":%"X8_F":%"X8_F"\n", 0xD,
      (unsigned)dst_mac->addr[0], (unsigned)dst_mac->addr[1], (unsigned)dst_mac->addr[2],
      (unsigned)dst_mac->addr[3], (unsigned)dst_mac->addr[4], (unsigned)dst_mac->addr[5]);
-  DEBUG ("first byte = %x dst_ip = %s\n", 0xF, ((char *)p->payload)[0], ipaddr_ntoa(dst_ip));
+  DEBUG ("first byte = %x dst_ip = %s\n", 0xD, ((char *)p->payload)[0], ipaddr_ntoa(dst_ip));
+#endif
   etharp_output(ni, p, ipaddr);
 
   return ERR_OK;

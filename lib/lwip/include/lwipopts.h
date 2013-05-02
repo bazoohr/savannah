@@ -38,7 +38,7 @@
 #ifndef __LWIPOPTS_H__
 #define __LWIPOPTS_H__
 
-//#if 0
+#if 0
 #define LWIP_DEBUG				1
 #define RAW_DEBUG				LWIP_DBG_ON
 #define IP_DEBUG				LWIP_DBG_ON
@@ -53,7 +53,7 @@
 #define UDP_DEBUG				LWIP_DBG_ON
 #define PBUF_DEBUG				LWIP_DBG_ON
 #define TCP_CWND_DEBUG				LWIP_DBG_ON
-//#endif /* 0 */
+#endif /* 0 */
 
 #define LWIP_DBG_TYPES_ON			(LWIP_DBG_ON | LWIP_DBG_TRACE)
 
