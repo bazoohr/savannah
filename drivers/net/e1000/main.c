@@ -15,21 +15,22 @@
 #include <interrupt.h>
 #include <ioapic.h>
 #include <gdt.h>
-
-void print_e1000_reg (void);
-
-
-
-void initialization(void);
-void lwip_input(const char *packet, const int len);
-
-
-
+/* ========================================== */
+extern void print_e1000_reg (void);
+/* ========================================== */
+extern void initialization(void);
+extern void lwip_input(const char *packet, const int len);
+/* ========================================== */
+extern void pci_get_e1000_reg (phys_addr_t *base, size_t *size);
+extern void __pci_init (void);
+/* ========================================== */
 #include "e1000_reg.h"
 #include "e1000.h"
 /* ========================================== */
 #define APIC_ICR_TRIGGER		(1 << 15)
 #define APIC_ICR_INT_MASK		(1 << 16)
+/* ========================================== */
+#define E1000_IRQ 19
 /* ========================================== */
 static struct e1000_rx_desc rx_desc[E1000_RXDESC_NR] __aligned (_4KB_);
 static struct e1000_tx_desc tx_desc[E1000_TXDESC_NR] __aligned (_4KB_);
@@ -39,9 +40,6 @@ static uint8_t tx_buf[E1000_TXDESC_NR * E1000_IOBUF_SIZE] __aligned (_4KB_);
 /* ========================================== */
 static phys_addr_t base_reg = 0;
 static phys_addr_t size_reg = 0;
-/* ========================================== */
-void pci_get_e1000_reg (phys_addr_t *base, size_t *size);
-void __pci_init (void);
 /* ========================================== */
 static void
 e1000_reg_write (uint32_t reg, uint32_t value)
@@ -278,7 +276,7 @@ e1000_read (void)
 /* ========================================== */
 void rx_packet(void)
 {
-  int pin = 19;
+  int pin = E1000_IRQ;
   uint32_t cause;
 
 
@@ -324,8 +322,8 @@ main (int argc, char **argv)
   create_default_gdt ();
   interrupt_init ();
   lapic_on ();
-  add_irq (32 + 19);
-  DEBUG ("Mask = %x\n", 0xE, ioapic_read (REG_TABLE + 2 * (19)));
+  add_irq (32 + E1000_IRQ);
+  DEBUG ("Mask = %x\n", 0xE, ioapic_read (REG_TABLE + 2 * (E1000_IRQ)));
 
   initialization ();
   sti();

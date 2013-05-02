@@ -3,6 +3,7 @@
 #include <lwip/ip.h>
 #include <lwip/sockets.h>
 #include <lwip/udp.h>
+#include <lwip/tcp.h>
 #include <netif/etharp.h>
 #include <debug.h>
 #include <asmfunc.h>
@@ -12,6 +13,8 @@ void e1000_write (char *write_buf, int len);
 
 static struct netif ni;
 static struct udp_pcb *pcb = NULL;
+
+static struct tcp_pcb *tcp_pcb = NULL;
 
 extern uint64_t a, b;
 extern unsigned int aux;
@@ -44,17 +47,68 @@ err_t our_init(struct netif *unused)
 void our_print(void *args, struct udp_pcb *pcb, struct pbuf *p,
                 ip_addr_t *addr, u16_t port)
 {
-  DEBUG ("out_print!!!!\n", 0xF);halt();
-#if 0
-    printf("%c%c%c p->payload = %p new_buf = %p p->len = %d p = %p\n", ((char*)p->payload)[0], ((char*)p->payload)[1], ((char*)p->payload)[2],
-        p->payload, new_buf, p->len, p);fflush (stdout);
-#endif
+    DEBUGF ("%c%c%c p->len = %d p = %p\n", ((char*)p->payload)[0], ((char*)p->payload)[1], ((char*)p->payload)[2],
+        p->len, p);
+    udp_sendto(pcb, p, addr, port);
     //memcpy(new_buf, p->payload, p->len);
 }
 
+err_t tcp_our_print(void *args, struct tcp_pcb *pcb, struct pbuf *p, err_t error)
+{
+  if (pcb == NULL) {
+    panic ("pcb is NULL");
+  }
+
+  if (p != NULL) {
+    DEBUGF ("%c%c%c p->len = %d p = %p\n", ((char*)p->payload)[0], ((char*)p->payload)[1], ((char*)p->payload)[2],
+        p->len, p);
+    //memcpy(new_buf, p->payload, p->len);
+    tcp_write (pcb, p->payload, p->len, TCP_WRITE_FLAG_COPY);
+    tcp_output (pcb);
+  } else {
+    tcp_arg(pcb, NULL);
+    tcp_sent(pcb, NULL);
+    tcp_recv(pcb, NULL);
+    tcp_err(pcb, NULL);
+    tcp_poll(pcb, NULL, 0);
+    tcp_close (pcb);
+  }
+
+  return ERR_OK;
+}
+
+void our_tcp_err (void *args, err_t err)
+{
+  panic ("out_tcp_err");
+  tcp_close (tcp_pcb);
+}
+
+err_t
+our_tcp_sent (void *arg, struct tcp_pcb *tpcb, u16_t len)
+{
+  DEBUG ("OUR_TCP_SENT!!!!!!!\n\n", 0xC);
+  return ERR_OK;
+}
+err_t our_accept (void *arg, struct tcp_pcb *pcb, err_t err)
+{
+  if (pcb == NULL) {
+    panic ("pcb is null in accept");
+  }
+  /* Decrease the listen backlog counter */
+  tcp_accepted(tcp_pcb);
+  tcp_arg (pcb, NULL);
+  tcp_sent (pcb, our_tcp_sent);
+  tcp_recv (pcb, tcp_our_print);
+  tcp_err (pcb, our_tcp_err);
+
+  return ERR_OK;
+}
 
 err_t arp_output (struct netif *netif, struct pbuf *p)
 {
+  if (p == NULL) {
+    panic ("arp_output: pbuf is null");
+  }
   if (p->next != NULL) {
     panic("Packet is too big");
   }
@@ -104,6 +158,11 @@ void initialization(void)
     pcb = udp_new();
     udp_bind(pcb, &ipaddr, 1234);
     udp_recv(pcb, our_print, NULL);
+
+    tcp_pcb = tcp_new ();
+    tcp_bind (tcp_pcb, IP_ADDR_ANY, 80);
+    tcp_pcb = tcp_listen (tcp_pcb);
+    tcp_accept (tcp_pcb, &our_accept);
 }
 
 void lwip_input(const char *packet, const int len) {

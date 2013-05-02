@@ -35,10 +35,9 @@
 #include <types.h>
 #include <debug.h>
 
+#ifdef PERF
 static volatile uint64_t _____perf_rdtscp_before_____;
 static volatile uint64_t _____perf_rdtscp_after_____;
-
-#ifdef PERF
 #define PERF_START  do { \
                          uint32_t hi, lo; \
                          unsigned int aux; \

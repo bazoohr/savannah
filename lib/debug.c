@@ -72,6 +72,7 @@ print_debug_info (const char* fmt, int color, ...)
 				debug_con_putc (va_arg (p, int), color);
 				break;
 			case 'x':
+			case 'p':
 				put_hex (va_arg (p, long), color);
 				break;
       case 'd':
@@ -88,6 +89,10 @@ print_debug_info (const char* fmt, int color, ...)
 	va_end (p);
 }
 
+/*
+ * TODO:
+ *     Just call the previous function with a fixed color
+ */
 void
 print_debugf_info (const char* fmt, ...)
 {
@@ -109,6 +114,7 @@ print_debugf_info (const char* fmt, ...)
 				debug_con_putc (va_arg (p, int), color);
 				break;
 			case 'x':
+			case 'p':
 				put_hex (va_arg (p, long), color);
 				break;
       case 'd':
