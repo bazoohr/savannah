@@ -43,6 +43,7 @@ ioapic_enable(uint32_t irq, cpuid_t cpunum)
    */
   ioapic_write(REG_TABLE+2*irq, IRQ_OFFSET + (irq | (irq > 16 ? (1 << 15) : 0)));
   ioapic_write(REG_TABLE+2*irq+1, cpunum << 24);
+  //ioapic_write(REG_TABLE+2*irq+1, 0xFF << 24);
 }
 
 void

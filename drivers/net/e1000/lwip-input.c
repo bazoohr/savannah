@@ -5,8 +5,10 @@
 #include <lwip/udp.h>
 #include <lwip/tcp.h>
 #include <netif/etharp.h>
+#include <cpuinfo.h>
 #include <debug.h>
 #include <asmfunc.h>
+#include <vuos/vuos.h>
 
 #include <types.h>
 void e1000_write (char *write_buf, int len);
@@ -16,14 +18,14 @@ static struct udp_pcb *pcb = NULL;
 
 static struct tcp_pcb *tcp_pcb = NULL;
 
-extern uint64_t a, b;
-extern unsigned int aux;
+static volatile uint64_t a, b;
 
 uint64_t rdtscp (unsigned int *aux);
 
 err_t output (struct netif *ni, struct pbuf *p,
                       ip_addr_t *ipaddr)
 {
+  unsigned int aux = cpuinfo->cpuid;
 #if 0
   struct eth_addr *dst_mac;
   ip_addr_t *dst_ip;
@@ -35,6 +37,9 @@ err_t output (struct netif *ni, struct pbuf *p,
   DEBUG ("first byte = %x dst_ip = %s\n", 0xD, ((char *)p->payload)[0], ipaddr_ntoa(dst_ip));
 #endif
   etharp_output(ni, p, ipaddr);
+
+  a = rdtscp (&aux);
+//  DEBUG ("ethernet output %d\n", 0xF, (a - b));
 
   return ERR_OK;
 }
@@ -49,22 +54,26 @@ err_t our_init(struct netif *unused)
 void our_print(void *args, struct udp_pcb *pcb, struct pbuf *p,
                 ip_addr_t *addr, u16_t port)
 {
+#if 0
     DEBUGF ("%c%c%c p->len = %d p = %p\n", ((char*)p->payload)[0], ((char*)p->payload)[1], ((char*)p->payload)[2],
         p->len, p);
+#endif
     udp_sendto(pcb, p, addr, port);
     //memcpy(new_buf, p->payload, p->len);
 }
 
 err_t tcp_our_print(void *args, struct tcp_pcb *pcb, struct pbuf *p, err_t error)
 {
-  if (pcb == NULL) {
+  if (unlikely (pcb == NULL)) {
     panic ("pcb is NULL");
   }
 
-  if (p != NULL) {
+  if (likely (p != NULL)) {
+#if 0
     DEBUGF ("%c%c%c p->len = %d p = %p\n", ((char*)p->payload)[0], ((char*)p->payload)[1], ((char*)p->payload)[2],
         p->len, p);
-    //memcpy(new_buf, p->payload, p->len);
+    memcpy(new_buf, p->payload, p->len);
+#endif
     tcp_write (pcb, p->payload, p->len, TCP_WRITE_FLAG_COPY);
     tcp_output (pcb);
   } else {
@@ -88,7 +97,7 @@ void our_tcp_err (void *args, err_t err)
 err_t
 our_tcp_sent (void *arg, struct tcp_pcb *tpcb, u16_t len)
 {
-  DEBUG ("OUR_TCP_SENT!!!!!!!\n\n", 0xC);
+  //DEBUG ("OUR_TCP_SENT!!!!!!!\n\n", 0xC);
   return ERR_OK;
 }
 err_t our_accept (void *arg, struct tcp_pcb *pcb, err_t err)
@@ -108,14 +117,18 @@ err_t our_accept (void *arg, struct tcp_pcb *pcb, err_t err)
 
 err_t arp_output (struct netif *netif, struct pbuf *p)
 {
-  if (p == NULL) {
+  //unsigned int aux = cpuinfo->cpuid;
+  if (unlikely (p == NULL)) {
     panic ("arp_output: pbuf is null");
   }
-  if (p->next != NULL) {
+  if (unlikely (p->next != NULL)) {
     panic("Packet is too big");
   }
 
   e1000_write(p->payload, p->len);
+
+  //a = rdtscp (&aux);
+  //DEBUG ("TOOK %d\n", 0xF, (a - b));
 
   return ERR_OK;
 }
@@ -167,8 +180,10 @@ void initialization(void)
     tcp_accept (tcp_pcb, &our_accept);
 }
 
-void lwip_input(const char *packet, const int len) {
-
+void lwip_input(const char *packet, const int len)
+{
+  unsigned int aux = cpuinfo->cpuid;
+  b = rdtscp (&aux);
     p = pbuf_alloc(PBUF_RAW, len, PBUF_POOL);
     memcpy (p->payload, packet, len);
     //p->tot_len = p->len = len;

@@ -179,14 +179,12 @@ e1000_init (void)
   __pci_init ();
   pci_get_e1000_reg (&base_reg, &size_reg);
 
-  DEBUG ("size = %x base = %x\n", 0xA, base_reg, size_reg);
+//  DEBUG ("size = %x base = %x\n", 0xA, base_reg, size_reg);
   if (!(e1000_reg_read (E1000_REG_STATUS) & E1000_ENABLED)) {
     panic ("E1000 is not enabled!");
   }
 
-  DEBUG ("Status register before reset %x\n", 0xB, e1000_reg_read (E1000_REG_STATUS));
   e1000_reset_hw ();
-  DEBUG ("Status register after reset %x\n", 0xB, e1000_reg_read (E1000_REG_STATUS));
   /*
    * Initialize appropriately, according to section 14.3 General Configuration
    * of Intel's Gigabit Ethernet Controllers Software Developer's Manual.
@@ -220,8 +218,6 @@ e1000_init (void)
   e1000_reg_write(E1000_REG_RAH, (uint16_t)0x5634);
   e1000_reg_set(E1000_REG_RAH,   E1000_REG_RAH_AV);
   e1000_reg_set(E1000_REG_RCTL,  E1000_REG_RCTL_MPE);
-  DEBUG ("MAC LOW = %x\n", 0xC, e1000_reg_read (E1000_REG_RAL));
-  DEBUG ("MAC HIGH = %x\n", 0xC, e1000_reg_read (E1000_REG_RAH));
 
   e1000_init_buf ();
 
@@ -254,14 +250,14 @@ e1000_write (char *write_buf, int len)
   e1000_reg_write(E1000_REG_TDT,  tail);
 }
 /* ========================================== */
-static void
+static __inline void
 e1000_read (void)
 {
   int tail, cur;
-  static int i = 0;
+  //static int i = 0;
   struct e1000_rx_desc *desc;
 
-  DEBUG ("%dth packet received!\n", 0xA, i++);
+  //DEBUG ("%dth packet received!\n", 0xA, i++);
 
   //head = e1000_reg_read(E1000_REG_RDH);
   tail = e1000_reg_read(E1000_REG_RDT);
@@ -276,19 +272,33 @@ e1000_read (void)
 /* ========================================== */
 void rx_packet(void)
 {
-  int pin = E1000_IRQ;
+  //int pin = E1000_IRQ;
   uint32_t cause;
+  //uint32_t mask_read;
+  //uint32_t mask_clear;
 
 
   cause = e1000_reg_read (E1000_REG_ICR);
-
+  DEBUG ("cause = %x\n", 0xA, cause);
   //print_e1000_reg ();
   //DEBUG ("Mask = %x\n", 0xE, ioapic_read (REG_TABLE + 2 * pin));
-  ioapic_enable_pin (pin);
-  e1000_reg_write (0xD8, e1000_reg_read (E1000_REG_ICR));
-  //DEBUG ("Mask = %x\n", 0xE, ioapic_read (REG_TABLE + 2 * pin));
-  lapic_eoi();
-
+  //ioapic_enable_pin (pin);
+  e1000_reg_write (0xD8, e1000_reg_read (E1000_REG_ICR) & (~1));
+  e1000_reg_read (E1000_REG_STATUS); /* Wait for write to be done */
+#if 0
+  e1000_reg_write (0xD8, ~0);
+  e1000_reg_read (E1000_REG_STATUS); /* Wait for write to be done */
+  e1000_reg_write (0xD8, 0);
+  e1000_reg_read (E1000_REG_STATUS); /* Wait for write to be done */
+  /* Enable interrupts. */
+  e1000_reg_set(E1000_REG_IMS, E1000_REG_IMS_LSC  |
+      E1000_REG_IMS_RXO  |
+      E1000_REG_IMS_RXT  |
+      E1000_REG_IMS_TXQE |
+      E1000_REG_IMS_TXDW);
+  e1000_reg_read (E1000_REG_STATUS); /* delay, wait for previous command */
+#endif
+  /* Check to see if data is received or not! */
   if (cause & (E1000_REG_ICR_RXO | E1000_REG_ICR_RXT)) {
     e1000_read ();
   }
@@ -314,6 +324,7 @@ void rx_packet(void)
 
   DEBUG ("Mask = %x\n", 0xE, ioapic_read (REG_TABLE + 2 * pin));
 #endif
+  lapic_eoi ();
 }
 /* ========================================== */
 int
@@ -325,9 +336,14 @@ main (int argc, char **argv)
   //DEBUG ("Mask = %x\n", 0xE, ioapic_read (REG_TABLE + 2 * (E1000_IRQ)));
 
   initialization ();
-  sti();
 
   e1000_init ();
+
+  DEBUG ("My IP address: 192.168.1.2\nMy Mac address: 52:54:00:12:34:56\n", 0xF);
+  DEBUG ("TCP echo server ready on port 80\n", 0xF);
+  DEBUG ("UDP echo server ready on port 1234\n", 0xF);
+
+  sti();
   for (;;) {
     __asm__ __volatile__ ("hlt\n\t");
   }

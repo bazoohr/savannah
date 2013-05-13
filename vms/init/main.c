@@ -71,7 +71,8 @@ vm_main (void)
   a = get_cpu_cycle ();
   DEBUG  ("DONE %d!\n", 0xA, a-b);
 #endif
-  DEBUG  ("Starting E1000 driver... ", 0xF);
+  /* =================================== */
+//  DEBUG  ("Starting E1000 driver... ", 0xF);
   b = rdtscp(&aux);
   pid = fork();
   if (pid == -1) {
@@ -82,7 +83,20 @@ vm_main (void)
     halt ();
   }
   a = rdtscp(&aux);
-  DEBUG  ("DONE %d!\n", 0xA, a-b);
+//  DEBUG  ("DONE %d!\n", 0xA, a-b);
+  /* =================================== */
+//  DEBUG  ("Starting HFT... ", 0xF);
+  b = rdtscp(&aux);
+  pid = fork();
+  if (pid == -1) {
+    panic  ("init %d: Failed to fork for HFT!\n", __LINE__);
+  } else if (pid == 0) {
+    exec("hft", NULL);
+    DEBUG ("FAILED!", 0x4);
+    halt ();
+  }
+  a = rdtscp(&aux);
+//  DEBUG  ("DONE %d!\n", 0xA, a-b);
   halt ();
   /* Launching junk driver */
   DEBUG  ("Starting flooding deamon... ", 0xF);

@@ -63,7 +63,6 @@ exec (char *path, char **argv)
   volatile static uint64_t my_rsp;
 
   __asm__ __volatile__ ("movq %%rsp, %0\n":"=m"(my_rsp));
-  DEBUG ("my_rsp = %x\n", 0xC, my_rsp);
 
   len = strlen(path) > MAX_PATH ? MAX_PATH : strlen(path);
 
@@ -129,7 +128,6 @@ exec (char *path, char **argv)
   );
 
   exec_args.registers = virt2phys(cpuinfo, (virt_addr_t)&registers);
-  DEBUG ("my_rsp = %x\n", 0xC, registers.rsp);
 
   msg_send (PM, EXEC_IPC, &exec_args, sizeof (struct exec_ipc));
   __asm__ __volatile__ (

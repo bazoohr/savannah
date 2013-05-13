@@ -243,8 +243,8 @@ ept_pmap (struct cpu_info * const child_cpu_info)
    *     map it for all processes, and sacrifice security stuff.
    */
   ept_map_memory (&child_cpu_info->vm_info.vm_ept,
-      (phys_addr_t)0xC1000000, (phys_addr_t)0xC1040000,
-      (phys_addr_t)0xC1000000,
+      (phys_addr_t)0xC0000000, (phys_addr_t)0xC6000000,
+      (phys_addr_t)0xC0000000,
       USER_VMS_PAGE_SIZE,
       EPT_MTYPE_UC,
       EPT_PAGE_WRITE | EPT_PAGE_READ, MAP_UPDATE);
@@ -658,6 +658,7 @@ load_elf (struct cpu_info * const curr_cpu_info, const phys_addr_t elf)
   if (old_pstack)  free_mem_pages (old_pstack);
   free_page_tables (old_pgtb);
   free_page_tables (old_ept);
+#if 0
   DEBUG ("code p = %x v = %x\ndata p = %x v = %x\nrodata p = %x v = %x\nbss p = %x v = %x\nstack p = %x v = %x\n"
          "reg->rsp = %x reg->rbp = %x\npgtb = %x ept = %x\nvm end address = %x\n", 0xF,
       curr_cpu_info->vm_info.vm_code_paddr, curr_cpu_info->vm_info.vm_code_vaddr,
@@ -669,12 +670,12 @@ load_elf (struct cpu_info * const curr_cpu_info, const phys_addr_t elf)
       curr_cpu_info->vm_info.vm_page_tables, curr_cpu_info->vm_info.vm_ept,
       curr_cpu_info->vm_info.vm_end_vaddr);
   DEBUG ("========================\n", 0xF);
+#endif
 }
 /* ================================================= */
 static pid_t
 local_exec (struct cpu_info * const info, const struct exec_ipc * const exec_args)
 {
-  DEBUG ("rsp in PM %x\n", 0xE, info->vm_info.vm_regs.rsp);
   aint i;
   aint argc;
   aphys_addr_t *msg_data;
@@ -753,7 +754,6 @@ local_exec (struct cpu_info * const info, const struct exec_ipc * const exec_arg
   info->vm_info.vm_regs.rdx = (phys_addr_t)info;
   info->vm_info.vm_regs.rdi = argc;
   info->vm_info.vm_regs.rsi = argv_virt_ptr;
-  DEBUG ("EXEC done!", 0xE);
   return 0;
 }
 /* ================================================= */

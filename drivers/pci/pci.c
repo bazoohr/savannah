@@ -125,7 +125,7 @@ static int record_bar(int devidx, int bar_nr, int last)
 
 	bar = pci_attr_r32_u(devidx, reg);
   if (bar != 0xFFFFFFFF) {
-    DEBUG ("bar = %x\n", 0xA, bar);
+    //DEBUG ("bar = %x\n", 0xA, bar);
   }
 	if (bar & PCI_BAR_IO) {
 		/* Disable I/O access before probing for BAR's size */
@@ -255,22 +255,29 @@ static void probe_bus (int busnr)
       pcidev[nr_pcidev].ilr = pci_attr_r8_u (nr_pcidev, PCI_ILR);
       pcidev[nr_pcidev].ipr = pci_attr_r8_u (nr_pcidev, PCI_IPR);
 
+#if 0
       DEBUG ("prob_bus: vid = %x did = %x headt = %x sts = %x\nbaseclass = %x subclass = %x infclass = %x\nipr = %x ilr = %x\n================\n", 0xE,
           pcidev[nr_pcidev].vid, pcidev[nr_pcidev].did, pcidev[nr_pcidev].headt, pcidev[nr_pcidev].sts, pcidev[nr_pcidev].baseclass, pcidev[nr_pcidev].subclass, pcidev[nr_pcidev].infclass, pcidev[nr_pcidev].ipr, pcidev[nr_pcidev].ilr);
+#endif
       if (pcidev[nr_pcidev].baseclass == SUBCLASS_NET) {
-        DEBUG ("Found a network card, setting irq...\n", 0xA);
-        DEBUG ("PCI: interrupt pin = %d line = %d dev %d func %d \n", 0xC, PCII_RREG8_(busnr, dev, func, PCI_IPR), PCII_RREG8_(busnr, dev, func, PCI_ILR), dev, func);
+    //    DEBUG ("PCI: interrupt pin = %d line = %d dev %d func %d \n", 0xC, PCII_RREG8_(busnr, dev, func, PCI_IPR), PCII_RREG8_(busnr, dev, func, PCI_ILR), dev, func);
         uint32_t devfunc = ((dev * 8) + func);
-        DEBUG ("Device function = %d\n", 0xC, devfunc);
+   //     DEBUG ("Device function = %d\n", 0xC, devfunc);
         uint8_t pirq = (((devfunc >> 3) + pcidev[nr_pcidev].ipr - 2) & 0x3);
-        DEBUG ("pirq = %d\n", 0xC, pirq);
-        DEBUG ("irq = %d\n", 0xC, pirq + 16);
+   //     DEBUG ("pirq = %d\n", 0xC, pirq);
+        DEBUG ("Found a network card (vid = 0x%x did = 0x%x IRQ = %d)\n", 0xF, pcidev[nr_pcidev].vid, pcidev[nr_pcidev].did, pirq + 16);
         //ioapic_enable(pirq + 16, cpuinfo->cpuid);
         ioapic_enable (pirq + 16, 3);
         add_irq (32 + pirq + 16);
-        pci_attr_w8 (nr_pcidev,  PCI_ILR, NET_IRQ);
-        DEBUG ("PCI: interrupt pin = %d line = %d\n", 0xC, PCII_RREG8_(busnr, dev, func, PCI_IPR), PCII_RREG8_(busnr, dev, func, PCI_ILR));
+        pci_attr_w8 (nr_pcidev,  PCI_ILR, pirq);  /* XXX */
+     //   DEBUG ("PCI: interrupt pin = %d line = %d\n", 0xC, PCII_RREG8_(busnr, dev, func, PCI_IPR), PCII_RREG8_(busnr, dev, func, PCI_ILR));
         record_bars (nr_pcidev, PCI_BAR_6);
+#if 0
+        if (pcidev[nr_pcidev].vid == 0x8086/* && pcidev[nr_pcidev].did == 0x10d3*/) {
+          DEBUG ("Going to break\n", 0xA);
+          break;
+        }
+#endif
       //  return;
       }
       nr_pcidev++;
@@ -285,8 +292,8 @@ print_e1000_reg (void)
   for (i = 0; i < nr_pcidev; i++) {
     if (pcidev[i].baseclass == SUBCLASS_NET) {
       for (j = 0; j < pcidev[i].bar_nr; j++) {
-	DEBUG ("Command = %x\t ", 0xE, PCII_RREG16_(pcidev[i].busnr, pcidev[i].dev, pcidev[i].func, PCI_CR));
-	DEBUG ("status= %x\n ", 0xE, PCII_RREG16_(pcidev[i].busnr, pcidev[i].dev, pcidev[i].func, PCI_SR));
+	DEBUG ("vid = %x\t ", 0xE, pcidev[i].vid);
+	DEBUG ("did = %x\n ", 0xE, pcidev[i].did);
         DEBUG ("base = %x\t", 0xA, pcidev[i].bar[j].base);
         DEBUG ("size = %x\n", 0xA, pcidev[i].bar[j].size);
       }
@@ -308,29 +315,30 @@ pci_get_e1000_reg (phys_addr_t *base, size_t *size)
       }
     }
   }
+  panic ("Could not find e1000 base address and size");
 }
 /* ========================================== */
 void
 __pci_init (void)
 {
 	uint32_t bus, dev, func;
-	uint16_t vid, did;
+//	uint16_t vid, did;
   int i;
 
 	bus= 0;
 	dev= 0;
 	func= 0;
 
-	vid = PCII_RREG16_(bus, dev, func, PCI_VID);
-	did = PCII_RREG16_(bus, dev, func, PCI_DID);
+	/* vid = */PCII_RREG16_(bus, dev, func, PCI_VID);
+	/* did = */PCII_RREG16_(bus, dev, func, PCI_DID);
 	outl (PCII_UNSEL, PCII_CONFADD);
 
-  DEBUG ("PCI: vid = %x did = %x\n", 0xC, vid, did);
+  //DEBUG ("PCI: vid = %x did = %x\n", 0xC, vid, did);
 
   for (i = 0; i < 8; i++) {
-    DEBUG ("BUS number %x\n", 0xC, i);
+    //DEBUG ("BUS number %x\n", 0xC, i);
     probe_bus (i);
   }
 
-  print_e1000_reg ();
+//  print_e1000_reg ();
 }

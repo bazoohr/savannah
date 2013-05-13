@@ -147,7 +147,7 @@ check_cpu_features (void)
     halt ();
   }
 #endif
-  cpu_get_model ();
+/*  cpu_get_model ();*/
 #if 0
   uint32_t eax;
   cpuid (5, &eax, NULL, NULL, NULL);
@@ -174,7 +174,6 @@ boot_loader (unsigned long magic, unsigned long addr)
   clrscr ();  /* Clear the screen. */
   if (cpu_cache_disable ()) {
     cpu_enable_cache ();
-    printf ("enabling cache....");
     if (cpu_cache_disable ()) {
       printf ("Cache is still disabled!");
       halt ();
