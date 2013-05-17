@@ -259,7 +259,7 @@ static void probe_bus (int busnr)
       DEBUG ("prob_bus: vid = %x did = %x headt = %x sts = %x\nbaseclass = %x subclass = %x infclass = %x\nipr = %x ilr = %x\n================\n", 0xE,
           pcidev[nr_pcidev].vid, pcidev[nr_pcidev].did, pcidev[nr_pcidev].headt, pcidev[nr_pcidev].sts, pcidev[nr_pcidev].baseclass, pcidev[nr_pcidev].subclass, pcidev[nr_pcidev].infclass, pcidev[nr_pcidev].ipr, pcidev[nr_pcidev].ilr);
 #endif
-      if (pcidev[nr_pcidev].baseclass == SUBCLASS_NET) {
+      if (pcidev[nr_pcidev].baseclass == SUBCLASS_NET && pcidev[nr_pcidev].vid == 0x8086) {
     //    DEBUG ("PCI: interrupt pin = %d line = %d dev %d func %d \n", 0xC, PCII_RREG8_(busnr, dev, func, PCI_IPR), PCII_RREG8_(busnr, dev, func, PCI_ILR), dev, func);
         uint32_t devfunc = ((dev * 8) + func);
    //     DEBUG ("Device function = %d\n", 0xC, devfunc);
@@ -267,8 +267,14 @@ static void probe_bus (int busnr)
    //     DEBUG ("pirq = %d\n", 0xC, pirq);
         DEBUG ("Found a network card (vid = 0x%x did = 0x%x IRQ = %d)\n", 0xF, pcidev[nr_pcidev].vid, pcidev[nr_pcidev].did, pirq + 16);
         //ioapic_enable(pirq + 16, cpuinfo->cpuid);
-        ioapic_enable (pirq + 16, 3);
-        add_irq (32 + pirq + 16);
+        ioapic_enable (pirq + 0 + 16, 3);
+        ioapic_enable (pirq + 1 + 16, 3);
+        ioapic_enable (pirq + 2 + 16, 3);
+        ioapic_enable (pirq + 3 + 16, 3);
+        add_irq (32 + pirq + 0 + 16);
+        add_irq (32 + pirq + 1 + 16);
+        add_irq (32 + pirq + 2 + 16);
+        add_irq (32 + pirq + 3 + 16);
         pci_attr_w8 (nr_pcidev,  PCI_ILR, pirq);  /* XXX */
      //   DEBUG ("PCI: interrupt pin = %d line = %d\n", 0xC, PCII_RREG8_(busnr, dev, func, PCI_IPR), PCII_RREG8_(busnr, dev, func, PCI_ILR));
         record_bars (nr_pcidev, PCI_BAR_6);

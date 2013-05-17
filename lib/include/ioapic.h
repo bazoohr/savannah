@@ -28,9 +28,11 @@ extern uint32_t ioapicid;
 
 uint32_t ioapic_read(uint32_t reg);
 void ioapic_write(uint32_t reg, uint32_t data);
+uint8_t ioapic_version(void);
 void ioapic_enable(uint32_t irq, cpuid_t cpunum);
 void ioapic_disable(uint32_t irq, cpuid_t cpunum);
 void ioapic_enable_pin (int pin);
 void ioapic_disable_pin (int pin);
+void ioapic_eoi (int vector);
 
 #endif /* __IOAPIC_H__ */

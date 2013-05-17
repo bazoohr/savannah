@@ -25,7 +25,7 @@ uint64_t rdtscp (unsigned int *aux);
 err_t output (struct netif *ni, struct pbuf *p,
                       ip_addr_t *ipaddr)
 {
-  unsigned int aux = cpuinfo->cpuid;
+  //unsigned int aux = cpuinfo->cpuid;
 #if 0
   struct eth_addr *dst_mac;
   ip_addr_t *dst_ip;
@@ -37,9 +37,6 @@ err_t output (struct netif *ni, struct pbuf *p,
   DEBUG ("first byte = %x dst_ip = %s\n", 0xD, ((char *)p->payload)[0], ipaddr_ntoa(dst_ip));
 #endif
   etharp_output(ni, p, ipaddr);
-
-  a = rdtscp (&aux);
-//  DEBUG ("ethernet output %d\n", 0xF, (a - b));
 
   return ERR_OK;
 }
@@ -117,7 +114,7 @@ err_t our_accept (void *arg, struct tcp_pcb *pcb, err_t err)
 
 err_t arp_output (struct netif *netif, struct pbuf *p)
 {
-  //unsigned int aux = cpuinfo->cpuid;
+  unsigned int aux = cpuinfo->cpuid;
   if (unlikely (p == NULL)) {
     panic ("arp_output: pbuf is null");
   }
@@ -127,8 +124,8 @@ err_t arp_output (struct netif *netif, struct pbuf *p)
 
   e1000_write(p->payload, p->len);
 
-  //a = rdtscp (&aux);
-  //DEBUG ("TOOK %d\n", 0xF, (a - b));
+  a = rdtscp (&aux);
+//  DEBUG ("TOOK %d\n", 0xF, (a - b));
 
   return ERR_OK;
 }

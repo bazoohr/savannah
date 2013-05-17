@@ -42,6 +42,7 @@ bin/login
 bin/test
 bin/testfs
 bin/testcnl
+bin/htf
 
 tools/create_initrd
 

@@ -33,8 +33,8 @@ lapic_on (void)
   lapic_write(LAPIC_LDR, ((lapic_read(LAPIC_LDR)&0x00ffffff)|1));
   lapic_write(LAPIC_LVTT, LAPIC_LVT_MASKED);
   lapic_write(LAPIC_PCINT, 4 << 8); /* NMI */
-  lapic_write(LAPIC_LVINT0, LAPIC_LVT_MASKED);
-  lapic_write(LAPIC_LVINT1, LAPIC_LVT_MASKED);
+  lapic_write(LAPIC_LVINT0, LAPIC_LVT_MASKED | (1 << 13));
+  lapic_write(LAPIC_LVINT1, LAPIC_LVT_MASKED | (1 << 13));
   lapic_write(LAPIC_TPRI, 0);
 
   lapic_write(LAPIC_SVR, 39 | LAPIC_SVR_ENABLE);

@@ -83,6 +83,12 @@
 /** Transmit Descriptor Head. */
 #define E1000_REG_TDH		0x03810
 
+/** Receive Data FIFO Head Register */
+#define E1000_REG_RDFH  0x02410
+
+/** Receive Data FIFO Tail Register */
+#define E1000_REG_RDFT  0x02418
+
 /** Transmit Descriptor Tail. */
 #define E1000_REG_TDT		0x03818
 

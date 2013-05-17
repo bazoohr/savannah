@@ -3,6 +3,8 @@
 #include <lapic.h>
 #include <panic.h>
 
+#include <debug.h> /* TODO Remove me */
+
 // IO APIC MMIO structure: write reg, then read or write data.
 struct ioapic {
   uint32_t reg;
@@ -29,6 +31,12 @@ ioapic_write(uint32_t reg, uint32_t data)
   ioapic->data = data;
 }
 
+uint8_t
+ioapic_version(void)
+{
+  return (uint8_t)ioapic_read(REG_VER);
+}
+
 void
 ioapic_enable(uint32_t irq, cpuid_t cpunum)
 {
@@ -41,7 +49,7 @@ ioapic_enable(uint32_t irq, cpuid_t cpunum)
    * HACK:
    *     First 16 IRQs are eadge triggered, and the rest need to be level triggered!
    */
-  ioapic_write(REG_TABLE+2*irq, IRQ_OFFSET + (irq | (irq > 16 ? (1 << 15) : 0)));
+  ioapic_write(REG_TABLE+2*irq, IRQ_OFFSET + (irq | (irq > 16 ? ((1 << 15) | (1 << 13)) : 0)));
   ioapic_write(REG_TABLE+2*irq+1, cpunum << 24);
   //ioapic_write(REG_TABLE+2*irq+1, 0xFF << 24);
 }
@@ -84,4 +92,13 @@ ioapic_disable_pin (int pin)
   lo |= IOAPIC_ICR_INT_MASK;
 
   ioapic_write (REG_TABLE + 2 * pin, lo);
+}
+
+void
+ioapic_eoi (int vector)
+{
+  if (ioapic_version() >= 0x20) {
+    DEBUG ("Something %d\n", 0xE, vector);
+    ioapic_write (0x40, IRQ_OFFSET + vector);
+  }
 }

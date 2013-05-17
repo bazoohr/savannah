@@ -248,12 +248,18 @@ e1000_write (char *write_buf, int len)
   tail   = (tail + 1) % E1000_TXDESC_NR;
   /* Increment tail. Start transmission. */
   e1000_reg_write(E1000_REG_TDT,  tail);
+  //DEBUG ("e1000_write: tail - %d\n", 0x3, tail);
 }
 /* ========================================== */
+//static uint64_t our_total = 0;
 static __inline void
 e1000_read (void)
 {
   int tail, cur;
+  /*
+  uint64_t rdft;
+  uint64_t rdfh;
+  */
   //static int i = 0;
   struct e1000_rx_desc *desc;
 
@@ -266,25 +272,41 @@ e1000_read (void)
   char *buf = (char *)((uint64_t)(rx_buf + (cur * E1000_IOBUF_SIZE)));
   /* Increment tail. */
   e1000_reg_write(E1000_REG_RDT, cur);
+  //DEBUG ("e1000_read: tail - %d cur - %d\n", 0xC, tail, cur);
+#if 0
+  rdft = e1000_reg_read (E1000_REG_RDFT);
+  rdfh = e1000_reg_read (E1000_REG_RDFH);
+#endif
+  //DEBUG ("RDFT = %d\n", 0xD, rdft);
+  //DEBUG ("RDFH = %d\n", 0xD, rdfh);
 
   lwip_input (buf, desc->length);
+  //DEBUG ("retruned from lwip\n", 0xB);
 }
 /* ========================================== */
 void rx_packet(void)
 {
   //int pin = E1000_IRQ;
-  uint32_t cause;
+  //uint32_t cause = 0;
   //uint32_t mask_read;
   //uint32_t mask_clear;
 
 
-  cause = e1000_reg_read (E1000_REG_ICR);
+  while (1) {
+  //cli ();
+  //lapic_eoi ();
+#if 0
+  while (cause == 0) {
+    cause = e1000_reg_read (E1000_REG_ICR);
+  }
   DEBUG ("cause = %x\n", 0xA, cause);
+#endif
   //print_e1000_reg ();
   //DEBUG ("Mask = %x\n", 0xE, ioapic_read (REG_TABLE + 2 * pin));
   //ioapic_enable_pin (pin);
-  e1000_reg_write (0xD8, e1000_reg_read (E1000_REG_ICR) & (~1));
-  e1000_reg_read (E1000_REG_STATUS); /* Wait for write to be done */
+  //e1000_reg_write (0xD8, e1000_reg_read (E1000_REG_ICR) & (~1));
+  //e1000_reg_write (0xD8, ~0);
+  //e1000_reg_read (E1000_REG_STATUS); /* Wait for write to be done */
 #if 0
   e1000_reg_write (0xD8, ~0);
   e1000_reg_read (E1000_REG_STATUS); /* Wait for write to be done */
@@ -299,8 +321,16 @@ void rx_packet(void)
   e1000_reg_read (E1000_REG_STATUS); /* delay, wait for previous command */
 #endif
   /* Check to see if data is received or not! */
-  if (cause & (E1000_REG_ICR_RXO | E1000_REG_ICR_RXT)) {
-    e1000_read ();
+  //if (cause & (E1000_REG_ICR_RXO | E1000_REG_ICR_RXT)) {
+    uint64_t missed_packets;
+    uint64_t i;
+
+    missed_packets = e1000_reg_read (E1000_REG_TPR);
+    for (i = 0; i < missed_packets; i++) {
+      e1000_read ();
+    }
+  //}
+  //cause = 0;
   }
 #if 0
   uint32_t lo = ioapic_read(REG_TABLE+ pin * 2);
@@ -324,7 +354,13 @@ void rx_packet(void)
 
   DEBUG ("Mask = %x\n", 0xE, ioapic_read (REG_TABLE + 2 * pin));
 #endif
-  lapic_eoi ();
+  e1000_reg_set(E1000_REG_IMS, E1000_REG_IMS_LSC  |
+      E1000_REG_IMS_RXO  |
+      E1000_REG_IMS_RXT  |
+      E1000_REG_IMS_TXQE |
+      E1000_REG_IMS_TXDW);
+  sti();
+  e1000_reg_read (E1000_REG_STATUS); /* Wait for write to be done */
 }
 /* ========================================== */
 int
@@ -339,11 +375,12 @@ main (int argc, char **argv)
 
   e1000_init ();
 
+  //sti();
   DEBUG ("My IP address: 192.168.1.2\nMy Mac address: 52:54:00:12:34:56\n", 0xF);
   DEBUG ("TCP echo server ready on port 80\n", 0xF);
   DEBUG ("UDP echo server ready on port 1234\n", 0xF);
 
-  sti();
+  rx_packet();
   for (;;) {
     __asm__ __volatile__ ("hlt\n\t");
   }
