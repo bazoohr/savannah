@@ -181,8 +181,10 @@ void lwip_input(const char *packet, const int len)
 {
   unsigned int aux = cpuinfo->cpuid;
   b = rdtscp (&aux);
-    p = pbuf_alloc(PBUF_RAW, len, PBUF_POOL);
-    memcpy (p->payload, packet, len);
+//    p = pbuf_alloc(PBUF_RAW, len, PBUF_POOL);
+    p = pbuf_alloc(PBUF_RAW, len, PBUF_REF);
+    //memcpy (p->payload, packet, len);
+    p->payload = (char *)packet;
     //p->tot_len = p->len = len;
 /*
     p->payload = (char*)packet;

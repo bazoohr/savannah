@@ -564,7 +564,10 @@ pbuf_header(struct pbuf *p, s16_t header_size_increment)
     } else {
       /* cannot expand payload to front (yet!)
        * bail out unsuccesfully */
-      return 1;
+      /* XXX We added this because we know that in our system this is a safe
+       * operation */
+      p->payload = (u8_t *)p->payload - header_size_increment;
+      //return 1;
     }
   } else {
     /* Unknown type */
